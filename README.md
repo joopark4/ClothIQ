@@ -1,2 +1,2 @@
 # ClothIQ-ClaudeCode
-ClaudeCode로 작성된 옷 사이즈 측정 앱
+iOS용 옷 사이즈 측정 앱
