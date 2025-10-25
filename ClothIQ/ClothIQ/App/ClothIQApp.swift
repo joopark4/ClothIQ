@@ -4,6 +4,10 @@
 //
 //  Created by EUN YEON on 10/22/25.
 //
+//  Description:
+//  ClothIQ 앱의 진입점입니다.
+//  SwiftData ModelContainer를 설정하고 앱의 생명주기를 관리합니다.
+//
 
 import SwiftUI
 import SwiftData
@@ -12,7 +16,9 @@ import SwiftData
 struct ClothIQApp: App {
     var sharedModelContainer: ModelContainer = {
         let schema = Schema([
-            Item.self,
+            ClothingItemModel.self,
+            MeasurementModel.self,
+            TagModel.self
         ])
         let modelConfiguration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
 
@@ -25,7 +31,7 @@ struct ClothIQApp: App {
 
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            AppContainerView()
         }
         .modelContainer(sharedModelContainer)
     }
