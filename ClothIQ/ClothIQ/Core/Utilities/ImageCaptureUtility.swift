@@ -62,9 +62,48 @@ struct ImageCaptureUtility {
             return nil
         }
 
-        // 올바른 방향으로 회전
-        let orientation = UIImage.Orientation.right // Portrait 모드 기준
+        // 디바이스 방향에 따른 이미지 방향 설정
+        let orientation = imageOrientationFromDeviceOrientation()
         return UIImage(cgImage: cgImage, scale: 1.0, orientation: orientation)
+    }
+
+    /// 디바이스 방향에 따른 UIImage.Orientation 반환
+    private static func imageOrientationFromDeviceOrientation() -> UIImage.Orientation {
+        let deviceOrientation = UIDevice.current.orientation
+
+        switch deviceOrientation {
+        case .portrait:
+            return .right  // 세로 정방향
+        case .portraitUpsideDown:
+            return .left   // 세로 역방향
+        case .landscapeLeft:
+            return .up     // 가로 왼쪽 (홈 버튼 오른쪽)
+        case .landscapeRight:
+            return .down   // 가로 오른쪽 (홈 버튼 왼쪽)
+        case .faceUp, .faceDown, .unknown:
+            // 알 수 없는 방향일 때 interface orientation 체크
+            if let windowScene = UIApplication.shared.connectedScenes
+                .compactMap({ $0 as? UIWindowScene })
+                .first {
+                switch windowScene.interfaceOrientation {
+                case .portrait:
+                    return .right
+                case .portraitUpsideDown:
+                    return .left
+                case .landscapeLeft:
+                    return .up
+                case .landscapeRight:
+                    return .down
+                case .unknown:
+                    return .right  // 기본값: 세로
+                @unknown default:
+                    return .right
+                }
+            }
+            return .right  // 기본값: 세로
+        @unknown default:
+            return .right  // 기본값: 세로
+        }
     }
 
     // MARK: - Image Processing

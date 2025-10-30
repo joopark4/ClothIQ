@@ -90,6 +90,7 @@ enum DeviceCapability {
         AVCaptureDevice.authorizationStatus(for: .video)
     }
 
+
     // MARK: - Photo Library Support
 
     /// 사진 라이브러리 사용 가능 여부

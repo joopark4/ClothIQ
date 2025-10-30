@@ -56,22 +56,7 @@ struct ARViewContainer: UIViewRepresentable {
         let arView = ARView(frame: .zero)
 
         // AR 세션 설정
-        let configuration = ARWorldTrackingConfiguration()
-
-        // LiDAR Scene Depth 활성화
-        if ARWorldTrackingConfiguration.supportsFrameSemantics(.sceneDepth) {
-            configuration.frameSemantics.insert(.sceneDepth)
-        }
-
-        if ARWorldTrackingConfiguration.supportsFrameSemantics(.smoothedSceneDepth) {
-            configuration.frameSemantics.insert(.smoothedSceneDepth)
-        }
-
-        // 평면 감지 활성화 (선택적)
-        configuration.planeDetection = [.horizontal, .vertical]
-
-        // 환경 텍스처링 활성화
-        configuration.environmentTexturing = .automatic
+        let configuration = configureARSession()
 
         // AR 세션 실행
         arView.session.run(configuration)
@@ -140,6 +125,32 @@ struct ARViewContainer: UIViewRepresentable {
                 print("⚠️ [ARViewContainer] 이미 캡처 중 - 건너뜀")
             }
         }
+    }
+
+    // MARK: - AR Configuration
+
+    /// AR 세션 설정
+    ///
+    /// - Returns: ARWorldTrackingConfiguration
+    private func configureARSession() -> ARWorldTrackingConfiguration {
+        let configuration = ARWorldTrackingConfiguration()
+
+        // LiDAR Scene Depth 활성화
+        if ARWorldTrackingConfiguration.supportsFrameSemantics(.sceneDepth) {
+            configuration.frameSemantics.insert(.sceneDepth)
+        }
+
+        if ARWorldTrackingConfiguration.supportsFrameSemantics(.smoothedSceneDepth) {
+            configuration.frameSemantics.insert(.smoothedSceneDepth)
+        }
+
+        // 평면 감지 활성화
+        configuration.planeDetection = [.horizontal, .vertical]
+
+        // 환경 텍스처링 활성화
+        configuration.environmentTexturing = .automatic
+
+        return configuration
     }
 
     func makeCoordinator() -> Coordinator {

@@ -467,6 +467,8 @@ final class ForegroundSegmentationService {
 
     /// 컨투어 면적 계산 (정규화 좌표 기준)
     private func contourArea(_ contour: VNContour) -> CGFloat {
+        // Normalized points를 실제 픽셀 좌표로 변환하지 않고
+        // 정규화된 공간에서 면적 계산 (0-1 범위)
         let points = contour.normalizedPoints.map { vector_float2 in
             CGPoint(x: CGFloat(vector_float2.x), y: CGFloat(vector_float2.y))
         }
@@ -479,6 +481,8 @@ final class ForegroundSegmentationService {
             area += (current.x * next.y) - (next.x * current.y)
         }
 
+        // 정규화된 면적 (0-1 범위의 비율)
+        // 예: 0.1 = 전체 이미지의 10%를 차지
         return abs(area) * 0.5
     }
 
@@ -522,10 +526,17 @@ final class ForegroundSegmentationService {
         let bbox = rectangle.boundingBox
 
         // Vision 좌표계 (원점이 좌측 하단) -> 이미지 좌표계 (원점이 좌측 상단) 변환
-        let minX = Int(bbox.minX * CGFloat(width))
-        let maxX = Int(bbox.maxX * CGFloat(width))
-        let minY = Int((1.0 - bbox.maxY) * CGFloat(height))  // Y축 반전
-        let maxY = Int((1.0 - bbox.minY) * CGFloat(height))  // Y축 반전
+        let minX = max(0, Int(bbox.minX * CGFloat(width)))
+        let maxX = min(width, Int(bbox.maxX * CGFloat(width)))
+
+        // Y축 반전 및 정확한 순서 보장
+        // Vision: minY(bottom) < maxY(top) -> Image: top < bottom
+        let topY = Int((1.0 - bbox.maxY) * CGFloat(height))  // bbox.maxY(Vision top) -> image top
+        let bottomY = Int((1.0 - bbox.minY) * CGFloat(height))  // bbox.minY(Vision bottom) -> image bottom
+
+        // 안전한 범위 설정 (topY < bottomY 보장)
+        let minY = max(0, min(topY, bottomY))
+        let maxY = min(height, max(topY, bottomY))
 
         for y in minY..<maxY {
             guard y >= 0, y < height else { continue }

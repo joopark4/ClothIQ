@@ -17,6 +17,7 @@
 
 import Foundation
 import SwiftData
+import UIKit
 
 /// 의류 아이템 데이터 모델
 ///
@@ -28,7 +29,7 @@ import SwiftData
 /// - `tags`: N:M (의류 아이템과 태그는 다대다 관계)
 ///
 @Model
-final class ClothingItemModel {
+final class ClothingItemModel: Hashable {
     /// 고유 식별자
     var id: UUID
 
@@ -127,5 +128,24 @@ extension ClothingItemModel {
         }.count
 
         return Double(completedCount) / Double(requiredCount)
+    }
+
+    /// 완료된 측정 항목 개수
+    var completedMeasurements: Int {
+        guard let clothingType = clothingType else { return 0 }
+        return clothingType.requiredMeasurements.filter { measurementType in
+            measurements.contains { $0.type == measurementType.rawValue }
+        }.count
+    }
+
+    /// 필수 측정 항목 총 개수
+    var totalRequiredMeasurements: Int {
+        clothingType?.requiredMeasurements.count ?? 0
+    }
+
+    /// 저장된 이미지 로드
+    func loadImage() -> UIImage? {
+        guard let imagePath = imagePath else { return nil }
+        return try? ImageFileManager.shared.loadImage(at: imagePath)
     }
 }

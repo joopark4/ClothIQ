@@ -25,6 +25,8 @@ import SwiftUI
 struct MeasurementView: View {
     @StateObject private var viewModel: MeasurementViewModelRefactored
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.modelContext) private var modelContext
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     @State private var currentDepthData: CVPixelBuffer?
     @State private var currentForegroundMask: CVPixelBuffer?
     @State private var isUpdatingMask = false
@@ -39,7 +41,11 @@ struct MeasurementView: View {
     private let segmentationQueue = DispatchQueue(label: "com.clothiq.segmentation", qos: .userInitiated)
 
     init(clothingType: ClothingType? = .shortSleeve) {
-        _viewModel = StateObject(wrappedValue: MeasurementViewModelRefactored(clothingType: clothingType))
+        // ModelContext를 나중에 설정하기 위해 일단 nil로 초기화
+        _viewModel = StateObject(wrappedValue: MeasurementViewModelRefactored(
+            clothingType: clothingType,
+            modelContext: nil
+        ))
         segmentationService.enableObjectClassification = false
     }
 
@@ -150,6 +156,10 @@ struct MeasurementView: View {
             }
         }
         .navigationBarBackButtonHidden(true)
+        .onAppear {
+            // ModelContext 설정
+            viewModel.modelContext = modelContext
+        }
     }
 
     // MARK: - Header View
@@ -171,6 +181,7 @@ struct MeasurementView: View {
     // MARK: - Capture Controls
 
     private var captureControlView: some View {
+        // 촬영 버튼
         Button(action: viewModel.captureImage) {
             ZStack {
                 Circle()

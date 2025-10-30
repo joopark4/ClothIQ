@@ -20,6 +20,7 @@ import Foundation
 import Combine
 import ARKit
 import SwiftUI
+import SwiftData
 import UIKit
 
 /// 측정 화면 ViewModel (리팩토링 버전)
@@ -71,36 +72,41 @@ final class MeasurementViewModelRefactored: ObservableObject {
     /// 캡처된 이미지
     @Published var capturedImage: UIImage?
 
+    /// 임시 저장할 처리된 이미지
+    @Published var processedImageToSave: UIImage?
+
     // MARK: - Private Properties
 
     private let measurementService: ARMeasurementServiceProtocol
     private let imageFileManager: ImageFileManager
     private let objectCaptureService: ObjectCaptureService
     private let photoLibraryService: PhotoLibraryService
+    var modelContext: ModelContext?
     private var cancellables = Set<AnyCancellable>()
     private var hasShownOrientationWarning = false
     private var lastTemporaryCaptureURL: URL?
 
     // MARK: - Initialization
 
+    @MainActor
     init(
         clothingType: ClothingType? = nil,
-        measurementService: ARMeasurementServiceProtocol = ARMeasurementService(),
-        imageFileManager: ImageFileManager = .shared,
-        objectCaptureService: ObjectCaptureService = ObjectCaptureService(),
-        photoLibraryService: PhotoLibraryService = .shared
+        modelContext: ModelContext? = nil
     ) {
         self.session = MeasurementSession(clothingType: clothingType)
-        self.measurementService = measurementService
-        self.imageFileManager = imageFileManager
-        self.objectCaptureService = objectCaptureService
-        self.photoLibraryService = photoLibraryService
+        self.modelContext = modelContext
+        self.measurementService = ARMeasurementService()
+        self.imageFileManager = .shared
+        self.objectCaptureService = ObjectCaptureService()
+        self.photoLibraryService = .shared
 
         setupOrientationMonitoring()
     }
 
     deinit {
-        UIDevice.current.endGeneratingDeviceOrientationNotifications()
+        Task { @MainActor in
+            UIDevice.current.endGeneratingDeviceOrientationNotifications()
+        }
     }
 
     // MARK: - AR Session Management
@@ -270,7 +276,9 @@ final class MeasurementViewModelRefactored: ObservableObject {
 
         session.complete()
         session.state = .reviewing
-        showSuccess("측정이 완료되었습니다!")
+
+        // SwiftData에 저장
+        saveToSwiftData()
     }
 
     // MARK: - Environment Assessment
@@ -380,7 +388,8 @@ final class MeasurementViewModelRefactored: ObservableObject {
             if let windowScene = UIApplication.shared.connectedScenes
                 .compactMap({ $0 as? UIWindowScene })
                 .first {
-                switch windowScene.interfaceOrientation {
+                let orientation = windowScene.effectiveGeometry.interfaceOrientation
+                switch orientation {
                 case .landscapeLeft, .landscapeRight:
                     isLandscape = true
                     isPortrait = false
@@ -393,15 +402,17 @@ final class MeasurementViewModelRefactored: ObservableObject {
             }
         }
 
+        // 모든 방향 허용 - 가로/세로 모두 정상 촬영 가능
         if isLandscape {
             if !hasShownOrientationWarning {
-                showError("기기가 가로 모드입니다. 측정 정확도를 위해 세로 방향으로 전환해주세요.")
+                // 가로 모드도 지원한다는 안내 메시지
+                showSuccess("가로 모드로 촬영이 가능합니다.")
                 hasShownOrientationWarning = true
             }
-            return false
+            return true  // 가로 모드 허용
         } else if isPortrait {
             if hasShownOrientationWarning {
-                showSuccess("세로 방향이 감지되었습니다. 측정을 계속 진행할 수 있어요.")
+                showSuccess("세로 모드로 촬영이 가능합니다.")
                 hasShownOrientationWarning = false
             }
             return true
@@ -478,41 +489,57 @@ final class MeasurementViewModelRefactored: ObservableObject {
         // 이전 임시 파일 정리
         cleanupTemporaryCaptureFile()
 
-        objectCaptureService.runPostCaptureWorkflow(from: image, depthMap: depthMap) { [weak self] result in
+        // processImage 사용으로 변경 (테스트 뷰와 동일한 고품질 처리)
+        let startTime = Date()
+        objectCaptureService.processImage(image, depthMap: depthMap) { [weak self] result in
             guard let self = self else { return }
 
             Task { @MainActor in
                 self.isLoading = false
+                let processingTime = Date().timeIntervalSince(startTime)
 
                 switch result {
-                case .success(let workflowResult):
-                    let processedImage = workflowResult.backgroundRemovedImage
+                case .success(let processedImage):
                     print("✅ 배경 제거 완료 - 크기: \(processedImage.size)")
-                    print("⏱️ 전체 처리 시간: \(String(format: "%.2f", workflowResult.processingTime))초")
+                    print("⏱️ 전체 처리 시간: \(String(format: "%.2f", processingTime))초")
 
-                    // 임시 JPEG 경로 저장 (다음 캡처 전까지 유지)
-                    self.lastTemporaryCaptureURL = workflowResult.temporaryJPEGURL
-                    print("📂 임시 JPEG 경로: \(workflowResult.temporaryJPEGURL.lastPathComponent)")
+                    // 임시 JPEG 저장 (Photos 앱 저장용)
+                    if let jpegData = processedImage.jpegData(compressionQuality: 0.95),
+                       let tempURL = try? self.createTemporaryJPEGURL() {
+                        do {
+                            try jpegData.write(to: tempURL)
+                            self.lastTemporaryCaptureURL = tempURL
+                            print("📂 임시 JPEG 저장: \(tempURL.lastPathComponent)")
+                        } catch {
+                            print("❌ 임시 JPEG 저장 실패: \(error)")
+                        }
+                    }
 
                     // 처리된 이미지 상태 업데이트
                     self.capturedImage = processedImage
+                    self.processedImageToSave = processedImage
+
+                    // LiDAR 측정 자동 시도 (선택 사항, 실패해도 진행)
+                    // TODO: 자동 측정 로직 추가 가능
 
                     // Photos 앱에 최종 이미지 저장
                     print("💾 Photos 앱 저장 시작...")
                     self.saveToPhotosApp(processedImage)
 
-                    // 로컬 파일 시스템 백업 (백그라운드 처리)
-                    Task.detached(priority: .utility) { [weak self] in
-                        guard let data = ImageCaptureUtility.optimizeImage(processedImage, quality: .high) else {
-                            print("❌ 처리된 이미지 최적화 실패")
-                            return
-                        }
+                    // 의류 타입 자동 감지 및 SwiftData 저장
+                    print("🔍 의류 타입 자동 감지 시작...")
+                    let classifier = VisionClothingClassifier()
+                    let result = classifier.classify(image: processedImage)
 
-                        await MainActor.run {
-                            guard let self else { return }
-                            self.session.capturedImageData = data
-                            print("✅ 로컬 파일 시스템 백업 완료")
-                        }
+                    print(classifier.debugDescription(for: result))
+
+                    // 자동 감지된 타입으로 저장
+                    self.saveWithClothingType(result.type)
+
+                    // 성공 메시지 표시 (감지된 타입 포함)
+                    self.successMessage = "이미지가 캡처되었습니다\n의류 타입: \(result.type.displayName)"
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 2.5) {
+                        self.successMessage = nil
                     }
 
                 case .failure(let error):
@@ -621,6 +648,13 @@ final class MeasurementViewModelRefactored: ObservableObject {
         }
     }
 
+    /// 임시 JPEG URL 생성
+    private func createTemporaryJPEGURL() throws -> URL {
+        let tempDirectory = FileManager.default.temporaryDirectory
+        let fileName = "capture_\(UUID().uuidString).jpg"
+        return tempDirectory.appendingPathComponent(fileName)
+    }
+
     /// 임시로 저장된 캡처 이미지를 정리합니다.
     private func cleanupTemporaryCaptureFile() {
         guard let url = lastTemporaryCaptureURL else { return }
@@ -633,6 +667,144 @@ final class MeasurementViewModelRefactored: ObservableObject {
         }
 
         lastTemporaryCaptureURL = nil
+    }
+
+    // MARK: - SwiftData Save
+
+    /// 의류 타입 선택 후 즉시 저장
+    func saveWithClothingType(_ clothingType: ClothingType) {
+        guard let modelContext = modelContext else {
+            showError("데이터 저장 환경이 준비되지 않았습니다")
+            return
+        }
+
+        guard let processedImage = processedImageToSave else {
+            showError("저장할 이미지가 없습니다")
+            return
+        }
+
+        // 의류 타입 설정
+        session.clothingType = clothingType
+
+        // ClothingItemModel 생성
+        let clothingItem = ClothingItemModel(
+            type: clothingType.rawValue,
+            imagePath: nil,
+            notes: nil
+        )
+
+        // 이미지 저장
+        do {
+            print("📸 이미지 저장 시작 - 크기: \(processedImage.size)")
+            let relativePath = try imageFileManager.saveImage(processedImage, quality: .high)
+            clothingItem.imagePath = relativePath
+            print("✅ 이미지 파일 저장됨: \(relativePath)")
+
+            // 저장 확인
+            if let testImage = try? imageFileManager.loadImage(at: relativePath) {
+                print("✅ 저장된 이미지 검증 성공 - 크기: \(testImage.size)")
+            } else {
+                print("❌ 저장된 이미지 검증 실패")
+            }
+        } catch {
+            print("❌ 이미지 파일 저장 실패: \(error)")
+            // 이미지 저장 실패해도 계속 진행
+        }
+
+        // 측정값이 있다면 추가 (자동 측정이 성공한 경우)
+        for (type, value) in session.measurements {
+            let measurement = MeasurementModel(
+                type: type.rawValue,
+                value: value,
+                unit: "cm",
+                confidence: Double(overallConfidence)
+            )
+            clothingItem.measurements.append(measurement)
+            measurement.clothingItem = clothingItem
+        }
+
+        // SwiftData에 저장
+        modelContext.insert(clothingItem)
+
+        do {
+            try modelContext.save()
+            print("✅ SwiftData 저장 완료")
+            successMessage = "저장되었습니다"
+
+            // 저장 후 정리
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
+                self.successMessage = nil
+                self.processedImageToSave = nil
+            }
+        } catch {
+            print("❌ SwiftData 저장 실패: \(error)")
+            showError("저장에 실패했습니다: \(error.localizedDescription)")
+        }
+    }
+
+    /// 측정 데이터를 SwiftData에 저장 (기존 메서드, 측정 완료 시 사용)
+    private func saveToSwiftData() {
+        guard let modelContext = modelContext else {
+            showError("데이터 저장 환경이 준비되지 않았습니다")
+            return
+        }
+
+        guard let clothingType = session.clothingType else {
+            showError("의류 타입이 선택되지 않았습니다")
+            return
+        }
+
+        // ClothingItemModel 생성
+        let clothingItem = ClothingItemModel(
+            type: clothingType.rawValue,
+            imagePath: nil,
+            notes: nil
+        )
+
+        // 이미지 저장
+        if let capturedImage = capturedImage {
+            do {
+                let relativePath = try imageFileManager.saveImage(capturedImage, quality: .high)
+                clothingItem.imagePath = relativePath
+            } catch {
+                print("이미지 저장 실패: \(error.localizedDescription)")
+                // 이미지 저장 실패해도 측정값은 저장 계속
+            }
+        }
+
+        // 측정값들을 MeasurementModel로 변환
+        for (type, value) in session.measurements {
+            let measurement = MeasurementModel(
+                type: type.rawValue,
+                value: value,
+                unit: "cm",
+                confidence: Double(overallConfidence)
+            )
+            clothingItem.measurements.append(measurement)
+        }
+
+        // SwiftData에 저장
+        modelContext.insert(clothingItem)
+
+        do {
+            try modelContext.save()
+            showSuccess("의류 아이템이 저장되었습니다!")
+
+            // 저장 후 세션 초기화
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) { [weak self] in
+                self?.resetSession()
+            }
+        } catch {
+            showError("데이터 저장에 실패했습니다: \(error.localizedDescription)")
+        }
+    }
+
+    /// 세션 초기화
+    private func resetSession() {
+        session = MeasurementSession(clothingType: session.clothingType)
+        measurementPoints.removeAll()
+        capturedImage = nil
+        currentMeasurementType = nil
     }
 }
 

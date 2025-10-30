@@ -32,8 +32,20 @@ final class ARMeasurementService: ARMeasurementServiceProtocol {
 
     // MARK: - Initialization
 
-    init(viewportSize: CGSize = UIScreen.main.bounds.size) {
-        self.viewportSize = viewportSize
+    init(viewportSize: CGSize? = nil) {
+        if let viewportSize = viewportSize {
+            self.viewportSize = viewportSize
+        } else {
+            // Get screen size from first window scene if available
+            if let windowScene = UIApplication.shared.connectedScenes
+                .compactMap({ $0 as? UIWindowScene })
+                .first {
+                self.viewportSize = windowScene.screen.bounds.size
+            } else {
+                // Fallback to a reasonable default for iPhone
+                self.viewportSize = CGSize(width: 393, height: 852)
+            }
+        }
     }
 
     // MARK: - ARMeasurementServiceProtocol
