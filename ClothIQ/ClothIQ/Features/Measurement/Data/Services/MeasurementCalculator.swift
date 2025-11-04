@@ -52,7 +52,7 @@ struct MeasurementCalculator {
     ///
     /// ## 각도 보정 알고리즘
     /// 두 포인트의 평균 카메라 각도를 사용하여 수평 거리를 계산합니다.
-    /// 각도가 60도를 초과하면 보정을 적용하지 않습니다 (신뢰도 낮음).
+    /// 각도가 75도를 초과하면 보정을 적용하지 않습니다 (신뢰도 낮음).
     ///
     static func calculateCorrectedDistance(
         from start: MeasurementPoint,

@@ -158,15 +158,17 @@ final class AngleCorrectionService {
     ///
     /// ## Angle Limits
     /// - 0°~30°: Full correction applied
-    /// - 30°~60°: Partial correction (warning threshold)
-    /// - >60°: No correction (too unreliable)
+    /// - 30°~60°: Good correction
+    /// - 60°~75°: Acceptable correction (warning threshold)
+    /// - >75°: No correction (too unreliable)
     ///
     static func correctMeasurement(
         rawDistance: Double,
         incidentAngle: Float
     ) -> Double {
         // Don't correct if angle is too large (unreliable)
-        guard incidentAngle < 60 else {
+        // 75도까지 허용 (이전 60도에서 완화)
+        guard incidentAngle < 75 else {
             return rawDistance
         }
 
@@ -188,24 +190,24 @@ final class AngleCorrectionService {
     /// - Returns: Confidence score (0.0 ~ 1.0)
     ///
     /// ## Confidence Levels
-    /// - 0°~15°: Perfect (1.0)
-    /// - 15°~30°: Very Good (0.9)
-    /// - 30°~45°: Good (0.7)
-    /// - 45°~60°: Moderate (0.5)
-    /// - >60°: Poor (0.2)
+    /// - 0°~20°: Perfect (1.0)
+    /// - 20°~40°: Very Good (0.9)
+    /// - 40°~60°: Good (0.7)
+    /// - 60°~75°: Moderate (0.5)
+    /// - >75°: Poor (0.3)
     ///
     static func assessConfidence(for angle: Float) -> Float {
         switch angle {
-        case 0..<15:
+        case 0..<20:
             return 1.0      // Perfect
-        case 15..<30:
+        case 20..<40:
             return 0.9      // Very Good
-        case 30..<45:
+        case 40..<60:
             return 0.7      // Good
-        case 45..<60:
+        case 60..<75:
             return 0.5      // Moderate
         default:
-            return 0.2      // Poor
+            return 0.3      // Poor
         }
     }
 
@@ -215,33 +217,33 @@ final class AngleCorrectionService {
     /// - Returns: Quality description
     static func qualityDescription(for angle: Float) -> String {
         switch angle {
-        case 0..<15:
+        case 0..<20:
             return "완벽"
-        case 15..<30:
+        case 20..<40:
             return "매우 좋음"
-        case 30..<45:
+        case 40..<60:
             return "양호"
-        case 45..<60:
+        case 60..<75:
             return "보통"
         default:
-            return "낮음 - 카메라를 더 정면으로"
+            return "낮음 - 각도가 너무 큼"
         }
     }
 
     /// Check if the angle is within acceptable range
     ///
     /// - Parameter angle: Incident angle in degrees
-    /// - Returns: True if angle is acceptable (<60°)
+    /// - Returns: True if angle is acceptable (<75°)
     static func isAngleAcceptable(_ angle: Float) -> Bool {
-        return angle < 60
+        return angle < 75
     }
 
     /// Check if the angle is optimal
     ///
     /// - Parameter angle: Incident angle in degrees
-    /// - Returns: True if angle is optimal (<30°)
+    /// - Returns: True if angle is optimal (<40°)
     static func isAngleOptimal(_ angle: Float) -> Bool {
-        return angle < 30
+        return angle < 40
     }
 
     // MARK: - Advanced: Surface Normal Estimation

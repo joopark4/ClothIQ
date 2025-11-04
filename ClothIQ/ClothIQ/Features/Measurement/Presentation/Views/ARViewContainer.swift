@@ -93,43 +93,26 @@ struct ARViewContainer: UIViewRepresentable {
     func updateUIView(_ uiView: ARView, context: Context) {
         // 캡처 요청 처리 (한 번만 실행되도록)
         if captureRequested {
-            print("🟡 [ARViewContainer] captureRequested = true 감지")
-            print("🟡 [ARViewContainer] isCapturing = \(context.coordinator.isCapturing)")
-
             if !context.coordinator.isCapturing {
                 context.coordinator.isCapturing = true
-                print("🟢 [ARViewContainer] 캡처 시작")
 
                 // 캡처 실행 (비동기로 한 번만)
                 DispatchQueue.main.async {
                     self.captureRequested = false  // 즉시 플래그 리셋 (중복 캡처 방지)
-                    print("🟢 [ARViewContainer] captureRequested 리셋")
 
                     if let image = ImageCaptureUtility.captureARFrame(from: uiView) {
-                        print("🟢 [ARViewContainer] AR 프레임 캡처 성공 - 크기: \(image.size)")
-
                         // 현재 AR 프레임의 depth map도 함께 전달
                         let currentFrame = uiView.session.currentFrame
                         let depthMap = currentFrame?.smoothedSceneDepth?.depthMap
                             ?? currentFrame?.sceneDepth?.depthMap
 
-                        print("📊 [ARViewContainer] Depth map 캡처: \(depthMap != nil ? "성공" : "실패")")
-
-                        if self.onImageCaptured != nil {
-                            print("🟢 [ARViewContainer] onImageCaptured 콜백 호출")
-                            self.onImageCaptured?(image, depthMap, currentFrame?.camera)
-                        } else {
-                            print("🔴 [ARViewContainer] onImageCaptured 콜백이 nil!")
-                        }
+                        self.onImageCaptured?(image, depthMap, currentFrame?.camera)
                     } else {
-                        print("🔴 [ARViewContainer] AR 프레임 캡처 실패")
+                        print("❌ [ARViewContainer] AR 프레임 캡처 실패")
                     }
                     // 캡처 완료 후 플래그 리셋
                     context.coordinator.isCapturing = false
-                    print("🟢 [ARViewContainer] isCapturing 리셋")
                 }
-            } else {
-                print("⚠️ [ARViewContainer] 이미 캡처 중 - 건너뜀")
             }
         }
     }

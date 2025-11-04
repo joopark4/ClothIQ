@@ -123,11 +123,7 @@ struct MeasurementView: View {
                 onCameraAngleUpdate: { angle in
                     viewModel.cameraPitchAngle = angle
                 },
-                onAnchorsUpdate: { anchors in
-                    // 평면 감지 및 카메라 정렬 상태 업데이트
-                    guard let frame = capturedFrameForMeasurement else { return }
-                    viewModel.updateCameraAlignment(from: frame, anchors: anchors)
-                },
+                onAnchorsUpdate: nil,  // 평면 정렬 가이드 제거 - 평면 추정은 백그라운드에서 자동 처리
                 captureRequested: $viewModel.captureRequested,
                 onImageCaptured: { image, depthMap, camera in
                     viewModel.handleCapturedImage(image, depthMap: depthMap, camera: camera)
@@ -142,22 +138,13 @@ struct MeasurementView: View {
             )
 
             // 객체 포커싱 가이드 (실시간 피드백)
+            // 평면 추정은 자동으로 시도되며, 실패 시 각도 보정으로 fallback됩니다.
             ObjectFocusGuide(
                 foregroundMask: currentForegroundMask,
                 depthData: currentDepthData,
                 trackingState: viewModel.trackingState,
                 cameraPitchAngle: viewModel.cameraPitchAngle
             )
-
-            // 카메라 정렬 가이드 (촬영 각도/거리 안내)
-            if viewModel.showAlignmentGuide && viewModel.isARInitialized {
-                CameraAlignmentGuide(
-                    alignmentData: viewModel.cameraAlignmentData,
-                    onOptimalAlignment: {
-                        // 최적 정렬 도달 시 햅틱 피드백 (이미 CameraAlignmentGuide 내부에서 처리)
-                    }
-                )
-            }
 
             // AR 초기화 가이드 (최우선 표시)
             ARInitializationGuide(
@@ -207,11 +194,9 @@ struct MeasurementView: View {
             viewModel.modelContext = modelContext
         }
         .onChange(of: viewModel.savedClothingItem) { _, newValue in
-            if let item = newValue {
-                print("🟢 [MeasurementView] savedClothingItem changed: \(item.id)")
+            if newValue != nil {
                 // 약간의 지연 후 상세보기로 이동
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                    print("🟢 [MeasurementView] Triggering navigation to detail view")
                     showingDetailView = true
                 }
             }

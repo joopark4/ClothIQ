@@ -90,15 +90,6 @@ final class MeasurementViewModelRefactored: ObservableObject {
     /// 저장된 의류 아이템 (상세보기 화면 이동용)
     @Published var savedClothingItem: ClothingItemModel?
 
-    /// 감지된 평면 앵커
-    @Published var detectedPlane: ARPlaneAnchor?
-
-    /// 카메라 정렬 상태 데이터
-    @Published var cameraAlignmentData: CameraAlignmentData?
-
-    /// 카메라 정렬 가이드 표시 여부
-    @Published var showAlignmentGuide: Bool = true
-
     // MARK: - Private Properties
 
     private let measurementService: ARMeasurementServiceProtocol
@@ -111,6 +102,11 @@ final class MeasurementViewModelRefactored: ObservableObject {
     private var cancellables = Set<AnyCancellable>()
     private var hasShownOrientationWarning = false
     private var lastTemporaryCaptureURL: URL?
+
+    /// 평면 추정을 위한 ARFrame 정보 저장
+    private var lastDepthMap: CVPixelBuffer?
+    private var lastCameraTransform: simd_float4x4?
+    private var lastCameraIntrinsics: simd_float3x3?
 
     /// 캡처된 depth map (사진 측정에 사용)
     private var capturedDepthMap: CVPixelBuffer?
@@ -179,6 +175,11 @@ final class MeasurementViewModelRefactored: ObservableObject {
     ///   - location: 화면 좌표
     ///   - frame: AR 프레임
     func handleTap(at location: CGPoint, frame: ARFrame) {
+        // 평면 추정을 위한 ARFrame 정보 저장
+        lastDepthMap = frame.smoothedSceneDepth?.depthMap ?? frame.sceneDepth?.depthMap
+        lastCameraTransform = frame.camera.transform
+        lastCameraIntrinsics = frame.camera.intrinsics
+
         do {
             // Service를 통해 측정 포인트 추출
             guard let point = try measurementService.extractMeasurementPoint(
@@ -269,12 +270,30 @@ final class MeasurementViewModelRefactored: ObservableObject {
         let startPoint = measurementPoints[lastIndex - 1]
         let endPoint = measurementPoints[lastIndex]
 
-        // 각도 보정이 적용된 거리 계산
-        let rawDistanceInCm = MeasurementCalculator.calculateCorrectedDistance(
-            from: startPoint,
-            to: endPoint,
-            useAngleCorrection: true
-        )
+        // 거리 계산: 평면 추정 우선, 실패 시 각도 보정 사용
+        let rawDistanceInCm: Double
+
+        // ARFrame 데이터가 모두 있으면 평면 추정 사용 (가장 정확)
+        if let depthMap = lastDepthMap,
+           let transform = lastCameraTransform,
+           let intrinsics = lastCameraIntrinsics {
+            print("📐 [ViewModel] Using plane estimation for distance calculation")
+            rawDistanceInCm = MeasurementCalculator.calculateDistanceOnPlane(
+                from: startPoint,
+                to: endPoint,
+                depthMap: depthMap,
+                cameraTransform: transform,
+                cameraIntrinsics: intrinsics
+            )
+        } else {
+            // ARFrame 데이터 없으면 각도 보정 방식 사용
+            print("📐 [ViewModel] Using angle correction for distance calculation (ARFrame data not available)")
+            rawDistanceInCm = MeasurementCalculator.calculateCorrectedDistance(
+                from: startPoint,
+                to: endPoint,
+                useAngleCorrection: true
+            )
+        }
 
         // 측정 타입이 지정되어 있으면 저장
         if let measurementType = currentMeasurementType {
@@ -304,9 +323,9 @@ final class MeasurementViewModelRefactored: ObservableObject {
                 return
             }
 
-            // 각도 경고
-            if avgAngle > 45 {
-                showSuccess("⚠️ 카메라를 더 정면으로 향해주세요 (현재 각도: \(Int(avgAngle))°)")
+            // 각도 경고 (60도 이상일 때만)
+            if avgAngle > 60 {
+                showSuccess("⚠️ 카메라 각도가 큽니다 (현재: \(Int(avgAngle))°)")
             } else if let warning = validation.warning {
                 showSuccess("⚠️ \(warning)")
             }
@@ -369,69 +388,6 @@ final class MeasurementViewModelRefactored: ObservableObject {
 
             lastWarningTime = now
             showError("측정 환경이 좋지 않습니다. 밝은 곳에서 의류를 수평으로 펼쳐 촬영해주세요.")
-        }
-    }
-
-    /// 평면 감지 및 카메라 정렬 상태 업데이트
-    ///
-    /// ARFrame과 앵커 배열을 받아서 가장 가까운 수평 평면을 찾고,
-    /// 카메라 정렬 상태를 계산합니다.
-    ///
-    /// - Parameters:
-    ///   - frame: 현재 AR 프레임
-    ///   - anchors: 감지된 앵커 목록
-    func updateCameraAlignment(from frame: ARFrame, anchors: [ARAnchor]) {
-        // 정렬 가이드가 비활성화되어 있으면 업데이트하지 않음
-        guard showAlignmentGuide else {
-            cameraAlignmentData = nil
-            detectedPlane = nil
-            return
-        }
-
-        // 수평 평면만 필터링 (의류는 수평으로 놓임)
-        let horizontalPlanes = anchors.compactMap { $0 as? ARPlaneAnchor }
-            .filter { $0.alignment == .horizontal }
-
-        // 카메라 위치
-        let cameraPosition = frame.camera.transform.columns.3
-
-        // 가장 가까운 평면 찾기
-        let closestPlane = horizontalPlanes.min(by: { plane1, plane2 in
-            let pos1 = plane1.transform.columns.3
-            let pos2 = plane2.transform.columns.3
-
-            let dist1 = simd_distance(
-                SIMD3<Float>(cameraPosition.x, cameraPosition.y, cameraPosition.z),
-                SIMD3<Float>(pos1.x, pos1.y, pos1.z)
-            )
-            let dist2 = simd_distance(
-                SIMD3<Float>(cameraPosition.x, cameraPosition.y, cameraPosition.z),
-                SIMD3<Float>(pos2.x, pos2.y, pos2.z)
-            )
-
-            return dist1 < dist2
-        })
-
-        // 평면이 감지되면 정렬 데이터 계산
-        if let plane = closestPlane {
-            detectedPlane = plane
-            cameraAlignmentData = measurementService.calculateCameraAlignment(
-                from: frame,
-                planeAnchor: plane
-            )
-        } else {
-            // 평면이 없으면 nil
-            detectedPlane = nil
-            cameraAlignmentData = nil
-        }
-    }
-
-    /// 정렬 가이드 토글
-    func toggleAlignmentGuide() {
-        showAlignmentGuide.toggle()
-
-        if showAlignmentGuide {
-            showSuccess("정렬 가이드가 활성화되었습니다")
         }
     }
 
