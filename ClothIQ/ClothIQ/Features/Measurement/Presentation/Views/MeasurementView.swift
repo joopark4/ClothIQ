@@ -32,6 +32,11 @@ struct MeasurementView: View {
     @State private var isUpdatingMask = false
     @State private var lastMaskUpdateTime: Date = .distantPast
     @State private var lastEnvironmentUpdateTime: Date = .distantPast
+    @State private var showingDetailView = false
+
+    // AutoSize02.md: ARFrame은 자동 측정에만 짧게 사용하고 즉시 해제
+    // 타입 선택 시점에만 일시적으로 보관
+    @State private var capturedFrameForMeasurement: ARFrame?
 
     private let maskUpdateInterval: TimeInterval = 1.0
     private let environmentUpdateInterval: TimeInterval = 0.5
@@ -46,7 +51,9 @@ struct MeasurementView: View {
             clothingType: clothingType,
             modelContext: nil
         ))
+        // AutoSize.md: 의류 분류는 비활성화 (성능 우선)
         segmentationService.enableObjectClassification = false
+        segmentationService.strictClothingDetection = false  // 엄격한 검증 비활성화
     }
 
     var body: some View {
@@ -59,42 +66,50 @@ struct MeasurementView: View {
                 // 탭 시 카메라 포커스 설정 (ARViewContainer 내부에서 처리)
                 onTap: nil,
                 onFrameUpdate: { frame in
-                    Task { @MainActor in
-                        let now = Date()
+                    // ARFrame 메모리 누수 방지: autoreleasepool 사용
+                    let _ = autoreleasepool {
+                        Task { @MainActor in
+                            // AutoSize02.md: ARFrame은 자동 측정용으로만 일시 보관
+                            // 매 프레임마다 최신 프레임으로 교체 (이전 프레임은 자동 해제)
+                            self.capturedFrameForMeasurement = frame
 
-                        if now.timeIntervalSince(lastEnvironmentUpdateTime) >= environmentUpdateInterval {
-                            lastEnvironmentUpdateTime = now
-                            viewModel.updateEnvironment(from: frame)
-                        }
+                            let now = Date()
 
-                        guard !isUpdatingMask,
-                              now.timeIntervalSince(lastMaskUpdateTime) >= maskUpdateInterval else {
-                            return
-                        }
+                            if now.timeIntervalSince(lastEnvironmentUpdateTime) >= environmentUpdateInterval {
+                                lastEnvironmentUpdateTime = now
+                                viewModel.updateEnvironment(from: frame)
+                            }
 
-                        guard case .normal = viewModel.trackingState else {
-                            currentForegroundMask = nil
-                            return
-                        }
+                            guard !isUpdatingMask,
+                                  now.timeIntervalSince(lastMaskUpdateTime) >= maskUpdateInterval else {
+                                return
+                            }
 
-                        isUpdatingMask = true
-                        let capturedImage = frame.capturedImage
-                        let depthMap = frame.smoothedSceneDepth?.depthMap ?? frame.sceneDepth?.depthMap
+                            guard case .normal = viewModel.trackingState else {
+                                currentForegroundMask = nil
+                                return
+                            }
 
-                        segmentationQueue.async {
-                            let mask: CVPixelBuffer? = {
-                                autoreleasepool {
-                                    segmentationService.generateForegroundMask(
-                                        from: capturedImage,
-                                        depthMap: depthMap
-                                    )
+                            isUpdatingMask = true
+                            let capturedImage = frame.capturedImage
+                            // AutoSize.md에 따라 sceneDepth 사용 (smoothedSceneDepth는 부정확할 수 있음)
+                            let depthMap = frame.sceneDepth?.depthMap
+
+                            segmentationQueue.async {
+                                let mask: CVPixelBuffer? = {
+                                    autoreleasepool {
+                                        segmentationService.generateForegroundMask(
+                                            from: capturedImage,
+                                            depthMap: depthMap
+                                        )
+                                    }
+                                }()
+
+                                Task { @MainActor in
+                                    self.currentForegroundMask = mask
+                                    self.lastMaskUpdateTime = Date()
+                                    self.isUpdatingMask = false
                                 }
-                            }()
-
-                            Task { @MainActor in
-                                self.currentForegroundMask = mask
-                                self.lastMaskUpdateTime = Date()
-                                self.isUpdatingMask = false
                             }
                         }
                     }
@@ -108,9 +123,14 @@ struct MeasurementView: View {
                 onCameraAngleUpdate: { angle in
                     viewModel.cameraPitchAngle = angle
                 },
+                onAnchorsUpdate: { anchors in
+                    // 평면 감지 및 카메라 정렬 상태 업데이트
+                    guard let frame = capturedFrameForMeasurement else { return }
+                    viewModel.updateCameraAlignment(from: frame, anchors: anchors)
+                },
                 captureRequested: $viewModel.captureRequested,
-                onImageCaptured: { image, depthMap in
-                    viewModel.handleCapturedImage(image, depthMap: depthMap)
+                onImageCaptured: { image, depthMap, camera in
+                    viewModel.handleCapturedImage(image, depthMap: depthMap, camera: camera)
                 }
             )
             .edgesIgnoringSafeArea(.all)
@@ -128,6 +148,16 @@ struct MeasurementView: View {
                 trackingState: viewModel.trackingState,
                 cameraPitchAngle: viewModel.cameraPitchAngle
             )
+
+            // 카메라 정렬 가이드 (촬영 각도/거리 안내)
+            if viewModel.showAlignmentGuide && viewModel.isARInitialized {
+                CameraAlignmentGuide(
+                    alignmentData: viewModel.cameraAlignmentData,
+                    onOptimalAlignment: {
+                        // 최적 정렬 도달 시 햅틱 피드백 (이미 CameraAlignmentGuide 내부에서 처리)
+                    }
+                )
+            }
 
             // AR 초기화 가이드 (최우선 표시)
             ARInitializationGuide(
@@ -160,9 +190,37 @@ struct MeasurementView: View {
             }
         }
         .navigationBarBackButtonHidden(true)
+        .sheet(isPresented: $viewModel.showingTypeSelection) {
+            NavigationStack {
+                ClothingTypeSelectionView { selectedType in
+                    // AutoSize02.md: ARFrame을 메서드로 전달하되 즉시 해제되도록
+                    // handleTypeSelection 메서드 내에서만 사용됨
+                    viewModel.handleTypeSelection(selectedType, frame: capturedFrameForMeasurement)
+
+                    // 타입 선택 후 프레임 참조 즉시 해제
+                    capturedFrameForMeasurement = nil
+                }
+            }
+        }
         .onAppear {
             // ModelContext 설정
             viewModel.modelContext = modelContext
+        }
+        .onChange(of: viewModel.savedClothingItem) { _, newValue in
+            if let item = newValue {
+                print("🟢 [MeasurementView] savedClothingItem changed: \(item.id)")
+                // 약간의 지연 후 상세보기로 이동
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                    print("🟢 [MeasurementView] Triggering navigation to detail view")
+                    showingDetailView = true
+                }
+            }
+        }
+        .navigationDestination(isPresented: $showingDetailView) {
+            if let savedItem = viewModel.savedClothingItem {
+                ClothingDetailView(item: savedItem)
+                    .navigationBarBackButtonHidden(false)
+            }
         }
     }
 
@@ -185,24 +243,44 @@ struct MeasurementView: View {
     // MARK: - Capture Controls
 
     private var captureControlView: some View {
-        // 촬영 버튼
-        Button(action: viewModel.captureImage) {
-            ZStack {
-                Circle()
-                    .fill(Color.white.opacity(0.2))
-                    .frame(width: 88, height: 88)
+        VStack(spacing: 20) {
+            // 촬영 버튼
+            Button(action: viewModel.captureImage) {
+                ZStack {
+                    Circle()
+                        .fill(Color.white.opacity(0.2))
+                        .frame(width: 88, height: 88)
 
-                Circle()
-                    .fill(Color.white)
-                    .frame(width: 68, height: 68)
+                    Circle()
+                        .fill(Color.white)
+                        .frame(width: 68, height: 68)
 
-                Circle()
-                    .stroke(Color.white.opacity(0.4), lineWidth: 2)
-                    .frame(width: 88, height: 88)
+                    Circle()
+                        .stroke(Color.white.opacity(0.4), lineWidth: 2)
+                        .frame(width: 88, height: 88)
+                }
+            }
+            .buttonStyle(PlainButtonStyle())
+            .disabled(viewModel.isLoading)
+
+            // 로딩 인디케이터
+            if viewModel.isLoading {
+                VStack(spacing: 8) {
+                    ProgressView()
+                        .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                        .scaleEffect(1.2)
+
+                    Text("처리 중...")
+                        .font(.caption)
+                        .foregroundColor(.white)
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 8)
+                        .background(Color.black.opacity(0.6))
+                        .cornerRadius(12)
+                }
+                .transition(.opacity)
             }
         }
-        .buttonStyle(PlainButtonStyle())
-        .disabled(viewModel.isLoading)
     }
 
     // MARK: - Message Banners

@@ -67,6 +67,19 @@ protocol ARMeasurementServiceProtocol {
     /// - Returns: 환경 적합성 점수 (0.0 ~ 1.0)
     func assessEnvironment(from frame: ARFrame) -> Float
 
+    // MARK: - Camera Alignment
+
+    /// 카메라 정렬 상태를 계산합니다.
+    ///
+    /// - Parameters:
+    ///   - frame: AR 프레임
+    ///   - planeAnchor: 감지된 평면 앵커
+    /// - Returns: 카메라 정렬 데이터 (평면이 없으면 nil)
+    func calculateCameraAlignment(
+        from frame: ARFrame,
+        planeAnchor: ARPlaneAnchor?
+    ) -> CameraAlignmentData?
+
     // MARK: - Confidence Assessment
 
     /// 측정 결과의 전체 신뢰도를 평가합니다.

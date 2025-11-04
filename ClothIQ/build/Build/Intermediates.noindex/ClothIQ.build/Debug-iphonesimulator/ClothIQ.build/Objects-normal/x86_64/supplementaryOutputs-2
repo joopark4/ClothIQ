@@ -1,0 +1,23 @@
+{
+  "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/ClothIQ/Core/Utilities/PlaneEstimator.swift" : {
+    "const-values" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/x86_64/PlaneEstimator.swiftconstvalues",
+    "dependencies" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/x86_64/PlaneEstimator.d",
+    "diagnostics" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/x86_64/PlaneEstimator.dia",
+    "object" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/x86_64/PlaneEstimator.o",
+    "swift-dependencies" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/x86_64/PlaneEstimator.swiftdeps"
+  },
+  "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/ClothIQ/Features/ClothingLibrary/Domain/UseCases/PhotoMeasurementCalculator.swift" : {
+    "const-values" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/x86_64/PhotoMeasurementCalculator.swiftconstvalues",
+    "dependencies" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/x86_64/PhotoMeasurementCalculator.d",
+    "diagnostics" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/x86_64/PhotoMeasurementCalculator.dia",
+    "object" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/x86_64/PhotoMeasurementCalculator.o",
+    "swift-dependencies" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/x86_64/PhotoMeasurementCalculator.swiftdeps"
+  },
+  "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/ClothIQ/Features/ClothingLibrary/Presentation/Components/ClothingTypeEditorView.swift" : {
+    "const-values" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/x86_64/ClothingTypeEditorView.swiftconstvalues",
+    "dependencies" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/x86_64/ClothingTypeEditorView.d",
+    "diagnostics" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/x86_64/ClothingTypeEditorView.dia",
+    "object" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/x86_64/ClothingTypeEditorView.o",
+    "swift-dependencies" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/x86_64/ClothingTypeEditorView.swiftdeps"
+  }
+}

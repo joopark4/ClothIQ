@@ -14,7 +14,11 @@ import SwiftData
 
 /// 의류 아이템 카드 컴포넌트
 struct ClothingItemCard: View {
-    let item: ClothingItemModel
+    @Bindable var item: ClothingItemModel
+
+    init(item: ClothingItemModel) {
+        self._item = Bindable(item)
+    }
 
     var body: some View {
         HStack(spacing: 16) {
@@ -24,9 +28,10 @@ struct ClothingItemCard: View {
             // 아이템 정보
             VStack(alignment: .leading, spacing: 8) {
                 HStack {
-                    Text(item.clothingType?.displayName ?? "알 수 없음")
+                    Text(item.displayTitle)
                         .font(.headline)
                         .foregroundColor(.primary)
+                        .lineLimit(1)
 
                     if item.isFavorite {
                         Image(systemName: "star.fill")

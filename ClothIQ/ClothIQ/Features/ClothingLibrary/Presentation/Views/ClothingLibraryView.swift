@@ -27,6 +27,8 @@ struct ClothingLibraryView: View {
     @State private var columnVisibility: NavigationSplitViewVisibility = .automatic
     @State private var searchText = ""
     @State private var showingMeasurement = false
+    @State private var showingDeleteAllAlert = false
+    @State private var isDeleting = false
 
     var body: some View {
         Group {
@@ -63,12 +65,34 @@ struct ClothingLibraryView: View {
             .searchable(text: $searchText, prompt: "의류 검색")
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    sortMenu
+                    HStack(spacing: 16) {
+                        // 전체 삭제 버튼
+                        if !filteredItems.isEmpty {
+                            Button(action: {
+                                showingDeleteAllAlert = true
+                            }) {
+                                Image(systemName: "trash")
+                                    .foregroundColor(.red)
+                            }
+                            .disabled(isDeleting)
+                        }
+
+                        sortMenu
+                    }
                 }
             }
             .navigationDestination(for: ClothingItemModel.self) { item in
                 ClothingDetailView(item: item)
             }
+            .alert("전체 삭제", isPresented: $showingDeleteAllAlert) {
+                Button("취소", role: .cancel) { }
+                Button("전체 삭제", role: .destructive) {
+                    deleteAllItems()
+                }
+            } message: {
+                Text("모든 의류 아이템을 삭제하시겠습니까?\n이 작업은 취소할 수 없습니다.")
+            }
+            .disabled(isDeleting)
         }
     }
 
@@ -88,10 +112,32 @@ struct ClothingLibraryView: View {
                         }
                     }
 
+                    // 전체 삭제 버튼 (iPad)
+                    if !filteredItems.isEmpty {
+                        ToolbarItem(placement: .navigationBarTrailing) {
+                            Button(action: {
+                                showingDeleteAllAlert = true
+                            }) {
+                                Image(systemName: "trash")
+                                    .foregroundColor(.red)
+                            }
+                            .disabled(isDeleting)
+                        }
+                    }
+
                     ToolbarItem(placement: .navigationBarTrailing) {
                         sortMenu
                     }
                 }
+                .alert("전체 삭제", isPresented: $showingDeleteAllAlert) {
+                    Button("취소", role: .cancel) { }
+                    Button("전체 삭제", role: .destructive) {
+                        deleteAllItems()
+                    }
+                } message: {
+                    Text("모든 의류 아이템을 삭제하시겠습니까?\n이 작업은 취소할 수 없습니다.")
+                }
+                .disabled(isDeleting)
         } detail: {
             // Detail - 선택된 아이템 상세보기
             if let selectedItem = selectedItem {
@@ -291,11 +337,55 @@ struct ClothingLibraryView: View {
                 _ = try? ImageFileManager.shared.deleteImage(at: imagePath)
             }
 
+            // Depth map이 있다면 삭제
+            if let depthMapPath = item.depthMapPath {
+                _ = try? ImageFileManager.shared.deleteImage(at: depthMapPath)
+            }
+
             if selectedItem?.id == item.id {
                 selectedItem = nil
             }
 
             modelContext.delete(item)
+        }
+    }
+
+    private func deleteAllItems() {
+        isDeleting = true
+
+        Task {
+            await MainActor.run {
+                withAnimation {
+                    // 모든 아이템의 이미지 파일 삭제
+                    for item in items {
+                        // 이미지 파일 삭제
+                        if let imagePath = item.imagePath {
+                            _ = try? ImageFileManager.shared.deleteImage(at: imagePath)
+                        }
+
+                        // Depth map 파일 삭제
+                        if let depthMapPath = item.depthMapPath {
+                            _ = try? ImageFileManager.shared.deleteImage(at: depthMapPath)
+                        }
+
+                        // SwiftData에서 삭제
+                        modelContext.delete(item)
+                    }
+
+                    // 선택된 아이템 초기화
+                    selectedItem = nil
+
+                    // 변경사항 저장
+                    do {
+                        try modelContext.save()
+                        print("✅ 전체 삭제 완료: \(items.count)개 아이템 삭제됨")
+                    } catch {
+                        print("❌ 전체 삭제 실패: \(error)")
+                    }
+                }
+
+                isDeleting = false
+            }
         }
     }
 
@@ -312,8 +402,13 @@ struct ClothingLibraryView: View {
 
 /// 의류 아이템 행 (iPad 사이드바용)
 struct ClothingItemRow: View {
-    let item: ClothingItemModel
+    @Bindable var item: ClothingItemModel
     let isCompact: Bool
+
+    init(item: ClothingItemModel, isCompact: Bool) {
+        self._item = Bindable(item)
+        self.isCompact = isCompact
+    }
 
     var body: some View {
         HStack(spacing: 12) {
@@ -338,7 +433,7 @@ struct ClothingItemRow: View {
             // 정보
             VStack(alignment: .leading, spacing: 4) {
                 HStack {
-                    Text(item.clothingType?.displayName ?? "알 수 없음")
+                    Text(item.displayTitle)
                         .font(isCompact ? .subheadline : .headline)
                         .lineLimit(1)
 

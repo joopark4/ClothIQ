@@ -124,7 +124,17 @@ final class ObjectCaptureService {
     ///
     /// - Note: Vision 작업은 백그라운드에서, Core Image 작업은 메인 스레드에서 수행됩니다.
     ///
-    func processImage(_ image: UIImage, depthMap: CVPixelBuffer? = nil, completion: @escaping (Result<UIImage, Error>) -> Void) {
+    struct ProcessedImageResult {
+        let finalImage: UIImage
+        let cropRect: CGRect
+        let originalImageSize: CGSize
+    }
+
+    func processImage(
+        _ image: UIImage,
+        depthMap: CVPixelBuffer? = nil,
+        completion: @escaping (Result<ProcessedImageResult, Error>) -> Void
+    ) {
         // 가장 먼저 orientation 정규화
         let normalizedImage = image.normalizedOrientation()
 
@@ -159,15 +169,35 @@ final class ObjectCaptureService {
 
                     do {
                         // 배경 제거 시도 (크롭된 depth map 사용)
+                        guard let cropRect = cropResult.cropRect else {
+                            throw ObjectCaptureError.cropFailed
+                        }
+
                         if let finalImage = try self.removeBackground(from: croppedImage, depthMap: croppedDepthMap) {
-                            completion(.success(finalImage))
+                            completion(.success(ProcessedImageResult(
+                                finalImage: finalImage,
+                                cropRect: cropRect,
+                                originalImageSize: cropResult.originalImageSize
+                            )))
                         } else {
                             // 배경 제거 실패 시 크롭된 이미지라도 반환 (폴백)
-                            completion(.success(croppedImage))
+                            completion(.success(ProcessedImageResult(
+                                finalImage: croppedImage,
+                                cropRect: cropRect,
+                                originalImageSize: cropResult.originalImageSize
+                            )))
                         }
                     } catch {
                         // 배경 제거 중 에러 발생 시에도 크롭된 이미지 반환 (폴백)
-                        completion(.success(croppedImage))
+                        if let cropRect = cropResult.cropRect {
+                            completion(.success(ProcessedImageResult(
+                                finalImage: croppedImage,
+                                cropRect: cropRect,
+                                originalImageSize: cropResult.originalImageSize
+                            )))
+                        } else {
+                            completion(.failure(error))
+                        }
                     }
                 }
             } catch {
@@ -283,12 +313,42 @@ final class ObjectCaptureService {
             let paddingX = objectBounds.width * padding
             let paddingY = objectBounds.height * padding
 
-            // 여백이 추가된 크롭 영역 계산
+            // 객체 중심을 유지하면서 여백이 추가된 크롭 영역 계산
+            let objectCenterX = objectBounds.midX
+            let objectCenterY = objectBounds.midY
+            let expandedWidth = objectBounds.width + (paddingX * 2)
+            let expandedHeight = objectBounds.height + (paddingY * 2)
+
+            // 객체 중심을 기준으로 크롭 영역 설정
+            var cropX = objectCenterX - expandedWidth / 2.0
+            var cropY = objectCenterY - expandedHeight / 2.0
+            var cropWidth = expandedWidth
+            var cropHeight = expandedHeight
+
+            // 이미지 경계를 벗어나는 경우에만 조정 (객체 중심은 최대한 유지)
+            if cropX < 0 {
+                cropX = 0
+                if cropX + cropWidth > imageSize.width {
+                    cropWidth = imageSize.width
+                }
+            } else if cropX + cropWidth > imageSize.width {
+                cropX = max(0, imageSize.width - cropWidth)
+            }
+
+            if cropY < 0 {
+                cropY = 0
+                if cropY + cropHeight > imageSize.height {
+                    cropHeight = imageSize.height
+                }
+            } else if cropY + cropHeight > imageSize.height {
+                cropY = max(0, imageSize.height - cropHeight)
+            }
+
             let cropRect = CGRect(
-                x: max(0, objectBounds.minX - paddingX),
-                y: max(0, objectBounds.minY - paddingY),
-                width: min(imageSize.width - (objectBounds.minX - paddingX), objectBounds.width + (paddingX * 2)),
-                height: min(imageSize.height - (objectBounds.minY - paddingY), objectBounds.height + (paddingY * 2))
+                x: cropX,
+                y: cropY,
+                width: cropWidth,
+                height: cropHeight
             )
 
             print("📐 크롭 영역: \(cropRect)")
@@ -582,32 +642,50 @@ final class ObjectCaptureService {
     private func calculateSquareCrop(for boundingBox: CGRect, imageSize: CGSize) -> CGRect {
         // 여백 추가 (30% - 객체가 잘리는 것 방지)
         let margin: CGFloat = 1.3
-        let expandedBox = boundingBox.insetBy(
-            dx: -boundingBox.width * (margin - 1.0) / 2.0,
-            dy: -boundingBox.height * (margin - 1.0) / 2.0
-        )
 
-        // 정사각형 크기 결정 (긴 쪽 기준, 이미지 크기를 초과하지 않도록 제한)
-        let desiredSize = max(expandedBox.width, expandedBox.height)
-        let finalSize = min(desiredSize, imageSize.width, imageSize.height)
-        let halfSize = finalSize / 2.0
+        // 객체의 원래 중심을 유지 (중요!)
+        let objectCenterX = boundingBox.midX
+        let objectCenterY = boundingBox.midY
 
-        // 객체 중심
-        let centerX = expandedBox.midX
-        let centerY = expandedBox.midY
+        // 여백을 포함한 크기 계산
+        let expandedWidth = boundingBox.width * margin
+        let expandedHeight = boundingBox.height * margin
 
-        // 이미지 경계를 벗어나지 않도록 중심 좌표를 보정
-        let clampedCenterX = min(max(halfSize, centerX), imageSize.width - halfSize)
-        let clampedCenterY = min(max(halfSize, centerY), imageSize.height - halfSize)
+        // 정사각형 크기 결정 (긴 쪽 기준)
+        let desiredSize = max(expandedWidth, expandedHeight)
 
-        let squareX = clampedCenterX - halfSize
-        let squareY = clampedCenterY - halfSize
+        // 객체를 중심에 유지하면서 크롭 영역 계산
+        var squareSize = desiredSize
+        var squareX = objectCenterX - squareSize / 2.0
+        var squareY = objectCenterY - squareSize / 2.0
 
+        // 이미지 경계를 벗어나는 경우 크롭 크기 조정 (위치는 조정하지 않음)
+        if squareX < 0 || squareY < 0 ||
+           squareX + squareSize > imageSize.width ||
+           squareY + squareSize > imageSize.height {
+
+            // 각 방향의 여유 공간 계산
+            let leftSpace = objectCenterX
+            let rightSpace = imageSize.width - objectCenterX
+            let topSpace = objectCenterY
+            let bottomSpace = imageSize.height - objectCenterY
+
+            // 가장 제한적인 방향에 맞춰 크기 조정
+            let maxHalfWidth = min(leftSpace, rightSpace)
+            let maxHalfHeight = min(topSpace, bottomSpace)
+            let maxHalfSize = min(maxHalfWidth, maxHalfHeight)
+
+            squareSize = maxHalfSize * 2.0
+            squareX = objectCenterX - maxHalfSize
+            squareY = objectCenterY - maxHalfSize
+        }
+
+        // 최종 크롭 영역 (경계 내로 제한)
         return CGRect(
-            x: squareX,
-            y: squareY,
-            width: finalSize,
-            height: finalSize
+            x: max(0, squareX),
+            y: max(0, squareY),
+            width: min(squareSize, imageSize.width - max(0, squareX)),
+            height: min(squareSize, imageSize.height - max(0, squareY))
         ).integral
     }
 

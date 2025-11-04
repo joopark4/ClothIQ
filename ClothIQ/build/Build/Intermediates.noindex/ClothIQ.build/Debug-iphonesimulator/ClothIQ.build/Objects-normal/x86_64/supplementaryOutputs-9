@@ -1,0 +1,23 @@
+{
+  "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/ClothIQ/Features/ClothingLibrary/Presentation/Views/PhotoMeasurementView.swift" : {
+    "const-values" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/x86_64/PhotoMeasurementView.swiftconstvalues",
+    "dependencies" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/x86_64/PhotoMeasurementView.d",
+    "diagnostics" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/x86_64/PhotoMeasurementView.dia",
+    "object" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/x86_64/PhotoMeasurementView.o",
+    "swift-dependencies" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/x86_64/PhotoMeasurementView.swiftdeps"
+  },
+  "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/ClothIQ/Features/ImageProcessing/Data/Services/ObjectCaptureService.swift" : {
+    "const-values" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/x86_64/ObjectCaptureService.swiftconstvalues",
+    "dependencies" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/x86_64/ObjectCaptureService.d",
+    "diagnostics" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/x86_64/ObjectCaptureService.dia",
+    "object" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/x86_64/ObjectCaptureService.o",
+    "swift-dependencies" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/x86_64/ObjectCaptureService.swiftdeps"
+  },
+  "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/ClothIQ/Features/ImageProcessing/Data/Services/PhotoLibraryService.swift" : {
+    "const-values" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/x86_64/PhotoLibraryService.swiftconstvalues",
+    "dependencies" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/x86_64/PhotoLibraryService.d",
+    "diagnostics" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/x86_64/PhotoLibraryService.dia",
+    "object" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/x86_64/PhotoLibraryService.o",
+    "swift-dependencies" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/x86_64/PhotoLibraryService.swiftdeps"
+  }
+}

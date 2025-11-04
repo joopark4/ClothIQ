@@ -1,0 +1,559 @@
+{
+  "" : {
+    "diagnostics" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/ClothIQ-primary.dia",
+    "emit-module-dependencies" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/ClothIQ-primary-emit-module.d",
+    "emit-module-diagnostics" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/ClothIQ-primary-emit-module.dia",
+    "pch" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/ClothIQ-primary-Bridging-header.pch",
+    "swift-dependencies" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/ClothIQ-primary.swiftdeps"
+  },
+  "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/ClothIQ/App/AppContainerView.swift" : {
+    "const-values" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/AppContainerView.swiftconstvalues",
+    "dependencies" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/AppContainerView.d",
+    "diagnostics" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/AppContainerView.dia",
+    "index-unit-output-path" : "/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/AppContainerView.o",
+    "llvm-bc" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/AppContainerView.bc",
+    "object" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/AppContainerView.o",
+    "swift-dependencies" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/AppContainerView.swiftdeps",
+    "swiftmodule" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/AppContainerView~partial.swiftmodule"
+  },
+  "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/ClothIQ/App/ClothIQApp.swift" : {
+    "const-values" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/ClothIQApp.swiftconstvalues",
+    "dependencies" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/ClothIQApp.d",
+    "diagnostics" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/ClothIQApp.dia",
+    "index-unit-output-path" : "/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/ClothIQApp.o",
+    "llvm-bc" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/ClothIQApp.bc",
+    "object" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/ClothIQApp.o",
+    "swift-dependencies" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/ClothIQApp.swiftdeps",
+    "swiftmodule" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/ClothIQApp~partial.swiftmodule"
+  },
+  "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/ClothIQ/App/ContentView.swift" : {
+    "const-values" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/ContentView.swiftconstvalues",
+    "dependencies" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/ContentView.d",
+    "diagnostics" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/ContentView.dia",
+    "index-unit-output-path" : "/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/ContentView.o",
+    "llvm-bc" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/ContentView.bc",
+    "object" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/ContentView.o",
+    "swift-dependencies" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/ContentView.swiftdeps",
+    "swiftmodule" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/ContentView~partial.swiftmodule"
+  },
+  "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/ClothIQ/Core/Data/FileSystem/ImageFileManager.swift" : {
+    "const-values" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/ImageFileManager.swiftconstvalues",
+    "dependencies" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/ImageFileManager.d",
+    "diagnostics" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/ImageFileManager.dia",
+    "index-unit-output-path" : "/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/ImageFileManager.o",
+    "llvm-bc" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/ImageFileManager.bc",
+    "object" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/ImageFileManager.o",
+    "swift-dependencies" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/ImageFileManager.swiftdeps",
+    "swiftmodule" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/ImageFileManager~partial.swiftmodule"
+  },
+  "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/ClothIQ/Core/Data/SwiftData/Models/ClothingItemModel.swift" : {
+    "const-values" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/ClothingItemModel.swiftconstvalues",
+    "dependencies" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/ClothingItemModel.d",
+    "diagnostics" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/ClothingItemModel.dia",
+    "index-unit-output-path" : "/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/ClothingItemModel.o",
+    "llvm-bc" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/ClothingItemModel.bc",
+    "object" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/ClothingItemModel.o",
+    "swift-dependencies" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/ClothingItemModel.swiftdeps",
+    "swiftmodule" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/ClothingItemModel~partial.swiftmodule"
+  },
+  "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/ClothIQ/Core/Data/SwiftData/Models/MeasurementModel.swift" : {
+    "const-values" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/MeasurementModel.swiftconstvalues",
+    "dependencies" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/MeasurementModel.d",
+    "diagnostics" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/MeasurementModel.dia",
+    "index-unit-output-path" : "/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/MeasurementModel.o",
+    "llvm-bc" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/MeasurementModel.bc",
+    "object" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/MeasurementModel.o",
+    "swift-dependencies" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/MeasurementModel.swiftdeps",
+    "swiftmodule" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/MeasurementModel~partial.swiftmodule"
+  },
+  "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/ClothIQ/Core/Data/SwiftData/Models/TagModel.swift" : {
+    "const-values" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/TagModel.swiftconstvalues",
+    "dependencies" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/TagModel.d",
+    "diagnostics" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/TagModel.dia",
+    "index-unit-output-path" : "/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/TagModel.o",
+    "llvm-bc" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/TagModel.bc",
+    "object" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/TagModel.o",
+    "swift-dependencies" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/TagModel.swiftdeps",
+    "swiftmodule" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/TagModel~partial.swiftmodule"
+  },
+  "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/ClothIQ/Core/Domain/Enums/ClothingType.swift" : {
+    "const-values" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/ClothingType.swiftconstvalues",
+    "dependencies" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/ClothingType.d",
+    "diagnostics" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/ClothingType.dia",
+    "index-unit-output-path" : "/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/ClothingType.o",
+    "llvm-bc" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/ClothingType.bc",
+    "object" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/ClothingType.o",
+    "swift-dependencies" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/ClothingType.swiftdeps",
+    "swiftmodule" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/ClothingType~partial.swiftmodule"
+  },
+  "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/ClothIQ/Core/Domain/Enums/MeasurementType.swift" : {
+    "const-values" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/MeasurementType.swiftconstvalues",
+    "dependencies" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/MeasurementType.d",
+    "diagnostics" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/MeasurementType.dia",
+    "index-unit-output-path" : "/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/MeasurementType.o",
+    "llvm-bc" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/MeasurementType.bc",
+    "object" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/MeasurementType.o",
+    "swift-dependencies" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/MeasurementType.swiftdeps",
+    "swiftmodule" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/MeasurementType~partial.swiftmodule"
+  },
+  "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/ClothIQ/Core/Domain/Enums/MeasurementUnit.swift" : {
+    "const-values" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/MeasurementUnit.swiftconstvalues",
+    "dependencies" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/MeasurementUnit.d",
+    "diagnostics" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/MeasurementUnit.dia",
+    "index-unit-output-path" : "/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/MeasurementUnit.o",
+    "llvm-bc" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/MeasurementUnit.bc",
+    "object" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/MeasurementUnit.o",
+    "swift-dependencies" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/MeasurementUnit.swiftdeps",
+    "swiftmodule" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/MeasurementUnit~partial.swiftmodule"
+  },
+  "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/ClothIQ/Core/Extensions/UIImage+Orientation.swift" : {
+    "const-values" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/UIImage+Orientation.swiftconstvalues",
+    "dependencies" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/UIImage+Orientation.d",
+    "diagnostics" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/UIImage+Orientation.dia",
+    "index-unit-output-path" : "/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/UIImage+Orientation.o",
+    "llvm-bc" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/UIImage+Orientation.bc",
+    "object" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/UIImage+Orientation.o",
+    "swift-dependencies" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/UIImage+Orientation.swiftdeps",
+    "swiftmodule" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/UIImage+Orientation~partial.swiftmodule"
+  },
+  "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/ClothIQ/Core/UI/Components/CameraPermissionView.swift" : {
+    "const-values" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/CameraPermissionView.swiftconstvalues",
+    "dependencies" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/CameraPermissionView.d",
+    "diagnostics" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/CameraPermissionView.dia",
+    "index-unit-output-path" : "/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/CameraPermissionView.o",
+    "llvm-bc" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/CameraPermissionView.bc",
+    "object" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/CameraPermissionView.o",
+    "swift-dependencies" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/CameraPermissionView.swiftdeps",
+    "swiftmodule" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/CameraPermissionView~partial.swiftmodule"
+  },
+  "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/ClothIQ/Core/UI/Components/UnsupportedDeviceView.swift" : {
+    "const-values" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/UnsupportedDeviceView.swiftconstvalues",
+    "dependencies" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/UnsupportedDeviceView.d",
+    "diagnostics" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/UnsupportedDeviceView.dia",
+    "index-unit-output-path" : "/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/UnsupportedDeviceView.o",
+    "llvm-bc" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/UnsupportedDeviceView.bc",
+    "object" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/UnsupportedDeviceView.o",
+    "swift-dependencies" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/UnsupportedDeviceView.swiftdeps",
+    "swiftmodule" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/UnsupportedDeviceView~partial.swiftmodule"
+  },
+  "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/ClothIQ/Core/UI/Modifiers/AdaptiveSheet.swift" : {
+    "const-values" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/AdaptiveSheet.swiftconstvalues",
+    "dependencies" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/AdaptiveSheet.d",
+    "diagnostics" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/AdaptiveSheet.dia",
+    "index-unit-output-path" : "/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/AdaptiveSheet.o",
+    "llvm-bc" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/AdaptiveSheet.bc",
+    "object" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/AdaptiveSheet.o",
+    "swift-dependencies" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/AdaptiveSheet.swiftdeps",
+    "swiftmodule" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/AdaptiveSheet~partial.swiftmodule"
+  },
+  "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/ClothIQ/Core/Utilities/ARError.swift" : {
+    "const-values" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/ARError.swiftconstvalues",
+    "dependencies" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/ARError.d",
+    "diagnostics" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/ARError.dia",
+    "index-unit-output-path" : "/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/ARError.o",
+    "llvm-bc" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/ARError.bc",
+    "object" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/ARError.o",
+    "swift-dependencies" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/ARError.swiftdeps",
+    "swiftmodule" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/ARError~partial.swiftmodule"
+  },
+  "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/ClothIQ/Core/Utilities/Constants.swift" : {
+    "const-values" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/Constants.swiftconstvalues",
+    "dependencies" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/Constants.d",
+    "diagnostics" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/Constants.dia",
+    "index-unit-output-path" : "/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/Constants.o",
+    "llvm-bc" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/Constants.bc",
+    "object" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/Constants.o",
+    "swift-dependencies" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/Constants.swiftdeps",
+    "swiftmodule" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/Constants~partial.swiftmodule"
+  },
+  "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/ClothIQ/Core/Utilities/DeviceCapability.swift" : {
+    "const-values" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/DeviceCapability.swiftconstvalues",
+    "dependencies" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/DeviceCapability.d",
+    "diagnostics" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/DeviceCapability.dia",
+    "index-unit-output-path" : "/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/DeviceCapability.o",
+    "llvm-bc" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/DeviceCapability.bc",
+    "object" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/DeviceCapability.o",
+    "swift-dependencies" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/DeviceCapability.swiftdeps",
+    "swiftmodule" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/DeviceCapability~partial.swiftmodule"
+  },
+  "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/ClothIQ/Core/Utilities/ImageCaptureUtility.swift" : {
+    "const-values" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/ImageCaptureUtility.swiftconstvalues",
+    "dependencies" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/ImageCaptureUtility.d",
+    "diagnostics" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/ImageCaptureUtility.dia",
+    "index-unit-output-path" : "/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/ImageCaptureUtility.o",
+    "llvm-bc" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/ImageCaptureUtility.bc",
+    "object" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/ImageCaptureUtility.o",
+    "swift-dependencies" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/ImageCaptureUtility.swiftdeps",
+    "swiftmodule" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/ImageCaptureUtility~partial.swiftmodule"
+  },
+  "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/ClothIQ/Core/Utilities/PlaneEstimator.swift" : {
+    "const-values" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/PlaneEstimator.swiftconstvalues",
+    "dependencies" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/PlaneEstimator.d",
+    "diagnostics" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/PlaneEstimator.dia",
+    "index-unit-output-path" : "/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/PlaneEstimator.o",
+    "llvm-bc" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/PlaneEstimator.bc",
+    "object" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/PlaneEstimator.o",
+    "swift-dependencies" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/PlaneEstimator.swiftdeps",
+    "swiftmodule" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/PlaneEstimator~partial.swiftmodule"
+  },
+  "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/ClothIQ/Features/ClothingLibrary/Domain/UseCases/PhotoMeasurementCalculator.swift" : {
+    "const-values" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/PhotoMeasurementCalculator.swiftconstvalues",
+    "dependencies" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/PhotoMeasurementCalculator.d",
+    "diagnostics" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/PhotoMeasurementCalculator.dia",
+    "index-unit-output-path" : "/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/PhotoMeasurementCalculator.o",
+    "llvm-bc" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/PhotoMeasurementCalculator.bc",
+    "object" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/PhotoMeasurementCalculator.o",
+    "swift-dependencies" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/PhotoMeasurementCalculator.swiftdeps",
+    "swiftmodule" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/PhotoMeasurementCalculator~partial.swiftmodule"
+  },
+  "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/ClothIQ/Features/ClothingLibrary/Presentation/Components/ClothingTypeEditorView.swift" : {
+    "const-values" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/ClothingTypeEditorView.swiftconstvalues",
+    "dependencies" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/ClothingTypeEditorView.d",
+    "diagnostics" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/ClothingTypeEditorView.dia",
+    "index-unit-output-path" : "/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/ClothingTypeEditorView.o",
+    "llvm-bc" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/ClothingTypeEditorView.bc",
+    "object" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/ClothingTypeEditorView.o",
+    "swift-dependencies" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/ClothingTypeEditorView.swiftdeps",
+    "swiftmodule" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/ClothingTypeEditorView~partial.swiftmodule"
+  },
+  "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/ClothIQ/Features/ClothingLibrary/Presentation/Components/EditableTitleView.swift" : {
+    "const-values" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/EditableTitleView.swiftconstvalues",
+    "dependencies" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/EditableTitleView.d",
+    "diagnostics" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/EditableTitleView.dia",
+    "index-unit-output-path" : "/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/EditableTitleView.o",
+    "llvm-bc" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/EditableTitleView.bc",
+    "object" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/EditableTitleView.o",
+    "swift-dependencies" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/EditableTitleView.swiftdeps",
+    "swiftmodule" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/EditableTitleView~partial.swiftmodule"
+  },
+  "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/ClothIQ/Features/ClothingLibrary/Presentation/Components/MeasurementLinesOverlay.swift" : {
+    "const-values" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/MeasurementLinesOverlay.swiftconstvalues",
+    "dependencies" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/MeasurementLinesOverlay.d",
+    "diagnostics" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/MeasurementLinesOverlay.dia",
+    "index-unit-output-path" : "/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/MeasurementLinesOverlay.o",
+    "llvm-bc" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/MeasurementLinesOverlay.bc",
+    "object" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/MeasurementLinesOverlay.o",
+    "swift-dependencies" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/MeasurementLinesOverlay.swiftdeps",
+    "swiftmodule" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/MeasurementLinesOverlay~partial.swiftmodule"
+  },
+  "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/ClothIQ/Features/ClothingLibrary/Presentation/Components/MeasurementTypePickerView.swift" : {
+    "const-values" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/MeasurementTypePickerView.swiftconstvalues",
+    "dependencies" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/MeasurementTypePickerView.d",
+    "diagnostics" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/MeasurementTypePickerView.dia",
+    "index-unit-output-path" : "/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/MeasurementTypePickerView.o",
+    "llvm-bc" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/MeasurementTypePickerView.bc",
+    "object" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/MeasurementTypePickerView.o",
+    "swift-dependencies" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/MeasurementTypePickerView.swiftdeps",
+    "swiftmodule" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/MeasurementTypePickerView~partial.swiftmodule"
+  },
+  "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/ClothIQ/Features/ClothingLibrary/Presentation/Components/ZoomableImageView.swift" : {
+    "const-values" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/ZoomableImageView.swiftconstvalues",
+    "dependencies" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/ZoomableImageView.d",
+    "diagnostics" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/ZoomableImageView.dia",
+    "index-unit-output-path" : "/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/ZoomableImageView.o",
+    "llvm-bc" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/ZoomableImageView.bc",
+    "object" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/ZoomableImageView.o",
+    "swift-dependencies" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/ZoomableImageView.swiftdeps",
+    "swiftmodule" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/ZoomableImageView~partial.swiftmodule"
+  },
+  "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/ClothIQ/Features/ClothingLibrary/Presentation/ViewModels/PhotoMeasurementViewModel.swift" : {
+    "const-values" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/PhotoMeasurementViewModel.swiftconstvalues",
+    "dependencies" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/PhotoMeasurementViewModel.d",
+    "diagnostics" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/PhotoMeasurementViewModel.dia",
+    "index-unit-output-path" : "/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/PhotoMeasurementViewModel.o",
+    "llvm-bc" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/PhotoMeasurementViewModel.bc",
+    "object" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/PhotoMeasurementViewModel.o",
+    "swift-dependencies" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/PhotoMeasurementViewModel.swiftdeps",
+    "swiftmodule" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/PhotoMeasurementViewModel~partial.swiftmodule"
+  },
+  "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/ClothIQ/Features/ClothingLibrary/Presentation/Views/ClothingDetailView.swift" : {
+    "const-values" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/ClothingDetailView.swiftconstvalues",
+    "dependencies" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/ClothingDetailView.d",
+    "diagnostics" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/ClothingDetailView.dia",
+    "index-unit-output-path" : "/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/ClothingDetailView.o",
+    "llvm-bc" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/ClothingDetailView.bc",
+    "object" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/ClothingDetailView.o",
+    "swift-dependencies" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/ClothingDetailView.swiftdeps",
+    "swiftmodule" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/ClothingDetailView~partial.swiftmodule"
+  },
+  "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/ClothIQ/Features/ClothingLibrary/Presentation/Views/ClothingItemCard.swift" : {
+    "const-values" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/ClothingItemCard.swiftconstvalues",
+    "dependencies" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/ClothingItemCard.d",
+    "diagnostics" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/ClothingItemCard.dia",
+    "index-unit-output-path" : "/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/ClothingItemCard.o",
+    "llvm-bc" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/ClothingItemCard.bc",
+    "object" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/ClothingItemCard.o",
+    "swift-dependencies" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/ClothingItemCard.swiftdeps",
+    "swiftmodule" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/ClothingItemCard~partial.swiftmodule"
+  },
+  "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/ClothIQ/Features/ClothingLibrary/Presentation/Views/ClothingLibraryView.swift" : {
+    "const-values" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/ClothingLibraryView.swiftconstvalues",
+    "dependencies" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/ClothingLibraryView.d",
+    "diagnostics" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/ClothingLibraryView.dia",
+    "index-unit-output-path" : "/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/ClothingLibraryView.o",
+    "llvm-bc" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/ClothingLibraryView.bc",
+    "object" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/ClothingLibraryView.o",
+    "swift-dependencies" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/ClothingLibraryView.swiftdeps",
+    "swiftmodule" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/ClothingLibraryView~partial.swiftmodule"
+  },
+  "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/ClothIQ/Features/ClothingLibrary/Presentation/Views/ClothingListView.swift" : {
+    "const-values" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/ClothingListView.swiftconstvalues",
+    "dependencies" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/ClothingListView.d",
+    "diagnostics" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/ClothingListView.dia",
+    "index-unit-output-path" : "/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/ClothingListView.o",
+    "llvm-bc" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/ClothingListView.bc",
+    "object" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/ClothingListView.o",
+    "swift-dependencies" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/ClothingListView.swiftdeps",
+    "swiftmodule" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/ClothingListView~partial.swiftmodule"
+  },
+  "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/ClothIQ/Features/ClothingLibrary/Presentation/Views/PhotoMeasurementView.swift" : {
+    "const-values" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/PhotoMeasurementView.swiftconstvalues",
+    "dependencies" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/PhotoMeasurementView.d",
+    "diagnostics" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/PhotoMeasurementView.dia",
+    "index-unit-output-path" : "/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/PhotoMeasurementView.o",
+    "llvm-bc" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/PhotoMeasurementView.bc",
+    "object" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/PhotoMeasurementView.o",
+    "swift-dependencies" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/PhotoMeasurementView.swiftdeps",
+    "swiftmodule" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/PhotoMeasurementView~partial.swiftmodule"
+  },
+  "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/ClothIQ/Features/ImageProcessing/Data/Services/ObjectCaptureService.swift" : {
+    "const-values" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/ObjectCaptureService.swiftconstvalues",
+    "dependencies" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/ObjectCaptureService.d",
+    "diagnostics" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/ObjectCaptureService.dia",
+    "index-unit-output-path" : "/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/ObjectCaptureService.o",
+    "llvm-bc" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/ObjectCaptureService.bc",
+    "object" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/ObjectCaptureService.o",
+    "swift-dependencies" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/ObjectCaptureService.swiftdeps",
+    "swiftmodule" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/ObjectCaptureService~partial.swiftmodule"
+  },
+  "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/ClothIQ/Features/ImageProcessing/Data/Services/PhotoLibraryService.swift" : {
+    "const-values" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/PhotoLibraryService.swiftconstvalues",
+    "dependencies" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/PhotoLibraryService.d",
+    "diagnostics" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/PhotoLibraryService.dia",
+    "index-unit-output-path" : "/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/PhotoLibraryService.o",
+    "llvm-bc" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/PhotoLibraryService.bc",
+    "object" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/PhotoLibraryService.o",
+    "swift-dependencies" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/PhotoLibraryService.swiftdeps",
+    "swiftmodule" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/PhotoLibraryService~partial.swiftmodule"
+  },
+  "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/ClothIQ/Features/ImageProcessing/Data/Services/VisionClothingClassifier.swift" : {
+    "const-values" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/VisionClothingClassifier.swiftconstvalues",
+    "dependencies" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/VisionClothingClassifier.d",
+    "diagnostics" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/VisionClothingClassifier.dia",
+    "index-unit-output-path" : "/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/VisionClothingClassifier.o",
+    "llvm-bc" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/VisionClothingClassifier.bc",
+    "object" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/VisionClothingClassifier.o",
+    "swift-dependencies" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/VisionClothingClassifier.swiftdeps",
+    "swiftmodule" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/VisionClothingClassifier~partial.swiftmodule"
+  },
+  "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/ClothIQ/Features/Measurement/Data/Services/ARMeasurementService.swift" : {
+    "const-values" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/ARMeasurementService.swiftconstvalues",
+    "dependencies" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/ARMeasurementService.d",
+    "diagnostics" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/ARMeasurementService.dia",
+    "index-unit-output-path" : "/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/ARMeasurementService.o",
+    "llvm-bc" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/ARMeasurementService.bc",
+    "object" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/ARMeasurementService.o",
+    "swift-dependencies" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/ARMeasurementService.swiftdeps",
+    "swiftmodule" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/ARMeasurementService~partial.swiftmodule"
+  },
+  "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/ClothIQ/Features/Measurement/Data/Services/AutoMeasurementService.swift" : {
+    "const-values" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/AutoMeasurementService.swiftconstvalues",
+    "dependencies" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/AutoMeasurementService.d",
+    "diagnostics" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/AutoMeasurementService.dia",
+    "index-unit-output-path" : "/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/AutoMeasurementService.o",
+    "llvm-bc" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/AutoMeasurementService.bc",
+    "object" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/AutoMeasurementService.o",
+    "swift-dependencies" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/AutoMeasurementService.swiftdeps",
+    "swiftmodule" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/AutoMeasurementService~partial.swiftmodule"
+  },
+  "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/ClothIQ/Features/Measurement/Data/Services/DepthDataProcessor.swift" : {
+    "const-values" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/DepthDataProcessor.swiftconstvalues",
+    "dependencies" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/DepthDataProcessor.d",
+    "diagnostics" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/DepthDataProcessor.dia",
+    "index-unit-output-path" : "/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/DepthDataProcessor.o",
+    "llvm-bc" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/DepthDataProcessor.bc",
+    "object" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/DepthDataProcessor.o",
+    "swift-dependencies" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/DepthDataProcessor.swiftdeps",
+    "swiftmodule" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/DepthDataProcessor~partial.swiftmodule"
+  },
+  "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/ClothIQ/Features/Measurement/Data/Services/ForegroundSegmentationService.swift" : {
+    "const-values" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/ForegroundSegmentationService.swiftconstvalues",
+    "dependencies" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/ForegroundSegmentationService.d",
+    "diagnostics" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/ForegroundSegmentationService.dia",
+    "index-unit-output-path" : "/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/ForegroundSegmentationService.o",
+    "llvm-bc" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/ForegroundSegmentationService.bc",
+    "object" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/ForegroundSegmentationService.o",
+    "swift-dependencies" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/ForegroundSegmentationService.swiftdeps",
+    "swiftmodule" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/ForegroundSegmentationService~partial.swiftmodule"
+  },
+  "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/ClothIQ/Features/Measurement/Data/Services/MeasurementCalculator.swift" : {
+    "const-values" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/MeasurementCalculator.swiftconstvalues",
+    "dependencies" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/MeasurementCalculator.d",
+    "diagnostics" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/MeasurementCalculator.dia",
+    "index-unit-output-path" : "/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/MeasurementCalculator.o",
+    "llvm-bc" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/MeasurementCalculator.bc",
+    "object" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/MeasurementCalculator.o",
+    "swift-dependencies" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/MeasurementCalculator.swiftdeps",
+    "swiftmodule" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/MeasurementCalculator~partial.swiftmodule"
+  },
+  "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/ClothIQ/Features/Measurement/Domain/Entities/ClothingFeaturePoints.swift" : {
+    "const-values" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/ClothingFeaturePoints.swiftconstvalues",
+    "dependencies" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/ClothingFeaturePoints.d",
+    "diagnostics" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/ClothingFeaturePoints.dia",
+    "index-unit-output-path" : "/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/ClothingFeaturePoints.o",
+    "llvm-bc" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/ClothingFeaturePoints.bc",
+    "object" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/ClothingFeaturePoints.o",
+    "swift-dependencies" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/ClothingFeaturePoints.swiftdeps",
+    "swiftmodule" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/ClothingFeaturePoints~partial.swiftmodule"
+  },
+  "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/ClothIQ/Features/Measurement/Domain/Entities/MeasurementPoint.swift" : {
+    "const-values" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/MeasurementPoint.swiftconstvalues",
+    "dependencies" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/MeasurementPoint.d",
+    "diagnostics" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/MeasurementPoint.dia",
+    "index-unit-output-path" : "/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/MeasurementPoint.o",
+    "llvm-bc" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/MeasurementPoint.bc",
+    "object" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/MeasurementPoint.o",
+    "swift-dependencies" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/MeasurementPoint.swiftdeps",
+    "swiftmodule" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/MeasurementPoint~partial.swiftmodule"
+  },
+  "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/ClothIQ/Features/Measurement/Domain/Entities/MeasurementPointDetector.swift" : {
+    "const-values" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/MeasurementPointDetector.swiftconstvalues",
+    "dependencies" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/MeasurementPointDetector.d",
+    "diagnostics" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/MeasurementPointDetector.dia",
+    "index-unit-output-path" : "/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/MeasurementPointDetector.o",
+    "llvm-bc" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/MeasurementPointDetector.bc",
+    "object" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/MeasurementPointDetector.o",
+    "swift-dependencies" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/MeasurementPointDetector.swiftdeps",
+    "swiftmodule" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/MeasurementPointDetector~partial.swiftmodule"
+  },
+  "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/ClothIQ/Features/Measurement/Domain/Entities/MeasurementSession.swift" : {
+    "const-values" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/MeasurementSession.swiftconstvalues",
+    "dependencies" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/MeasurementSession.d",
+    "diagnostics" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/MeasurementSession.dia",
+    "index-unit-output-path" : "/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/MeasurementSession.o",
+    "llvm-bc" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/MeasurementSession.bc",
+    "object" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/MeasurementSession.o",
+    "swift-dependencies" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/MeasurementSession.swiftdeps",
+    "swiftmodule" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/MeasurementSession~partial.swiftmodule"
+  },
+  "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/ClothIQ/Features/Measurement/Domain/Protocols/ARMeasurementServiceProtocol.swift" : {
+    "const-values" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/ARMeasurementServiceProtocol.swiftconstvalues",
+    "dependencies" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/ARMeasurementServiceProtocol.d",
+    "diagnostics" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/ARMeasurementServiceProtocol.dia",
+    "index-unit-output-path" : "/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/ARMeasurementServiceProtocol.o",
+    "llvm-bc" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/ARMeasurementServiceProtocol.bc",
+    "object" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/ARMeasurementServiceProtocol.o",
+    "swift-dependencies" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/ARMeasurementServiceProtocol.swiftdeps",
+    "swiftmodule" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/ARMeasurementServiceProtocol~partial.swiftmodule"
+  },
+  "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/ClothIQ/Features/Measurement/Presentation/Components/ARInitializationGuide.swift" : {
+    "const-values" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/ARInitializationGuide.swiftconstvalues",
+    "dependencies" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/ARInitializationGuide.d",
+    "diagnostics" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/ARInitializationGuide.dia",
+    "index-unit-output-path" : "/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/ARInitializationGuide.o",
+    "llvm-bc" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/ARInitializationGuide.bc",
+    "object" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/ARInitializationGuide.o",
+    "swift-dependencies" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/ARInitializationGuide.swiftdeps",
+    "swiftmodule" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/ARInitializationGuide~partial.swiftmodule"
+  },
+  "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/ClothIQ/Features/Measurement/Presentation/Components/AdaptiveMeasurementSheet.swift" : {
+    "const-values" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/AdaptiveMeasurementSheet.swiftconstvalues",
+    "dependencies" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/AdaptiveMeasurementSheet.d",
+    "diagnostics" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/AdaptiveMeasurementSheet.dia",
+    "index-unit-output-path" : "/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/AdaptiveMeasurementSheet.o",
+    "llvm-bc" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/AdaptiveMeasurementSheet.bc",
+    "object" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/AdaptiveMeasurementSheet.o",
+    "swift-dependencies" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/AdaptiveMeasurementSheet.swiftdeps",
+    "swiftmodule" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/AdaptiveMeasurementSheet~partial.swiftmodule"
+  },
+  "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/ClothIQ/Features/Measurement/Presentation/Components/DepthVisualizationView.swift" : {
+    "const-values" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/DepthVisualizationView.swiftconstvalues",
+    "dependencies" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/DepthVisualizationView.d",
+    "diagnostics" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/DepthVisualizationView.dia",
+    "index-unit-output-path" : "/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/DepthVisualizationView.o",
+    "llvm-bc" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/DepthVisualizationView.bc",
+    "object" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/DepthVisualizationView.o",
+    "swift-dependencies" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/DepthVisualizationView.swiftdeps",
+    "swiftmodule" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/DepthVisualizationView~partial.swiftmodule"
+  },
+  "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/ClothIQ/Features/Measurement/Presentation/Components/MeasurementGuideOverlay.swift" : {
+    "const-values" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/MeasurementGuideOverlay.swiftconstvalues",
+    "dependencies" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/MeasurementGuideOverlay.d",
+    "diagnostics" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/MeasurementGuideOverlay.dia",
+    "index-unit-output-path" : "/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/MeasurementGuideOverlay.o",
+    "llvm-bc" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/MeasurementGuideOverlay.bc",
+    "object" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/MeasurementGuideOverlay.o",
+    "swift-dependencies" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/MeasurementGuideOverlay.swiftdeps",
+    "swiftmodule" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/MeasurementGuideOverlay~partial.swiftmodule"
+  },
+  "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/ClothIQ/Features/Measurement/Presentation/Components/MeasurementPointView.swift" : {
+    "const-values" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/MeasurementPointView.swiftconstvalues",
+    "dependencies" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/MeasurementPointView.d",
+    "diagnostics" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/MeasurementPointView.dia",
+    "index-unit-output-path" : "/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/MeasurementPointView.o",
+    "llvm-bc" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/MeasurementPointView.bc",
+    "object" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/MeasurementPointView.o",
+    "swift-dependencies" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/MeasurementPointView.swiftdeps",
+    "swiftmodule" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/MeasurementPointView~partial.swiftmodule"
+  },
+  "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/ClothIQ/Features/Measurement/Presentation/Components/MeasurementTypeSelectionView.swift" : {
+    "const-values" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/MeasurementTypeSelectionView.swiftconstvalues",
+    "dependencies" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/MeasurementTypeSelectionView.d",
+    "diagnostics" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/MeasurementTypeSelectionView.dia",
+    "index-unit-output-path" : "/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/MeasurementTypeSelectionView.o",
+    "llvm-bc" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/MeasurementTypeSelectionView.bc",
+    "object" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/MeasurementTypeSelectionView.o",
+    "swift-dependencies" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/MeasurementTypeSelectionView.swiftdeps",
+    "swiftmodule" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/MeasurementTypeSelectionView~partial.swiftmodule"
+  },
+  "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/ClothIQ/Features/Measurement/Presentation/ViewModels/MeasurementViewModel_Refactored.swift" : {
+    "const-values" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/MeasurementViewModel_Refactored.swiftconstvalues",
+    "dependencies" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/MeasurementViewModel_Refactored.d",
+    "diagnostics" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/MeasurementViewModel_Refactored.dia",
+    "index-unit-output-path" : "/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/MeasurementViewModel_Refactored.o",
+    "llvm-bc" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/MeasurementViewModel_Refactored.bc",
+    "object" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/MeasurementViewModel_Refactored.o",
+    "swift-dependencies" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/MeasurementViewModel_Refactored.swiftdeps",
+    "swiftmodule" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/MeasurementViewModel_Refactored~partial.swiftmodule"
+  },
+  "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/ClothIQ/Features/Measurement/Presentation/Views/ARViewContainer.swift" : {
+    "const-values" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/ARViewContainer.swiftconstvalues",
+    "dependencies" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/ARViewContainer.d",
+    "diagnostics" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/ARViewContainer.dia",
+    "index-unit-output-path" : "/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/ARViewContainer.o",
+    "llvm-bc" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/ARViewContainer.bc",
+    "object" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/ARViewContainer.o",
+    "swift-dependencies" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/ARViewContainer.swiftdeps",
+    "swiftmodule" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/ARViewContainer~partial.swiftmodule"
+  },
+  "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/ClothIQ/Features/Measurement/Presentation/Views/Components/ObjectFocusGuide.swift" : {
+    "const-values" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/ObjectFocusGuide.swiftconstvalues",
+    "dependencies" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/ObjectFocusGuide.d",
+    "diagnostics" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/ObjectFocusGuide.dia",
+    "index-unit-output-path" : "/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/ObjectFocusGuide.o",
+    "llvm-bc" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/ObjectFocusGuide.bc",
+    "object" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/ObjectFocusGuide.o",
+    "swift-dependencies" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/ObjectFocusGuide.swiftdeps",
+    "swiftmodule" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/ObjectFocusGuide~partial.swiftmodule"
+  },
+  "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/ClothIQ/Features/Measurement/Presentation/Views/MeasurementView.swift" : {
+    "const-values" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/MeasurementView.swiftconstvalues",
+    "dependencies" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/MeasurementView.d",
+    "diagnostics" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/MeasurementView.dia",
+    "index-unit-output-path" : "/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/MeasurementView.o",
+    "llvm-bc" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/MeasurementView.bc",
+    "object" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/MeasurementView.o",
+    "swift-dependencies" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/MeasurementView.swiftdeps",
+    "swiftmodule" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/MeasurementView~partial.swiftmodule"
+  },
+  "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/DerivedSources/GeneratedAssetSymbols.swift" : {
+    "const-values" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/GeneratedAssetSymbols.swiftconstvalues",
+    "dependencies" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/GeneratedAssetSymbols.d",
+    "diagnostics" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/GeneratedAssetSymbols.dia",
+    "index-unit-output-path" : "/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/GeneratedAssetSymbols.o",
+    "llvm-bc" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/GeneratedAssetSymbols.bc",
+    "object" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/GeneratedAssetSymbols.o",
+    "swift-dependencies" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/GeneratedAssetSymbols.swiftdeps",
+    "swiftmodule" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphonesimulator/ClothIQ.build/Objects-normal/arm64/GeneratedAssetSymbols~partial.swiftmodule"
+  }
+}

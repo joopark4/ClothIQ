@@ -1,0 +1,68 @@
+{
+  "buildCommand" : {
+    "command" : "build",
+    "skipDependencies" : false,
+    "style" : "buildOnly"
+  },
+  "configuredTargets" : [
+    {
+      "guid" : "1aa09068a9a0c958047646ae6ddfea384b46686aefb34efa09445e656e75f310"
+    }
+  ],
+  "containerPath" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/ClothIQ.xcodeproj",
+  "continueBuildingAfterErrors" : false,
+  "dependencyScope" : "workspace",
+  "enableIndexBuildArena" : false,
+  "hideShellScriptEnvironment" : false,
+  "parameters" : {
+    "action" : "build",
+    "activeArchitecture" : "undefined_arch",
+    "activeRunDestination" : {
+      "disableOnlyActiveArch" : true,
+      "platform" : "iphonesimulator",
+      "sdk" : "iphonesimulator26.0",
+      "sdkVariant" : "iphonesimulator",
+      "supportedArchitectures" : [
+        "i386",
+        "x86_64"
+      ],
+      "targetArchitecture" : "undefined_arch"
+    },
+    "arenaInfo" : {
+      "buildIntermediatesPath" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex",
+      "buildProductsPath" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Products",
+      "derivedDataPath" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build",
+      "indexDataStoreFolderPath" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Index.noindex/DataStore",
+      "indexEnableDataStore" : true,
+      "indexPCHPath" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Index.noindex/PrecompiledHeaders",
+      "pchPath" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/PrecompiledHeaders"
+    },
+    "configurationName" : "Debug",
+    "overrides" : {
+      "commandLine" : {
+        "table" : {
+          "CODE_SIGN_IDENTITY" : "",
+          "CODE_SIGNING_REQUIRED" : "NO",
+          "ONLY_ACTIVE_ARCH" : "YES",
+          "SDKROOT" : "iphonesimulator26.0"
+        }
+      },
+      "synthesized" : {
+        "table" : {
+          "ACTION" : "build",
+          "CLANG_COVERAGE_MAPPING" : "YES",
+          "CLANG_PROFILE_DATA_DIRECTORY" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/ProfileData",
+          "ENABLE_PREVIEWS" : "NO",
+          "ENABLE_XOJIT_PREVIEWS" : "YES",
+          "ONLY_ACTIVE_ARCH" : "YES"
+        }
+      }
+    }
+  },
+  "schemeCommand" : "launch",
+  "showNonLoggedProgress" : true,
+  "useDryRun" : false,
+  "useImplicitDependencies" : true,
+  "useLegacyBuildLocations" : false,
+  "useParallelTargets" : true
+}

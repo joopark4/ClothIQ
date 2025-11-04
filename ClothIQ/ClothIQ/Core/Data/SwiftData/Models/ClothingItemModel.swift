@@ -18,6 +18,7 @@
 import Foundation
 import SwiftData
 import UIKit
+import simd
 
 /// 의류 아이템 데이터 모델
 ///
@@ -32,6 +33,12 @@ import UIKit
 final class ClothingItemModel: Hashable {
     /// 고유 식별자
     var id: UUID
+
+    /// 사용자 지정 타이틀
+    ///
+    /// 사용자가 직접 입력한 의류 아이템의 이름입니다.
+    /// nil인 경우 의류 타입 이름을 사용합니다.
+    var title: String?
 
     /// 의류 타입 (반팔, 긴팔, 바지 등)
     ///
@@ -49,6 +56,47 @@ final class ClothingItemModel: Hashable {
     /// Documents 디렉토리 내 상대 경로를 저장합니다.
     /// 예: "clothing_images/UUID.jpg"
     var imagePath: String?
+
+    /// Depth map 파일 경로
+    ///
+    /// LiDAR 센서로 촬영한 깊이 데이터 파일 경로입니다.
+    /// Documents 디렉토리 내 상대 경로를 저장합니다.
+    /// 예: "depth_maps/UUID.png"
+    /// 사진 기반 측정 시 이 데이터를 활용합니다.
+    var depthMapPath: String?
+
+    /// 원본 이미지 너비 (크롭 전)
+    var originalImageWidth: Double?
+
+    /// 원본 이미지 높이 (크롭 전)
+    var originalImageHeight: Double?
+
+    /// 처리된 이미지 너비 (크롭 후)
+    var processedImageWidth: Double?
+
+    /// 처리된 이미지 높이 (크롭 후)
+    var processedImageHeight: Double?
+
+    /// 크롭 영역 X 좌표 (원본 기준)
+    var cropOriginX: Double?
+
+    /// 크롭 영역 Y 좌표 (원본 기준)
+    var cropOriginY: Double?
+
+    /// 크롭 영역 너비
+    var cropWidth: Double?
+
+    /// 크롭 영역 높이
+    var cropHeight: Double?
+
+    /// 카메라 intrinsics 행렬 데이터 (simd_float3x3)
+    var cameraIntrinsicsData: Data?
+
+    /// 카메라 이미지 해상도 너비
+    var cameraResolutionWidth: Double?
+
+    /// 카메라 이미지 해상도 높이
+    var cameraResolutionHeight: Double?
 
     /// 측정값 목록
     ///
@@ -72,20 +120,46 @@ final class ClothingItemModel: Hashable {
 
     init(
         id: UUID = UUID(),
+        title: String? = nil,
         type: String,
         createdAt: Date = Date(),
         updatedAt: Date = Date(),
         imagePath: String? = nil,
+        depthMapPath: String? = nil,
+        originalImageWidth: Double? = nil,
+        originalImageHeight: Double? = nil,
+        processedImageWidth: Double? = nil,
+        processedImageHeight: Double? = nil,
+        cropOriginX: Double? = nil,
+        cropOriginY: Double? = nil,
+        cropWidth: Double? = nil,
+        cropHeight: Double? = nil,
+        cameraIntrinsicsData: Data? = nil,
+        cameraResolutionWidth: Double? = nil,
+        cameraResolutionHeight: Double? = nil,
         measurements: [MeasurementModel] = [],
         tags: [TagModel] = [],
         notes: String? = nil,
         isFavorite: Bool = false
     ) {
         self.id = id
+        self.title = title
         self.type = type
         self.createdAt = createdAt
         self.updatedAt = updatedAt
         self.imagePath = imagePath
+        self.depthMapPath = depthMapPath
+        self.originalImageWidth = originalImageWidth
+        self.originalImageHeight = originalImageHeight
+        self.processedImageWidth = processedImageWidth
+        self.processedImageHeight = processedImageHeight
+        self.cropOriginX = cropOriginX
+        self.cropOriginY = cropOriginY
+        self.cropWidth = cropWidth
+        self.cropHeight = cropHeight
+        self.cameraIntrinsicsData = cameraIntrinsicsData
+        self.cameraResolutionWidth = cameraResolutionWidth
+        self.cameraResolutionHeight = cameraResolutionHeight
         self.measurements = measurements
         self.tags = tags
         self.notes = notes
@@ -96,6 +170,17 @@ final class ClothingItemModel: Hashable {
 // MARK: - Convenience Extensions
 
 extension ClothingItemModel {
+    /// 표시할 타이틀
+    ///
+    /// 사용자가 설정한 타이틀이 있으면 그것을 사용하고,
+    /// 없으면 의류 타입 이름을 반환합니다.
+    var displayTitle: String {
+        if let title = title, !title.isEmpty {
+            return title
+        }
+        return clothingType?.displayName ?? "의류 아이템"
+    }
+
     /// 의류 타입을 ClothingType enum으로 반환
     var clothingType: ClothingType? {
         ClothingType(rawValue: type)
@@ -147,5 +232,60 @@ extension ClothingItemModel {
     func loadImage() -> UIImage? {
         guard let imagePath = imagePath else { return nil }
         return try? ImageFileManager.shared.loadImage(at: imagePath)
+    }
+
+    /// 저장된 depth map 로드
+    ///
+    /// - Returns: Depth map 이미지 (grayscale PNG), 없으면 nil
+    func loadDepthMap() -> UIImage? {
+        guard let depthMapPath = depthMapPath else { return nil }
+        return try? ImageFileManager.shared.loadImage(at: depthMapPath)
+    }
+
+    /// 원본 이미지 크기
+    var originalImageSize: CGSize? {
+        guard let width = originalImageWidth, let height = originalImageHeight else {
+            return nil
+        }
+        return CGSize(width: width, height: height)
+    }
+
+    /// 처리된 이미지 크기
+    var processedImageSize: CGSize? {
+        guard let width = processedImageWidth, let height = processedImageHeight else {
+            return nil
+        }
+        return CGSize(width: width, height: height)
+    }
+
+    /// 크롭 영역 (원본 이미지 기준)
+    var cropRect: CGRect? {
+        guard
+            let originX = cropOriginX,
+            let originY = cropOriginY,
+            let width = cropWidth,
+            let height = cropHeight
+        else {
+            return nil
+        }
+        return CGRect(x: originX, y: originY, width: width, height: height)
+    }
+
+    /// 카메라 intrinsics 행렬
+    var cameraIntrinsicsMatrix: simd_float3x3? {
+        guard let data = cameraIntrinsicsData else { return nil }
+        guard data.count == MemoryLayout<simd_float3x3>.size else { return nil }
+        return data.withUnsafeBytes { buffer -> simd_float3x3? in
+            guard buffer.count == MemoryLayout<simd_float3x3>.size else { return nil }
+            return buffer.load(as: simd_float3x3.self)
+        }
+    }
+
+    /// 카메라 이미지 해상도
+    var cameraResolutionSize: CGSize? {
+        guard let width = cameraResolutionWidth, let height = cameraResolutionHeight else {
+            return nil
+        }
+        return CGSize(width: width, height: height)
     }
 }

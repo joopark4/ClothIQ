@@ -54,23 +54,26 @@ final class ARMeasurementService: ARMeasurementServiceProtocol {
         at screenPoint: CGPoint,
         from frame: ARFrame
     ) throws -> MeasurementPoint? {
-        // Scene Depth 확인 (smoothedSceneDepth 우선 사용)
-        guard let sceneDepth = frame.smoothedSceneDepth ?? frame.sceneDepth else {
+        // Scene Depth 확인 (AutoSize.md: sceneDepth 사용)
+        guard let sceneDepth = frame.sceneDepth else {
             throw ARError.insufficientDepthData
         }
 
         let depthMap = sceneDepth.depthMap
         let confidenceMap = sceneDepth.confidenceMap
 
-        // 카메라 해상도 기반 좌표 변환
+        // AR 카메라 이미지 해상도 사용 (중요!)
+        let imageResolution = frame.camera.imageResolution
+
+        // 깊이 맵 크기
         let depthMapSize = CGSize(
             width: CGFloat(CVPixelBufferGetWidth(depthMap)),
             height: CGFloat(CVPixelBufferGetHeight(depthMap))
         )
 
-        // 화면 좌표 → 깊이 맵 좌표 (직접 변환)
-        let scaleX = depthMapSize.width / viewportSize.width
-        let scaleY = depthMapSize.height / viewportSize.height
+        // 화면 좌표 → 깊이 맵 좌표 (AR 카메라 해상도 기준)
+        let scaleX = depthMapSize.width / imageResolution.width
+        let scaleY = depthMapSize.height / imageResolution.height
 
         let depthMapPoint = CGPoint(
             x: screenPoint.x * scaleX,
@@ -97,12 +100,14 @@ final class ARMeasurementService: ARMeasurementServiceProtocol {
             from: confidenceMap
         ) ?? 0.7
 
-        // 3D 월드 좌표 계산 (화면 좌표 그대로 전달)
+        // 3D 월드 좌표 계산
+        // 중요: screenPoint는 이미 imageResolution 기준이므로,
+        // viewportSize도 imageResolution을 전달해야 함!
         let worldPosition = DepthDataProcessor.calculateWorldPosition(
             screenPoint: screenPoint,
             depth: depth,
             camera: frame.camera,
-            viewportSize: viewportSize
+            viewportSize: imageResolution  // ❌ viewportSize가 아닌 imageResolution 사용!
         )
 
         // 카메라 각도 계산
@@ -153,6 +158,92 @@ final class ARMeasurementService: ARMeasurementServiceProtocol {
         let avgScore = scores.reduce(0, +) / Float(scores.count)
 
         return avgScore
+    }
+
+    /// 카메라 정렬 상태 계산
+    ///
+    /// 감지된 평면과 카메라의 각도 및 거리를 계산합니다.
+    ///
+    /// - Parameters:
+    ///   - frame: 현재 AR 프레임
+    ///   - planeAnchor: 감지된 평면 앵커 (옵셔널)
+    /// - Returns: 카메라 정렬 데이터. 평면이 없으면 nil
+    func calculateCameraAlignment(
+        from frame: ARFrame,
+        planeAnchor: ARPlaneAnchor?
+    ) -> CameraAlignmentData? {
+        guard let planeAnchor = planeAnchor else {
+            return nil
+        }
+
+        // 카메라 transform 추출
+        let cameraTransform = frame.camera.transform
+
+        // 카메라의 forward 벡터 (Z축, 카메라가 보는 방향)
+        // ARKit에서 카메라는 -Z 방향을 바라봄
+        let cameraForward = SIMD3<Float>(
+            -cameraTransform.columns.2.x,
+            -cameraTransform.columns.2.y,
+            -cameraTransform.columns.2.z
+        )
+
+        // 평면의 법선 벡터 (평면에 수직인 벡터)
+        // ARKit의 평면은 Y축이 법선 방향
+        let planeTransform = planeAnchor.transform
+        let planeNormal = SIMD3<Float>(
+            planeTransform.columns.1.x,
+            planeTransform.columns.1.y,
+            planeTransform.columns.1.z
+        )
+
+        // 두 벡터 정규화
+        let normalizedCameraForward = normalize(cameraForward)
+        let normalizedPlaneNormal = normalize(planeNormal)
+
+        // 두 벡터 사이의 각도 계산 (내적 사용)
+        // cos(θ) = a · b / (|a| * |b|)
+        let dotProduct = dot(normalizedCameraForward, normalizedPlaneNormal)
+
+        // 각도 계산 (라디안 → 도)
+        // 카메라가 평면을 위에서 수직으로 내려다보면 dotProduct ≈ -1 (반대 방향)
+        // 평행하면 dotProduct ≈ 0
+        // 따라서 부호를 반전시켜 계산
+        let adjustedDotProduct = -dotProduct
+        let angleRadians = acos(max(-1.0, min(1.0, adjustedDotProduct)))
+        let tiltAngle = Double(angleRadians * 180.0 / .pi)
+
+        // tiltAngle:
+        // - 0° = 완벽한 수직 (카메라가 평면을 정확히 내려다봄)
+        // - 90° = 완벽한 수평 (카메라가 평면과 평행)
+
+        // 카메라 위치 추출
+        let cameraPosition = SIMD3<Float>(
+            cameraTransform.columns.3.x,
+            cameraTransform.columns.3.y,
+            cameraTransform.columns.3.z
+        )
+
+        // 평면 중심 위치 추출
+        let planePosition = SIMD3<Float>(
+            planeTransform.columns.3.x,
+            planeTransform.columns.3.y,
+            planeTransform.columns.3.z
+        )
+
+        // 카메라에서 평면까지의 거리 계산
+        let distance = simd_distance(cameraPosition, planePosition)
+
+        print("📐 [ARMeasurementService] 카메라 정렬 계산")
+        print("📐   - dotProduct: \(String(format: "%.3f", dotProduct)) → adjusted: \(String(format: "%.3f", adjustedDotProduct))")
+        print("📐   - 틸트 각도: \(String(format: "%.1f", tiltAngle))°")
+        print("📐   - 거리: \(String(format: "%.2f", distance))m")
+        print("📐   - 평면 크기: \(String(format: "%.2f", planeAnchor.planeExtent.width))m x \(String(format: "%.2f", planeAnchor.planeExtent.height))m")
+
+        return CameraAlignmentData(
+            tiltAngle: tiltAngle,
+            distance: Double(distance),
+            hasPlaneDetected: true
+        )
     }
 
     // MARK: - Private Helpers
@@ -241,6 +332,22 @@ final class MockARMeasurementService: ARMeasurementServiceProtocol {
 
     func assessEnvironment(from frame: ARFrame) -> Float {
         return mockEnvironmentScore
+    }
+
+    func calculateCameraAlignment(
+        from frame: ARFrame,
+        planeAnchor: ARPlaneAnchor?
+    ) -> CameraAlignmentData? {
+        // Mock implementation - 테스트용 정렬 데이터 반환
+        guard planeAnchor != nil else {
+            return nil
+        }
+
+        return CameraAlignmentData(
+            tiltAngle: 5.0,  // Mock: 거의 수직
+            distance: 0.5,   // Mock: 50cm
+            hasPlaneDetected: true
+        )
     }
 }
 #endif

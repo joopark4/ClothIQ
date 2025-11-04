@@ -1,0 +1,2 @@
+Target dependency graph (1 target)
+Target 'ClothIQ' in project 'ClothIQ' (no dependencies)

@@ -1,0 +1,120 @@
+{
+  "source": "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/ClothIQ/Features/ClothingLibrary/Presentation/Views/PhotoMeasurementView.swift",
+  "tables": {
+    "Localizable": [
+      {
+        "comment": "",
+        "key": "이미지 회전 저장",
+        "location": {
+          "startingColumn": 16,
+          "startingLine": 52
+        }
+      },
+      {
+        "comment": "",
+        "key": "로딩 중...",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 41
+        }
+      },
+      {
+        "comment": "",
+        "key": "저장",
+        "location": {
+          "startingColumn": 20,
+          "startingLine": 53
+        }
+      },
+      {
+        "comment": "",
+        "key": "저장 안 함",
+        "location": {
+          "startingColumn": 20,
+          "startingLine": 57
+        }
+      },
+      {
+        "comment": "",
+        "key": "취소",
+        "location": {
+          "startingColumn": 20,
+          "startingLine": 60
+        }
+      },
+      {
+        "comment": "",
+        "key": "이미지를 회전했습니다.\n회전된 이미지를 저장하시겠습니까?",
+        "location": {
+          "startingColumn": 18,
+          "startingLine": 62
+        }
+      },
+      {
+        "comment": "",
+        "key": "Depth Map 없음",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 131
+        }
+      },
+      {
+        "comment": "",
+        "key": "이 의류는 Depth 데이터가 없어\n사진 측정을 사용할 수 없습니다.\n\nAR 카메라로 다시 촬영해주세요.",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 134
+        }
+      },
+      {
+        "comment": "",
+        "key": "닫기",
+        "location": {
+          "startingColumn": 32,
+          "startingLine": 139
+        }
+      },
+      {
+        "comment": "",
+        "key": "닫기",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 169
+        }
+      },
+      {
+        "comment": "",
+        "key": "이미지에서 두 지점을 탭하세요",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 219
+        }
+      },
+      {
+        "comment": "",
+        "key": "%@ cm",
+        "location": {
+          "startingColumn": 34,
+          "startingLine": 224
+        }
+      },
+      {
+        "comment": "",
+        "key": "저장",
+        "location": {
+          "startingColumn": 35,
+          "startingLine": 238
+        }
+      },
+      {
+        "comment": "",
+        "key": "상단에서 측정 항목을 선택해주세요",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 270
+        }
+      }
+    ]
+  },
+  "version": 1
+}

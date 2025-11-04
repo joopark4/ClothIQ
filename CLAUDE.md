@@ -4,11 +4,11 @@
 
 LiDAR 센서를 활용하여 의류의 각 부위별 사이즈를 정확하게 측정하는 iOS 네이티브 애플리케이션입니다. ARKit과 Vision Framework를 활용하여 3D 깊이 정보 기반의 실측 데이터를 제공하며, 촬영한 의류 이미지와 측정값을 로컬에 저장하여 관리합니다.
 
-## 현재 구현 상태 (2025년 10월 30일 업데이트)
+## 현재 구현 상태 (2025년 11월 3일 업데이트)
 
 ### Phase 1: MVP - 100% 완료 ✅ 🎉
 
-**✅ 완료된 기능 (14/14)**
+**✅ 완료된 기능 (16/16)**
 
 1. **LiDAR 기반 측정 시스템**
    - ARKit Scene Depth API 통합 완료
@@ -89,6 +89,22 @@ LiDAR 센서를 활용하여 의류의 각 부위별 사이즈를 정확하게 �
     - ClothingItemCard 컴포넌트 분리
     - 코드 구조 개선 및 재사용성 향상
 
+15. **사진 측정 정확도 개선** (2025.11.03)
+    - 평면 투영(Planar Projection) 방식 도입
+    - 3D 유클리드 거리 → 평면상의 2D 거리 계산으로 변경
+    - 의류가 평평하게 놓인 표면 기준 정확한 측정
+    - Z축 차이 10cm 이상 시 경고 시스템
+    - PhotoMeasurementCalculator 개선
+
+16. **카메라 정렬 가이드 시스템** (2025.11.03)
+    - 수평계 방식의 실시간 정렬 가이드 구현
+    - 원형 레벨 인디케이터로 카메라 틸트 각도 시각화
+    - 촬영 거리 실시간 표시 (권장: 40-60cm)
+    - 상태별 색상 피드백 (빨강 → 노랑 → 녹색)
+    - 최적 정렬 도달 시 햅틱 진동
+    - ARKit 평면 감지 및 카메라 각도 자동 계산
+    - CameraAlignmentGuide 컴포넌트 추가
+
 ### 구현된 주요 컴포넌트
 
 #### 서비스 레이어
@@ -105,14 +121,18 @@ LiDAR 센서를 활용하여 의류의 각 부위별 사이즈를 정확하게 �
 - `ARViewContainer`: AR 카메라 뷰 컨테이너
 - `MeasurementOverlayView`: 측정 포인트 오버레이
 - `ObjectFocusGuide`: 실시간 객체 포커싱 가이드
+- `CameraAlignmentGuide`: 카메라 정렬 가이드 (수평계 방식) ⭐ 신규
 - `ARInitializationGuide`: AR 초기화 상태 안내
 - `DepthVisualizationView`: 깊이 데이터 시각화
 - `MeasurementGuideOverlay`: 측정 방법 안내
-- `ClothingTypeSelectionSheet`: 촬영 후 의류 타입 선택 모달 (신규)
+- `ClothingTypeSelectionSheet`: 촬영 후 의류 타입 선택 모달
 - `ClothingLibraryView`: 의류 라이브러리 메인 화면
 - `ClothingListView`: 의류 목록 (썸네일 포함)
 - `ClothingDetailView`: 의류 상세 정보
 - `ClothingItemCard`: 의류 아이템 카드 컴포넌트
+- `PhotoMeasurementView`: 사진 기반 측정 화면
+- `ZoomableImageView`: 확대/드래그 가능 이미지 뷰
+- `MeasurementTypePickerView`: 측정 항목 선택 UI
 
 #### 유틸리티
 - `DeviceCapability`: 디바이스 기능 확인 (LiDAR 지원 등)
@@ -124,6 +144,14 @@ LiDAR 센서를 활용하여 의류의 각 부위별 사이즈를 정확하게 �
 1. **측정 정확도**
    - LiDAR 기반 ±0.5~2cm 오차 범위 달성
    - 카메라 intrinsics 기반 정확한 3D 좌표 변환
+   - **평면 투영 방식으로 정확도 향상** (2025.11.03)
+     - 3D 유클리드 거리 → 평면상 2D 거리 계산
+     - 의류가 놓인 평면 기준 정확한 측정
+     - Z축 차이 10cm 이상 시 경고
+   - **실시간 카메라 정렬 가이드** (2025.11.03)
+     - 최적 각도(±10도) 및 거리(40-60cm) 안내
+     - 수평계 방식 시각적 피드백
+     - 햅틱 진동으로 최적 상태 알림
    - 환경 조건에 따른 신뢰도 평가 시스템
 
 2. **배경 제거 품질**
@@ -154,8 +182,8 @@ LiDAR 센서를 활용하여 의류의 각 부위별 사이즈를 정확하게 �
 6. 라이브러리 복귀 → 썸네일과 함께 표시
 
 ### 프로젝트 통계
-- **파일 개수**: 41+ Swift 파일
-- **코드 라인 수**: ~13,000 라인
+- **파일 개수**: 55 Swift 파일
+- **코드 라인 수**: ~18,000 라인
 - **빌드 상태**: ✅ 성공
 - **최소 iOS 버전**: 17.0+
 - **지원 디바이스**: LiDAR 탑재 기기 (iPhone 12 Pro 이상, iPad Pro 2020 이상)
@@ -1220,7 +1248,44 @@ struct MeasurementViewFactory {
 }
 ```
 
+#### 8. Git 작업 규칙
 
+**중요**: 다음 Git 작업은 사용자의 **명시적 요청이 있을 때만** 수행합니다.
+
+**절대 자동으로 실행하지 말 것**:
+- `git push` (원격 저장소로 푸시)
+- `git push origin [branch]`
+- `git push --force` (강제 푸시)
+- `git push --force-with-lease`
+
+**허용되는 Git 작업** (자동 실행 가능):
+- `git status` - 현재 상태 확인
+- `git diff` - 변경 사항 확인
+- `git log` - 커밋 히스토리 확인
+- `git add` - 스테이징 영역에 파일 추가
+- `git commit` - 로컬 커밋 생성
+- `git branch` - 브랜치 확인/생성
+
+**규칙 요약**:
+1. 로컬 커밋(`git commit`)까지는 사용자 요청 시 자동으로 수행 가능
+2. 원격 푸시(`git push`)는 **반드시 사용자가 명시적으로 요청한 경우에만** 수행
+3. 작업 완료 후 "커밋까지 완료했습니다. 푸시하시겠습니까?" 같은 확인 질문 금지
+4. 사용자가 "푸시해줘", "원격에 올려줘" 등 명확하게 요청할 때만 푸시
+
+**예시**:
+```bash
+# ✅ 허용 - 로컬 커밋
+git add .
+git commit -m "새 기능 추가"
+
+# ❌ 금지 - 사용자 명시적 요청 없이 자동 푸시
+git push origin main
+
+# ✅ 허용 - 사용자가 "푸시해줘"라고 명시적으로 요청한 경우에만
+git push origin main
+```
+
+---
 
 ## 참고 자료
 
@@ -1244,5 +1309,5 @@ struct MeasurementViewFactory {
 
 ---
 
-**마지막 업데이트**: 2025년 10월 30일 (저녁)
-**문서 버전**: 1.1.1
+**마지막 업데이트**: 2025년 11월 3일
+**문서 버전**: 1.2.0

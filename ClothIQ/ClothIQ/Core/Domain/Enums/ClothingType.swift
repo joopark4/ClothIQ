@@ -55,11 +55,11 @@ enum ClothingType: String, CaseIterable, Codable {
         case .longSleeve:
             return [.shoulderWidth, .chestCircumference, .totalLength, .sleeveLength, .armCircumference]
         case .shorts:
-            return [.waistCircumference, .hipCircumference, .totalLength, .rise]
+            return [.waistCircumference, .totalLength, .rise]
         case .pants:
-            return [.waistCircumference, .hipCircumference, .totalLength, .rise, .hem, .thighCircumference]
+            return [.waistCircumference, .totalLength, .rise, .hem, .thighCircumference]
         case .skirt:
-            return [.waistCircumference, .hipCircumference, .totalLength]
+            return [.waistCircumference, .totalLength]
         }
     }
 
@@ -67,14 +67,7 @@ enum ClothingType: String, CaseIterable, Codable {
     ///
     /// 추가로 측정할 수 있는 선택적 항목들입니다.
     var optionalMeasurements: [MeasurementType] {
-        switch self {
-        case .shortSleeve, .longSleeve:
-            return [.neckCircumference, .hemWidth]
-        case .shorts, .pants:
-            return [.inseam, .outseam, .kneeCircumference]
-        case .skirt:
-            return [.hemWidth]
-        }
+        return []
     }
 
     /// 의류 카테고리 (상의/하의)
