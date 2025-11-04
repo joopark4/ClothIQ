@@ -1,0 +1,216 @@
+{
+  "source": "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/ClothIQ/Features/ClothingLibrary/Presentation/Views/ClothingDetailView.swift",
+  "tables": {
+    "Localizable": [
+      {
+        "comment": "",
+        "key": "의류 삭제",
+        "location": {
+          "startingColumn": 16,
+          "startingLine": 84
+        }
+      },
+      {
+        "comment": "",
+        "key": "즐겨찾기 해제",
+        "location": {
+          "startingColumn": 47,
+          "startingLine": 61
+        }
+      },
+      {
+        "comment": "",
+        "key": "즐겨찾기",
+        "location": {
+          "startingColumn": 71,
+          "startingLine": 61
+        }
+      },
+      {
+        "comment": "",
+        "key": "공유",
+        "location": {
+          "startingColumn": 31,
+          "startingLine": 69
+        }
+      },
+      {
+        "comment": "",
+        "key": "삭제",
+        "location": {
+          "startingColumn": 31,
+          "startingLine": 77
+        }
+      },
+      {
+        "comment": "",
+        "key": "취소",
+        "location": {
+          "startingColumn": 20,
+          "startingLine": 85
+        }
+      },
+      {
+        "comment": "",
+        "key": "삭제",
+        "location": {
+          "startingColumn": 20,
+          "startingLine": 86
+        }
+      },
+      {
+        "comment": "",
+        "key": "이 의류 아이템을 삭제하시겠습니까? 이 작업은 취소할 수 없습니다.",
+        "location": {
+          "startingColumn": 18,
+          "startingLine": 90
+        }
+      },
+      {
+        "comment": "",
+        "key": "탭하여 측정",
+        "location": {
+          "startingColumn": 38,
+          "startingLine": 204
+        }
+      },
+      {
+        "comment": "",
+        "key": "이미지 없음",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 227
+        }
+      },
+      {
+        "comment": "",
+        "key": "이름",
+        "location": {
+          "startingColumn": 22,
+          "startingLine": 242
+        }
+      },
+      {
+        "comment": "",
+        "key": "의류 타입",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 258
+        }
+      },
+      {
+        "comment": "",
+        "key": "진행률",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 287
+        }
+      },
+      {
+        "comment": "",
+        "key": "수정: %@",
+        "location": {
+          "startingColumn": 25,
+          "startingLine": 313
+        }
+      },
+      {
+        "comment": "",
+        "key": "측정값",
+        "location": {
+          "startingColumn": 22,
+          "startingLine": 333
+        }
+      },
+      {
+        "comment": "",
+        "key": "%lld/%lld",
+        "location": {
+          "startingColumn": 22,
+          "startingLine": 338
+        }
+      },
+      {
+        "comment": "",
+        "key": "아직 측정값이 없습니다",
+        "location": {
+          "startingColumn": 18,
+          "startingLine": 357
+        }
+      },
+      {
+        "comment": "",
+        "key": "메모가 없습니다",
+        "location": {
+          "startingColumn": 22,
+          "startingLine": 445
+        }
+      },
+      {
+        "comment": "",
+        "key": "메모",
+        "location": {
+          "startingColumn": 22,
+          "startingLine": 420
+        }
+      },
+      {
+        "comment": "",
+        "key": "측정 추가",
+        "location": {
+          "startingColumn": 23,
+          "startingLine": 460
+        }
+      },
+      {
+        "comment": "",
+        "key": "공유",
+        "location": {
+          "startingColumn": 23,
+          "startingLine": 469
+        }
+      },
+      {
+        "comment": "",
+        "key": "%lld%%",
+        "location": {
+          "startingColumn": 18,
+          "startingLine": 656
+        }
+      },
+      {
+        "comment": "",
+        "key": "%lld%%",
+        "location": {
+          "startingColumn": 18,
+          "startingLine": 709
+        }
+      },
+      {
+        "comment": "",
+        "key": "메모 편집",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 749
+        }
+      },
+      {
+        "comment": "",
+        "key": "취소",
+        "location": {
+          "startingColumn": 28,
+          "startingLine": 753
+        }
+      },
+      {
+        "comment": "",
+        "key": "저장",
+        "location": {
+          "startingColumn": 28,
+          "startingLine": 759
+        }
+      }
+    ]
+  },
+  "version": 1
+}

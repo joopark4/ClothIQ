@@ -66,6 +66,30 @@ final class MeasurementModel {
     /// 측정 일시
     var measuredAt: Date
 
+    /// 측정 시작 포인트 X 좌표 (정규화된 좌표 0~1)
+    ///
+    /// 이미지 상에서 측정 시작점의 X 좌표입니다.
+    /// 이미지 너비에 대한 상대 비율로 저장됩니다.
+    var startPointX: Double?
+
+    /// 측정 시작 포인트 Y 좌표 (정규화된 좌표 0~1)
+    ///
+    /// 이미지 상에서 측정 시작점의 Y 좌표입니다.
+    /// 이미지 높이에 대한 상대 비율로 저장됩니다.
+    var startPointY: Double?
+
+    /// 측정 끝 포인트 X 좌표 (정규화된 좌표 0~1)
+    ///
+    /// 이미지 상에서 측정 끝점의 X 좌표입니다.
+    /// 이미지 너비에 대한 상대 비율로 저장됩니다.
+    var endPointX: Double?
+
+    /// 측정 끝 포인트 Y 좌표 (정규화된 좌표 0~1)
+    ///
+    /// 이미지 상에서 측정 끝점의 Y 좌표입니다.
+    /// 이미지 높이에 대한 상대 비율로 저장됩니다.
+    var endPointY: Double?
+
     /// 부모 의류 아이템
     ///
     /// 이 측정값이 속한 의류 아이템입니다.
@@ -79,7 +103,11 @@ final class MeasurementModel {
         value: Double,
         unit: String = "cm",
         confidence: Double = 1.0,
-        measuredAt: Date = Date()
+        measuredAt: Date = Date(),
+        startPointX: Double? = nil,
+        startPointY: Double? = nil,
+        endPointX: Double? = nil,
+        endPointY: Double? = nil
     ) {
         self.id = id
         self.type = type
@@ -87,6 +115,10 @@ final class MeasurementModel {
         self.unit = unit
         self.confidence = confidence
         self.measuredAt = measuredAt
+        self.startPointX = startPointX
+        self.startPointY = startPointY
+        self.endPointX = endPointX
+        self.endPointY = endPointY
     }
 }
 
@@ -96,6 +128,23 @@ extension MeasurementModel {
     /// 측정 타입을 MeasurementType enum으로 반환
     var measurementType: MeasurementType? {
         MeasurementType(rawValue: type)
+    }
+
+    /// 시작 포인트를 CGPoint로 반환 (좌표가 모두 있을 경우)
+    var startPoint: CGPoint? {
+        guard let x = startPointX, let y = startPointY else { return nil }
+        return CGPoint(x: x, y: y)
+    }
+
+    /// 끝 포인트를 CGPoint로 반환 (좌표가 모두 있을 경우)
+    var endPoint: CGPoint? {
+        guard let x = endPointX, let y = endPointY else { return nil }
+        return CGPoint(x: x, y: y)
+    }
+
+    /// 측정 포인트가 있는지 확인
+    var hasCoordinates: Bool {
+        startPoint != nil && endPoint != nil
     }
 
     /// 측정 단위를 MeasurementUnit enum으로 반환

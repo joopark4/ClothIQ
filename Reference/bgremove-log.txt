@@ -1,0 +1,1316 @@
+
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -83.8°
+📐   - 거리: 0.91m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -83.8°
+📐   - 거리: 0.91m
+📐   - 평면 크기: 2.36m x 2.25m
+📏 평균 깊이: 0.57m
+✅ 객체 감지 성공 - 커버리지: 29%, 깊이: 0.57m
+3️⃣ 의류 분류 시작...
+✅ [감지 파이프라인 완료] 마스크 생성 성공
+=============================================================
+
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -83.8°
+📐   - 거리: 0.91m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -83.7°
+📐   - 거리: 0.91m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -83.7°
+📐   - 거리: 0.91m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -83.5°
+📐   - 거리: 0.91m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -83.6°
+📐   - 거리: 0.91m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -83.6°
+📐   - 거리: 0.90m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -83.6°
+📐   - 거리: 0.90m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -83.6°
+📐   - 거리: 0.90m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -83.6°
+📐   - 거리: 0.90m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -83.7°
+📐   - 거리: 0.90m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -83.7°
+📐   - 거리: 0.90m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -83.7°
+📐   - 거리: 0.90m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -83.8°
+📐   - 거리: 0.90m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -83.9°
+📐   - 거리: 0.90m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -84.0°
+📐   - 거리: 0.89m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -83.9°
+📐   - 거리: 0.89m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -84.1°
+📐   - 거리: 0.89m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -84.7°
+📐   - 거리: 0.89m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -85.7°
+📐   - 거리: 0.88m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -87.4°
+📐   - 거리: 0.88m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -88.5°
+📐   - 거리: 0.87m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -88.6°
+📐   - 거리: 0.87m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -87.2°
+📐   - 거리: 0.86m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -88.0°
+📐   - 거리: 0.86m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -88.8°
+📐   - 거리: 0.86m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -89.1°
+📐   - 거리: 0.85m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -88.9°
+📐   - 거리: 0.85m
+📐   - 평면 크기: 2.36m x 2.25m
+
+🔄 [감지 파이프라인 시작] ========================================
+📸 프레임 크기: 1920x1440
+1️⃣ 사각형 감지 시작...
+1️⃣ 윤곽 기반 감지 시도...
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -88.0°
+📐   - 거리: 0.85m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -86.7°
+📐   - 거리: 0.85m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -84.7°
+📐   - 거리: 0.85m
+📐   - 평면 크기: 2.36m x 2.25m
+🔍 윤곽 감지 성공 - 컨투어 수: 253
+✅ 윤곽 마스크 생성 성공
+2️⃣ 마스크 검증 시작...
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -82.3°
+📐   - 거리: 0.85m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -79.8°
+📐   - 거리: 0.84m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -77.4°
+📐   - 거리: 0.84m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -75.6°
+📐   - 거리: 0.84m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -74.4°
+📐   - 거리: 0.84m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -73.7°
+📐   - 거리: 0.84m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -73.8°
+📐   - 거리: 0.84m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -74.2°
+📐   - 거리: 0.85m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -74.5°
+📐   - 거리: 0.85m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -74.9°
+📐   - 거리: 0.85m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -75.2°
+📐   - 거리: 0.85m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -75.3°
+📐   - 거리: 0.85m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -75.6°
+📐   - 거리: 0.85m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -76.2°
+📐   - 거리: 0.85m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -76.6°
+📐   - 거리: 0.85m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -76.9°
+📐   - 거리: 0.85m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -76.4°
+📐   - 거리: 0.85m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -75.5°
+📐   - 거리: 0.86m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -73.6°
+📐   - 거리: 0.86m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -72.6°
+📐   - 거리: 0.86m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -72.1°
+📐   - 거리: 0.87m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -72.3°
+📐   - 거리: 0.87m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -72.9°
+📐   - 거리: 0.86m
+📐   - 평면 크기: 2.36m x 2.25m
+🎯 전경 픽셀: 616128 / 전체: 2764800 = 22%
+📊 마스크 커버리지: 22%
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -73.7°
+📐   - 거리: 0.86m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -74.6°
+📐   - 거리: 0.86m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -75.8°
+📐   - 거리: 0.86m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -77.1°
+📐   - 거리: 0.85m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -78.1°
+📐   - 거리: 0.85m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -78.7°
+📐   - 거리: 0.84m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -78.7°
+📐   - 거리: 0.84m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -78.2°
+📐   - 거리: 0.83m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -77.6°
+📐   - 거리: 0.83m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -76.7°
+📐   - 거리: 0.83m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -75.9°
+📐   - 거리: 0.83m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -74.8°
+📐   - 거리: 0.84m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -73.8°
+📐   - 거리: 0.84m
+📐   - 평면 크기: 2.36m x 2.25m
+ARSession <0x11fcf3980>: The delegate of ARSession is retaining 11 ARFrames. The camera will stop delivering camera images if the delegate keeps holding on to too many ARFrames. This could be a threading or memory management issue in the delegate and should be fixed.
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -72.9°
+📐   - 거리: 0.84m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -72.2°
+📐   - 거리: 0.84m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -72.2°
+📐   - 거리: 0.85m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -71.9°
+📐   - 거리: 0.85m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -71.4°
+📐   - 거리: 0.85m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -70.9°
+📐   - 거리: 0.85m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -70.8°
+📐   - 거리: 0.85m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -70.7°
+📐   - 거리: 0.86m
+📐   - 평면 크기: 2.36m x 2.25m
+📏 평균 깊이: 0.60m
+✅ 객체 감지 성공 - 커버리지: 22%, 깊이: 0.60m
+3️⃣ 의류 분류 시작...
+✅ [감지 파이프라인 완료] 마스크 생성 성공
+=============================================================
+
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -70.6°
+📐   - 거리: 0.86m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -70.5°
+📐   - 거리: 0.86m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -70.5°
+📐   - 거리: 0.86m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -70.5°
+📐   - 거리: 0.86m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -70.7°
+📐   - 거리: 0.86m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -71.0°
+📐   - 거리: 0.86m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -72.4°
+📐   - 거리: 0.85m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -72.9°
+📐   - 거리: 0.85m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -73.3°
+📐   - 거리: 0.85m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -73.5°
+📐   - 거리: 0.85m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -73.4°
+📐   - 거리: 0.85m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -73.2°
+📐   - 거리: 0.85m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -72.9°
+📐   - 거리: 0.86m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -72.8°
+📐   - 거리: 0.86m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -72.7°
+📐   - 거리: 0.86m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -72.8°
+📐   - 거리: 0.86m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -72.9°
+📐   - 거리: 0.86m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -73.1°
+📐   - 거리: 0.86m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -73.1°
+📐   - 거리: 0.85m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -73.0°
+📐   - 거리: 0.85m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -72.8°
+📐   - 거리: 0.85m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -72.7°
+📐   - 거리: 0.85m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -72.6°
+📐   - 거리: 0.85m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -72.4°
+📐   - 거리: 0.85m
+📐   - 평면 크기: 2.36m x 2.25m
+
+🔄 [감지 파이프라인 시작] ========================================
+📸 프레임 크기: 1920x1440
+1️⃣ 사각형 감지 시작...
+1️⃣ 윤곽 기반 감지 시도...
+🔍 윤곽 감지 성공 - 컨투어 수: 640
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -72.3°
+📐   - 거리: 0.85m
+📐   - 평면 크기: 2.36m x 2.25m
+✅ 윤곽 마스크 생성 성공
+2️⃣ 마스크 검증 시작...
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -72.3°
+📐   - 거리: 0.85m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -71.6°
+📐   - 거리: 0.86m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -71.4°
+📐   - 거리: 0.86m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -71.2°
+📐   - 거리: 0.86m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -71.1°
+📐   - 거리: 0.86m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -70.9°
+📐   - 거리: 0.85m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -70.7°
+📐   - 거리: 0.85m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -70.3°
+📐   - 거리: 0.85m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -69.9°
+📐   - 거리: 0.85m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -69.5°
+📐   - 거리: 0.85m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -68.3°
+📐   - 거리: 0.85m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -67.6°
+📐   - 거리: 0.85m
+📐   - 평면 크기: 2.36m x 2.25m
+ARSession <0x11fcf3980>: The delegate of ARSession is retaining 11 ARFrames. The camera will stop delivering camera images if the delegate keeps holding on to too many ARFrames. This could be a threading or memory management issue in the delegate and should be fixed.
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -67.4°
+📐   - 거리: 0.85m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -67.3°
+📐   - 거리: 0.85m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -67.5°
+📐   - 거리: 0.85m
+📐   - 평면 크기: 2.36m x 2.25m
+🎯 전경 픽셀: 586952 / 전체: 2764800 = 21%
+📊 마스크 커버리지: 21%
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -67.7°
+📐   - 거리: 0.85m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -68.2°
+📐   - 거리: 0.85m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -68.9°
+📐   - 거리: 0.85m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -69.8°
+📐   - 거리: 0.85m
+📐   - 평면 크기: 2.36m x 2.25m
+ARSession <0x11fcf3980>: The delegate of ARSession is retaining 11 ARFrames. The camera will stop delivering camera images if the delegate keeps holding on to too many ARFrames. This could be a threading or memory management issue in the delegate and should be fixed.
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -70.7°
+📐   - 거리: 0.85m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -71.5°
+📐   - 거리: 0.85m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -72.4°
+📐   - 거리: 0.85m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -72.5°
+📐   - 거리: 0.86m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -72.6°
+📐   - 거리: 0.86m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -72.8°
+📐   - 거리: 0.86m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -73.0°
+📐   - 거리: 0.86m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -73.1°
+📐   - 거리: 0.86m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -73.2°
+📐   - 거리: 0.86m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -73.4°
+📐   - 거리: 0.86m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -73.5°
+📐   - 거리: 0.86m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -73.3°
+📐   - 거리: 0.86m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -73.2°
+📐   - 거리: 0.86m
+📐   - 평면 크기: 2.36m x 2.25m
+📏 평균 깊이: 0.77m
+✅ 객체 감지 성공 - 커버리지: 21%, 깊이: 0.77m
+3️⃣ 의류 분류 시작...
+✅ [감지 파이프라인 완료] 마스크 생성 성공
+=============================================================
+
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -71.8°
+📐   - 거리: 0.86m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -71.4°
+📐   - 거리: 0.87m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -71.1°
+📐   - 거리: 0.87m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -70.7°
+📐   - 거리: 0.87m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -70.3°
+📐   - 거리: 0.87m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -70.0°
+📐   - 거리: 0.87m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -69.8°
+📐   - 거리: 0.87m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -69.8°
+📐   - 거리: 0.87m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -70.0°
+📐   - 거리: 0.87m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -70.2°
+📐   - 거리: 0.87m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -70.3°
+📐   - 거리: 0.87m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -70.5°
+📐   - 거리: 0.87m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -70.5°
+📐   - 거리: 0.87m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -70.5°
+📐   - 거리: 0.87m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -70.5°
+📐   - 거리: 0.87m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -70.5°
+📐   - 거리: 0.87m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -70.5°
+📐   - 거리: 0.87m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -70.5°
+📐   - 거리: 0.87m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -70.4°
+📐   - 거리: 0.87m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -70.3°
+📐   - 거리: 0.87m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -70.5°
+📐   - 거리: 0.87m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -70.6°
+📐   - 거리: 0.87m
+📐   - 평면 크기: 2.36m x 2.25m
+
+🔄 [감지 파이프라인 시작] ========================================
+📸 프레임 크기: 1920x1440
+1️⃣ 사각형 감지 시작...
+1️⃣ 윤곽 기반 감지 시도...
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -70.6°
+📐   - 거리: 0.87m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -70.7°
+📐   - 거리: 0.87m
+📐   - 평면 크기: 2.36m x 2.25m
+🔍 윤곽 감지 성공 - 컨투어 수: 672
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -70.8°
+📐   - 거리: 0.87m
+📐   - 평면 크기: 2.36m x 2.25m
+✅ 윤곽 마스크 생성 성공
+2️⃣ 마스크 검증 시작...
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -70.9°
+📐   - 거리: 0.87m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -70.8°
+📐   - 거리: 0.87m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -70.7°
+📐   - 거리: 0.86m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -70.5°
+📐   - 거리: 0.86m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -70.3°
+📐   - 거리: 0.86m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -70.2°
+📐   - 거리: 0.86m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -70.4°
+📐   - 거리: 0.86m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -70.9°
+📐   - 거리: 0.86m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -71.5°
+📐   - 거리: 0.86m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -71.9°
+📐   - 거리: 0.86m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -72.1°
+📐   - 거리: 0.86m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -72.3°
+📐   - 거리: 0.86m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -72.4°
+📐   - 거리: 0.86m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -72.3°
+📐   - 거리: 0.86m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -72.1°
+📐   - 거리: 0.86m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -72.1°
+📐   - 거리: 0.86m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -72.1°
+📐   - 거리: 0.86m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -72.1°
+📐   - 거리: 0.86m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -71.9°
+📐   - 거리: 0.86m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -71.8°
+📐   - 거리: 0.86m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -71.7°
+📐   - 거리: 0.86m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -71.6°
+📐   - 거리: 0.86m
+📐   - 평면 크기: 2.36m x 2.25m
+🎯 전경 픽셀: 676098 / 전체: 2764800 = 24%
+📊 마스크 커버리지: 24%
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -71.5°
+📐   - 거리: 0.86m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -71.5°
+📐   - 거리: 0.86m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -71.4°
+📐   - 거리: 0.86m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -71.4°
+📐   - 거리: 0.86m
+📐   - 평면 크기: 2.36m x 2.25m
+ARSession <0x11fcf3980>: The delegate of ARSession is retaining 11 ARFrames. The camera will stop delivering camera images if the delegate keeps holding on to too many ARFrames. This could be a threading or memory management issue in the delegate and should be fixed.
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -71.4°
+📐   - 거리: 0.86m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -71.5°
+📐   - 거리: 0.86m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -71.2°
+📐   - 거리: 0.86m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -71.1°
+📐   - 거리: 0.86m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -71.2°
+📐   - 거리: 0.86m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -71.2°
+📐   - 거리: 0.86m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -71.1°
+📐   - 거리: 0.86m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -71.0°
+📐   - 거리: 0.86m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -70.8°
+📐   - 거리: 0.86m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -70.7°
+📐   - 거리: 0.86m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -70.7°
+📐   - 거리: 0.86m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -70.6°
+📐   - 거리: 0.86m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -70.6°
+📐   - 거리: 0.86m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -70.6°
+📐   - 거리: 0.86m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -70.6°
+📐   - 거리: 0.86m
+📐   - 평면 크기: 2.36m x 2.25m
+📏 평균 깊이: 0.79m
+✅ 객체 감지 성공 - 커버리지: 24%, 깊이: 0.79m
+3️⃣ 의류 분류 시작...
+✅ [감지 파이프라인 완료] 마스크 생성 성공
+=============================================================
+
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -70.7°
+📐   - 거리: 0.86m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -70.8°
+📐   - 거리: 0.86m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -70.8°
+📐   - 거리: 0.86m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -70.8°
+📐   - 거리: 0.86m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -70.7°
+📐   - 거리: 0.86m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -70.7°
+📐   - 거리: 0.86m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -70.6°
+📐   - 거리: 0.86m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -70.6°
+📐   - 거리: 0.86m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -70.7°
+📐   - 거리: 0.86m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -70.7°
+📐   - 거리: 0.86m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -70.8°
+📐   - 거리: 0.86m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -70.9°
+📐   - 거리: 0.86m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -70.9°
+📐   - 거리: 0.86m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -70.9°
+📐   - 거리: 0.86m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -71.0°
+📐   - 거리: 0.86m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -71.1°
+📐   - 거리: 0.86m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -71.3°
+📐   - 거리: 0.86m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -71.4°
+📐   - 거리: 0.86m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -71.5°
+📐   - 거리: 0.86m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -71.5°
+📐   - 거리: 0.86m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -71.6°
+📐   - 거리: 0.86m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -71.7°
+📐   - 거리: 0.85m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -71.9°
+📐   - 거리: 0.85m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -71.9°
+📐   - 거리: 0.85m
+📐   - 평면 크기: 2.36m x 2.25m
+
+🔄 [감지 파이프라인 시작] ========================================
+📸 프레임 크기: 1920x1440
+1️⃣ 사각형 감지 시작...
+1️⃣ 윤곽 기반 감지 시도...
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -72.0°
+📐   - 거리: 0.85m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -72.1°
+📐   - 거리: 0.85m
+📐   - 평면 크기: 2.36m x 2.25m
+🔍 윤곽 감지 성공 - 컨투어 수: 660
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -72.1°
+📐   - 거리: 0.85m
+📐   - 평면 크기: 2.36m x 2.25m
+✅ 윤곽 마스크 생성 성공
+2️⃣ 마스크 검증 시작...
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -72.1°
+📐   - 거리: 0.85m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -72.3°
+📐   - 거리: 0.85m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -72.5°
+📐   - 거리: 0.84m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -72.6°
+📐   - 거리: 0.84m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -72.7°
+📐   - 거리: 0.84m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -72.8°
+📐   - 거리: 0.84m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -73.0°
+📐   - 거리: 0.84m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -73.3°
+📐   - 거리: 0.83m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -73.8°
+📐   - 거리: 0.83m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -74.3°
+📐   - 거리: 0.83m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -74.6°
+📐   - 거리: 0.82m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -74.7°
+📐   - 거리: 0.82m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -74.6°
+📐   - 거리: 0.82m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -74.6°
+📐   - 거리: 0.82m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -74.6°
+📐   - 거리: 0.82m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -74.5°
+📐   - 거리: 0.82m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -74.4°
+📐   - 거리: 0.82m
+📐   - 평면 크기: 2.36m x 2.25m
+🎯 전경 픽셀: 644365 / 전체: 2764800 = 23%
+📊 마스크 커버리지: 23%
+ARSession <0x11fcf3980>: The delegate of ARSession is retaining 11 ARFrames. The camera will stop delivering camera images if the delegate keeps holding on to too many ARFrames. This could be a threading or memory management issue in the delegate and should be fixed.
+ARSession <0x11fcf3980>: The delegate of ARSession is retaining 11 ARFrames. The camera will stop delivering camera images if the delegate keeps holding on to too many ARFrames. This could be a threading or memory management issue in the delegate and should be fixed.
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -74.4°
+📐   - 거리: 0.82m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -74.4°
+📐   - 거리: 0.82m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -74.4°
+📐   - 거리: 0.82m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -74.1°
+📐   - 거리: 0.82m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -74.0°
+📐   - 거리: 0.82m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -73.9°
+📐   - 거리: 0.82m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -74.0°
+📐   - 거리: 0.82m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -73.9°
+📐   - 거리: 0.82m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -73.9°
+📐   - 거리: 0.82m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -73.9°
+📐   - 거리: 0.82m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -73.9°
+📐   - 거리: 0.82m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -73.7°
+📐   - 거리: 0.82m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -73.6°
+📐   - 거리: 0.82m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -73.6°
+📐   - 거리: 0.82m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -73.5°
+📐   - 거리: 0.82m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -73.6°
+📐   - 거리: 0.82m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -73.6°
+📐   - 거리: 0.82m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -73.6°
+📐   - 거리: 0.82m
+📐   - 평면 크기: 2.36m x 2.25m
+📏 평균 깊이: 0.77m
+✅ 객체 감지 성공 - 커버리지: 23%, 깊이: 0.77m
+3️⃣ 의류 분류 시작...
+✅ [감지 파이프라인 완료] 마스크 생성 성공
+=============================================================
+
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -73.6°
+📐   - 거리: 0.82m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -73.5°
+📐   - 거리: 0.82m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -73.5°
+📐   - 거리: 0.82m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -73.5°
+📐   - 거리: 0.82m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -73.6°
+📐   - 거리: 0.82m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -73.7°
+📐   - 거리: 0.82m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -73.7°
+📐   - 거리: 0.82m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -73.6°
+📐   - 거리: 0.82m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -73.6°
+📐   - 거리: 0.82m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -73.6°
+📐   - 거리: 0.82m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -73.5°
+📐   - 거리: 0.82m
+📐   - 평면 크기: 2.36m x 2.25m
+ARSession <0x11fcf3980>: The delegate of ARSession is retaining 11 ARFrames. The camera will stop delivering camera images if the delegate keeps holding on to too many ARFrames. This could be a threading or memory management issue in the delegate and should be fixed.
+ARSession <0x11fcf3980>: The delegate of ARSession is retaining 11 ARFrames. The camera will stop delivering camera images if the delegate keeps holding on to too many ARFrames. This could be a threading or memory management issue in the delegate and should be fixed.
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -73.4°
+📐   - 거리: 0.82m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -73.4°
+📐   - 거리: 0.82m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -73.4°
+📐   - 거리: 0.82m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -73.3°
+📐   - 거리: 0.82m
+📐   - 평면 크기: 2.36m x 2.25m
+ARSession <0x11fcf3980>: The delegate of ARSession is retaining 11 ARFrames. The camera will stop delivering camera images if the delegate keeps holding on to too many ARFrames. This could be a threading or memory management issue in the delegate and should be fixed.
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -73.2°
+📐   - 거리: 0.83m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -73.1°
+📐   - 거리: 0.83m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -72.6°
+📐   - 거리: 0.83m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -72.4°
+📐   - 거리: 0.83m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -72.2°
+📐   - 거리: 0.83m
+📐   - 평면 크기: 2.36m x 2.25m
+
+🔄 [감지 파이프라인 시작] ========================================
+📸 프레임 크기: 1920x1440
+1️⃣ 사각형 감지 시작...
+1️⃣ 윤곽 기반 감지 시도...
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -71.5°
+📐   - 거리: 0.83m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -71.0°
+📐   - 거리: 0.83m
+📐   - 평면 크기: 2.36m x 2.25m
+🔍 윤곽 감지 성공 - 컨투어 수: 490
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -70.7°
+📐   - 거리: 0.83m
+📐   - 평면 크기: 2.36m x 2.25m
+✅ 윤곽 마스크 생성 성공
+2️⃣ 마스크 검증 시작...
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -70.7°
+📐   - 거리: 0.83m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -70.4°
+📐   - 거리: 0.83m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -70.2°
+📐   - 거리: 0.83m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -70.1°
+📐   - 거리: 0.83m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -69.8°
+📐   - 거리: 0.83m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -69.6°
+📐   - 거리: 0.83m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -69.3°
+📐   - 거리: 0.83m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -69.1°
+📐   - 거리: 0.83m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -68.7°
+📐   - 거리: 0.84m
+📐   - 평면 크기: 2.36m x 2.25m
+ARSession <0x11fcf3980>: The delegate of ARSession is retaining 11 ARFrames. The camera will stop delivering camera images if the delegate keeps holding on to too many ARFrames. This could be a threading or memory management issue in the delegate and should be fixed.
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -68.2°
+📐   - 거리: 0.84m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -67.9°
+📐   - 거리: 0.84m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -66.1°
+📐   - 거리: 0.85m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -66.9°
+📐   - 거리: 0.85m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -68.0°
+📐   - 거리: 0.85m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -69.7°
+📐   - 거리: 0.84m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -70.5°
+📐   - 거리: 0.84m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -70.9°
+📐   - 거리: 0.84m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -71.0°
+📐   - 거리: 0.84m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -71.0°
+📐   - 거리: 0.84m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -71.0°
+📐   - 거리: 0.84m
+📐   - 평면 크기: 2.36m x 2.25m
+🎯 전경 픽셀: 639192 / 전체: 2764800 = 23%
+📊 마스크 커버리지: 23%
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -71.1°
+📐   - 거리: 0.84m
+📐   - 평면 크기: 2.36m x 2.25m
+📐 [ARMeasurementService] 카메라 정렬 계산
+📐   - 틸트 각도: -71.3°
+📐   - 거리: 0.83m
+📐   - 평면 크기: 2.36m x 2.25m
+

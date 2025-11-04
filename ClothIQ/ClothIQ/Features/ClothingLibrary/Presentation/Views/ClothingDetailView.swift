@@ -21,7 +21,7 @@ import SwiftData
 
 /// 의류 아이템 상세보기 화면
 struct ClothingDetailView: View {
-    let item: ClothingItemModel
+    @Bindable var item: ClothingItemModel
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var modelContext
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
@@ -29,6 +29,14 @@ struct ClothingDetailView: View {
     @State private var showingDeleteAlert = false
     @State private var showingMeasurement = false
     @State private var editingNote: String = ""
+
+    // 새로운 기능 State 변수
+    @State private var showingPhotoMeasurement = false
+    @State private var showingTypeEditor = false
+
+    // 측정 라인 표시 관련
+    @State private var showMeasurementLines = false
+    @State private var selectedMeasurement: MeasurementModel?
 
     var body: some View {
         Group {
@@ -40,7 +48,7 @@ struct ClothingDetailView: View {
                 iPhoneLayout
             }
         }
-        .navigationTitle(item.clothingType?.displayName ?? "의류 상세")
+        .navigationTitle(item.displayTitle)
         .navigationBarTitleDisplayMode(.large)
         .toolbar {
             ToolbarItem(placement: .navigationBarTrailing) {
@@ -91,6 +99,12 @@ struct ClothingDetailView: View {
             NavigationStack {
                 MeasurementView(clothingType: item.clothingType)
             }
+        }
+        .fullScreenCover(isPresented: $showingPhotoMeasurement) {
+            PhotoMeasurementView(item: item)
+        }
+        .sheet(isPresented: $showingTypeEditor) {
+            ClothingTypeEditorView(item: item)
         }
     }
 
@@ -150,12 +164,55 @@ struct ClothingDetailView: View {
     private var imageSection: some View {
         Group {
             if let image = item.loadImage() {
-                Image(uiImage: image)
-                    .resizable()
-                    .aspectRatio(contentMode: .fit)
-                    .frame(maxHeight: 400)
-                    .clipShape(RoundedRectangle(cornerRadius: 16))
-                    .shadow(color: .black.opacity(0.1), radius: 8, x: 0, y: 4)
+                Button {
+                    showingPhotoMeasurement = true
+                } label: {
+                    Image(uiImage: image)
+                        .resizable()
+                        .aspectRatio(contentMode: .fit)
+                        .frame(maxHeight: 400)
+                        .overlay {
+                            // 측정 라인 오버레이
+                            MeasurementLinesOverlay(
+                                measurements: item.measurements,
+                                imageSize: image.size,
+                                selectedMeasurement: $selectedMeasurement,
+                                showLines: showMeasurementLines
+                            )
+                        }
+                        .clipShape(RoundedRectangle(cornerRadius: 16))
+                        .shadow(color: .black.opacity(0.1), radius: 8, x: 0, y: 4)
+                        .overlay(alignment: .topTrailing) {
+                            // 측정 라인 토글 버튼
+                            Button {
+                                withAnimation(.spring(response: 0.3)) {
+                                    showMeasurementLines.toggle()
+                                }
+                            } label: {
+                                Image(systemName: showMeasurementLines ? "ruler.fill" : "ruler")
+                                    .foregroundStyle(showMeasurementLines ? .blue : .primary)
+                                    .frame(width: 36, height: 36)
+                                    .background(.ultraThinMaterial)
+                                    .clipShape(Circle())
+                            }
+                            .padding(12)
+                        }
+                        .overlay(alignment: .bottomTrailing) {
+                            // 측정 모드 힌트
+                            HStack(spacing: 6) {
+                                Image(systemName: "hand.tap")
+                                Text("탭하여 측정")
+                            }
+                            .font(.caption)
+                            .foregroundStyle(.white)
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 6)
+                            .background(.ultraThinMaterial)
+                            .clipShape(Capsule())
+                            .padding(12)
+                        }
+                }
+                .buttonStyle(.plain)
             } else {
                 ZStack {
                     RoundedRectangle(cornerRadius: 16)
@@ -180,22 +237,48 @@ struct ClothingDetailView: View {
 
     private var basicInfoSection: some View {
         VStack(alignment: .leading, spacing: 16) {
+            // 타이틀 편집 영역
+            VStack(alignment: .leading, spacing: 8) {
+                Text("이름")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+
+                EditableTitleView(
+                    title: $item.title,
+                    placeholder: item.clothingType?.displayName ?? "의류 아이템"
+                ) { _ in
+                    item.updatedAt = Date()
+                }
+            }
+
+            Divider()
+
             HStack {
                 VStack(alignment: .leading, spacing: 4) {
                     Text("의류 타입")
                         .font(.caption)
                         .foregroundColor(.secondary)
 
-                    HStack {
-                        Text(item.clothingType?.displayName ?? "알 수 없음")
-                            .font(.title2)
-                            .fontWeight(.semibold)
+                    Button {
+                        showingTypeEditor = true
+                    } label: {
+                        HStack(spacing: 6) {
+                            Text(item.clothingType?.displayName ?? "알 수 없음")
+                                .font(.title3)
+                                .fontWeight(.semibold)
+                                .foregroundStyle(.primary)
 
-                        if item.isFavorite {
-                            Image(systemName: "star.fill")
-                                .foregroundColor(.yellow)
+                            Image(systemName: "chevron.right")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+
+                            if item.isFavorite {
+                                Image(systemName: "star.fill")
+                                    .foregroundColor(.yellow)
+                            }
                         }
                     }
+                    .buttonStyle(.plain)
                 }
 
                 Spacer()
@@ -274,17 +357,6 @@ struct ClothingDetailView: View {
             Text("아직 측정값이 없습니다")
                 .font(.subheadline)
                 .foregroundColor(.gray)
-
-            Button(action: {
-                showingMeasurement = true
-            }) {
-                Text("측정 시작하기")
-                    .padding(.horizontal, 20)
-                    .padding(.vertical, 10)
-                    .background(Color.blue)
-                    .foregroundColor(.white)
-                    .cornerRadius(20)
-            }
         }
         .frame(maxWidth: .infinity)
         .padding()
@@ -297,7 +369,33 @@ struct ClothingDetailView: View {
     private var measurementsList: some View {
         VStack(spacing: 8) {
             ForEach(item.measurements.sorted(by: { $0.measuredAt < $1.measuredAt })) { measurement in
-                MeasurementRow(measurement: measurement)
+                Button {
+                    withAnimation(.spring(response: 0.3)) {
+                        // 디버그 로그
+                        print("📍 [ClothingDetailView] Measurement tapped: \(measurement.measurementType?.displayName ?? measurement.type)")
+                        print("   Has coordinates: \(measurement.hasCoordinates)")
+                        if let start = measurement.startPoint, let end = measurement.endPoint {
+                            print("   Start: \(start), End: \(end)")
+                        }
+
+                        // 이미 선택된 경우 해제, 아니면 선택
+                        if selectedMeasurement?.id == measurement.id {
+                            selectedMeasurement = nil
+                        } else {
+                            selectedMeasurement = measurement
+                            // 측정 라인이 표시되지 않은 경우 자동으로 표시
+                            if !showMeasurementLines {
+                                showMeasurementLines = true
+                            }
+                        }
+                    }
+                } label: {
+                    MeasurementRow(
+                        measurement: measurement,
+                        isSelected: selectedMeasurement?.id == measurement.id
+                    )
+                }
+                .buttonStyle(.plain)
             }
         }
         .padding()
@@ -305,6 +403,13 @@ struct ClothingDetailView: View {
             RoundedRectangle(cornerRadius: 12)
                 .fill(Color(.systemGray6))
         )
+        .onAppear {
+            // 디버그: 측정값 좌표 확인
+            print("📊 [ClothingDetailView] Total measurements: \(item.measurements.count)")
+            for measurement in item.measurements {
+                print("   - \(measurement.measurementType?.displayName ?? measurement.type): hasCoordinates=\(measurement.hasCoordinates)")
+            }
+        }
     }
 
     // MARK: - Notes Section
@@ -414,19 +519,33 @@ struct ClothingDetailView: View {
 /// 측정값 행 컴포넌트
 struct MeasurementRow: View {
     let measurement: MeasurementModel
+    var isSelected: Bool = false
 
     var body: some View {
         HStack {
+            // 측정 아이콘 및 선택 표시
+            ZStack {
+                Circle()
+                    .fill(isSelected ? measurementColor.opacity(0.2) : Color.clear)
+                    .frame(width: 36, height: 36)
+
+                Image(systemName: measurementIcon)
+                    .font(.system(size: 16))
+                    .foregroundColor(isSelected ? measurementColor : .secondary)
+            }
+            .animation(.spring(response: 0.3), value: isSelected)
+
             VStack(alignment: .leading, spacing: 4) {
                 Text(measurementType?.displayName ?? measurement.type)
                     .font(.subheadline)
                     .fontWeight(.medium)
+                    .foregroundColor(isSelected ? measurementColor : .primary)
 
                 HStack(spacing: 4) {
                     Text(measurement.formattedValue())
                         .font(.title3)
                         .fontWeight(.semibold)
-                        .foregroundColor(.blue)
+                        .foregroundColor(isSelected ? measurementColor : .blue)
 
                     // 신뢰도 표시
                     ConfidenceIndicator(confidence: measurement.confidence)
@@ -435,15 +554,91 @@ struct MeasurementRow: View {
 
             Spacer()
 
-            Text(measurement.measuredAt.formatted(date: .abbreviated, time: .shortened))
-                .font(.caption)
-                .foregroundColor(.secondary)
+            VStack(alignment: .trailing, spacing: 2) {
+                Text(measurement.measuredAt.formatted(date: .abbreviated, time: .shortened))
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+
+                if measurement.hasCoordinates {
+                    Image(systemName: "location.circle.fill")
+                        .font(.caption)
+                        .foregroundColor(isSelected ? measurementColor : .gray)
+                }
+            }
         }
         .padding(.vertical, 8)
+        .padding(.horizontal, 8)
+        .background(
+            RoundedRectangle(cornerRadius: 8)
+                .fill(isSelected ? measurementColor.opacity(0.1) : Color.clear)
+        )
+        .animation(.spring(response: 0.3), value: isSelected)
     }
 
     private var measurementType: MeasurementType? {
         MeasurementType(rawValue: measurement.type)
+    }
+
+    private var measurementIcon: String {
+        switch measurement.type {
+        case "shoulder_width":
+            return "arrow.left.and.right"
+        case "chest_circumference", "waist_circumference", "hip_circumference":
+            return "circle.dashed"
+        case "total_length", "sleeve_length", "inseam", "outseam":
+            return "arrow.up.and.down"
+        case "arm_circumference", "thigh_circumference", "knee_circumference":
+            return "circle"
+        case "rise":
+            return "arrow.up.to.line"
+        case "hem", "hem_width":
+            return "arrow.down.to.line"
+        case "neck_circumference":
+            return "person.crop.circle"
+        default:
+            return "ruler"
+        }
+    }
+
+    private var measurementColor: Color {
+        // 측정 타입별 색상 (MeasurementLinesOverlay와 동일)
+        switch measurement.type {
+        // 상의 측정 항목
+        case "shoulder_width":
+            return .blue
+        case "chest_circumference":
+            return .green
+        case "total_length":
+            return .orange
+        case "sleeve_length":
+            return .purple
+        case "arm_circumference":
+            return .cyan
+        case "neck_circumference":
+            return .indigo
+
+        // 하의 측정 항목
+        case "waist_circumference":
+            return .red
+        case "hip_circumference":
+            return .green
+        case "rise":
+            return .purple
+        case "hem":
+            return .brown
+        case "thigh_circumference":
+            return .cyan
+        case "inseam":
+            return .indigo
+        case "outseam":
+            return .mint
+        case "knee_circumference":
+            return .pink
+
+        // 기본값
+        default:
+            return .gray
+        }
     }
 }
 

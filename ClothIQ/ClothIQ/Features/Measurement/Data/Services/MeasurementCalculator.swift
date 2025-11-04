@@ -17,6 +17,8 @@
 
 import Foundation
 import simd
+import CoreVideo
+import CoreGraphics
 
 /// 측정 계산 유틸리티
 ///
@@ -38,6 +40,95 @@ struct MeasurementCalculator {
     ) -> Double {
         let distance = simd_distance(start.worldPosition, end.worldPosition)
         return Double(distance) * 100.0  // 미터 → 센티미터
+    }
+
+    /// 평면 투영 기반 거리 계산 (카메라 기울기 보정)
+    ///
+    /// AutoSize02.md: 두 포인트를 평면에 투영하여 카메라 기울기를 보정한 정확한 거리를 계산합니다.
+    ///
+    /// ## Algorithm
+    /// 1. 두 포인트 주변의 3D 포인트들로 평면 추정 (Least Squares)
+    /// 2. 두 측정 포인트를 평면에 투영
+    /// 3. 투영된 포인트 간 거리 계산
+    ///
+    /// - Parameters:
+    ///   - start: 시작 포인트
+    ///   - end: 끝 포인트
+    ///   - depthMap: LiDAR 깊이 맵 (평면 추정에 사용)
+    ///   - cameraTransform: AR 카메라 변환 행렬
+    ///   - cameraIntrinsics: 카메라 내부 파라미터
+    /// - Returns: 평면 투영된 거리 (센티미터), 평면 추정 실패 시 일반 거리 반환
+    static func calculateDistanceOnPlane(
+        from start: MeasurementPoint,
+        to end: MeasurementPoint,
+        depthMap: CVPixelBuffer,
+        cameraTransform: simd_float4x4,
+        cameraIntrinsics: simd_float3x3
+    ) -> Double {
+        print("📐 [MeasurementCalculator] Calculating distance with plane projection...")
+
+        // 두 포인트 중심의 영역 정의 (두 포인트를 포함하는 영역)
+        let centerX = (start.screenPosition.x + end.screenPosition.x) / 2.0
+        let centerY = (start.screenPosition.y + end.screenPosition.y) / 2.0
+
+        // 이미지 해상도 (ARFrame의 capturedImage 해상도 가정: 1920x1440)
+        let imageWidth: CGFloat = 1920.0
+        let imageHeight: CGFloat = 1440.0
+
+        // 영역 크기 (두 포인트 거리의 2배 정도, 최소 0.2)
+        let dx = abs(start.screenPosition.x - end.screenPosition.x) / imageWidth
+        let dy = abs(start.screenPosition.y - end.screenPosition.y) / imageHeight
+        let regionSize = max(0.2, max(dx, dy) * 2.0)
+
+        // 정규화된 영역 (0~1)
+        let region = CGRect(
+            x: max(0, (centerX / imageWidth) - regionSize / 2),
+            y: max(0, (centerY / imageHeight) - regionSize / 2),
+            width: min(1.0, regionSize),
+            height: min(1.0, regionSize)
+        )
+
+        print("  📍 Region: \(region)")
+
+        // 평면 추정
+        guard let plane = PlaneEstimator.estimatePlaneFromDepth(
+            depthMap: depthMap,
+            region: region,
+            cameraTransform: cameraTransform,
+            cameraIntrinsics: cameraIntrinsics,
+            sampleCount: 100
+        ) else {
+            print("  ⚠️ Plane estimation failed, using direct distance")
+            return calculateDistance(from: start, to: end)
+        }
+
+        // 평면에 투영된 거리 계산
+        let distanceOnPlane = PlaneEstimator.distanceOnPlane(
+            from: start.worldPosition,
+            to: end.worldPosition,
+            plane: plane
+        )
+
+        let distanceCm = Double(distanceOnPlane) * 100.0
+
+        // 원래 거리와 비교
+        let directDistance = calculateDistance(from: start, to: end)
+        let difference = abs(distanceCm - directDistance)
+        let percentDiff = (difference / directDistance) * 100.0
+
+        print("  📏 Direct distance: \(directDistance)cm")
+        print("  📐 Plane-projected distance: \(distanceCm)cm")
+        print("  📊 Difference: \(difference)cm (\(percentDiff)%)")
+
+        // 평면 투영이 50% 이상 차이나면 직접 거리 사용
+        if percentDiff > 50.0 {
+            print("  ⚠️ Excessive distortion detected (\(percentDiff)%) - using direct distance instead")
+            return directDistance
+        } else if percentDiff > 10.0 {
+            print("  ⚠️ Large difference detected - camera may be tilted significantly")
+        }
+
+        return distanceCm
     }
 
     /// 여러 포인트를 거치는 총 거리 계산
@@ -273,5 +364,86 @@ struct MeasurementCalculator {
 
         let calibrationFactor = referenceValue / measuredReference
         return measuredValue * calibrationFactor
+    }
+
+    // MARK: - Advanced Circumference Calculation
+
+    /// 개선된 둘레 계산 알고리즘
+    ///
+    /// 전면 측정값과 깊이 정보를 활용하여 실제 둘레를 추정합니다.
+    ///
+    /// - Parameters:
+    ///   - frontWidth: 전면에서 측정한 너비 (cm)
+    ///   - depth: 객체의 깊이 (m)
+    ///   - type: 측정 타입
+    /// - Returns: 추정된 둘레 (cm)
+    static func calculateCircumferenceFromFront(
+        frontWidth: Double,
+        depth: Float,
+        type: MeasurementType
+    ) -> Double {
+        // 타원 둘레 근사 공식 사용
+        // C ≈ π * (a + b) * (1 + (3h)/(10 + sqrt(4 - 3h)))
+        // 여기서 h = ((a-b)^2)/((a+b)^2), a는 장축 반지름, b는 단축 반지름
+
+        let a = frontWidth / 2.0  // 전면 너비의 절반
+        let depthCm = Double(depth) * 100.0
+
+        // 측정 타입별로 깊이 대 너비 비율 조정
+        let depthRatio: Double
+        switch type {
+        case .chestCircumference:
+            // 가슴둘레: 타원형에 가까움
+            depthRatio = 0.65  // 깊이가 너비의 약 65%
+        case .waistCircumference:
+            // 허리둘레: 더 납작한 타원
+            depthRatio = 0.55  // 깊이가 너비의 약 55%
+        case .hipCircumference:
+            // 엉덩이둘레: 가슴과 유사
+            depthRatio = 0.70  // 깊이가 너비의 약 70%
+        case .thighCircumference:
+            // 허벅지둘레: 원에 가까움
+            depthRatio = 0.85  // 깊이가 너비의 약 85%
+        case .armCircumference:
+            // 팔둘레: 거의 원형
+            depthRatio = 0.90  // 깊이가 너비의 약 90%
+        default:
+            // 기본값
+            depthRatio = 0.70
+        }
+
+        // 실제 깊이가 측정된 경우 사용, 아니면 비율로 추정
+        let b = depthCm > 0 ? min(depthCm * depthRatio, a) : a * depthRatio
+
+        // Ramanujan의 타원 둘레 근사 공식
+        let h = pow((a - b), 2) / pow((a + b), 2)
+        let circumference = Double.pi * (a + b) * (1 + (3 * h) / (10 + sqrt(4 - 3 * h)))
+
+        return circumference
+    }
+
+    /// 깊이 기반 보정 계수 계산
+    ///
+    /// 객체와의 거리에 따른 측정 오차를 보정합니다.
+    ///
+    /// - Parameter depth: 객체까지의 거리 (m)
+    /// - Returns: 보정 계수 (0.8 ~ 1.2)
+    static func depthCorrectionFactor(depth: Float) -> Double {
+        // 최적 측정 거리: 0.7m ~ 1.0m
+        let optimalMinDistance: Float = 0.7
+        let optimalMaxDistance: Float = 1.0
+
+        if depth < optimalMinDistance {
+            // 너무 가까움 - 약간의 축소 보정
+            let ratio = depth / optimalMinDistance
+            return Double(0.95 + (ratio * 0.05))
+        } else if depth > optimalMaxDistance {
+            // 너무 멀음 - 약간의 확대 보정
+            let ratio = min(depth / optimalMaxDistance, 1.5)
+            return Double(1.0 + (ratio - 1.0) * 0.2)
+        } else {
+            // 최적 거리
+            return 1.0
+        }
     }
 }

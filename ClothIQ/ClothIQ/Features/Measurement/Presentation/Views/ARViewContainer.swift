@@ -44,11 +44,14 @@ struct ARViewContainer: UIViewRepresentable {
     /// AR 추적 상태 변경 콜백
     var onTrackingStateChanged: ((ARCamera.TrackingState) -> Void)?
 
+    /// 앵커 업데이트 콜백 (평면 감지용)
+    var onAnchorsUpdate: (([ARAnchor]) -> Void)?
+
     /// 스크린샷 캡처 요청 (외부에서 트리거)
     @Binding var captureRequested: Bool
 
-    /// 캡처된 이미지 콜백 (이미지, depth map)
-    var onImageCaptured: ((UIImage, CVPixelBuffer?) -> Void)?
+    /// 캡처된 이미지 콜백 (이미지, depth map, 카메라)
+    var onImageCaptured: ((UIImage, CVPixelBuffer?, ARCamera?) -> Void)?
 
     // MARK: - UIViewRepresentable
 
@@ -103,14 +106,15 @@ struct ARViewContainer: UIViewRepresentable {
                         print("🟢 [ARViewContainer] AR 프레임 캡처 성공 - 크기: \(image.size)")
 
                         // 현재 AR 프레임의 depth map도 함께 전달
-                        let depthMap = uiView.session.currentFrame?.smoothedSceneDepth?.depthMap
-                            ?? uiView.session.currentFrame?.sceneDepth?.depthMap
+                        let currentFrame = uiView.session.currentFrame
+                        let depthMap = currentFrame?.smoothedSceneDepth?.depthMap
+                            ?? currentFrame?.sceneDepth?.depthMap
 
                         print("📊 [ARViewContainer] Depth map 캡처: \(depthMap != nil ? "성공" : "실패")")
 
                         if self.onImageCaptured != nil {
                             print("🟢 [ARViewContainer] onImageCaptured 콜백 호출")
-                            self.onImageCaptured?(image, depthMap)
+                            self.onImageCaptured?(image, depthMap, currentFrame?.camera)
                         } else {
                             print("🔴 [ARViewContainer] onImageCaptured 콜백이 nil!")
                         }
@@ -158,7 +162,8 @@ struct ARViewContainer: UIViewRepresentable {
             onTap: onTap,
             onFrameUpdate: onFrameUpdate,
             onDepthUpdate: onDepthUpdate,
-            onTrackingStateChanged: onTrackingStateChanged
+            onTrackingStateChanged: onTrackingStateChanged,
+            onAnchorsUpdate: onAnchorsUpdate
         )
     }
 
@@ -169,6 +174,7 @@ struct ARViewContainer: UIViewRepresentable {
         var onFrameUpdate: ((ARFrame) -> Void)?
         var onDepthUpdate: ((CVPixelBuffer) -> Void)?
         var onTrackingStateChanged: ((ARCamera.TrackingState) -> Void)?
+        var onAnchorsUpdate: (([ARAnchor]) -> Void)?
         var isCapturing: Bool = false  // 중복 캡처 방지 플래그
         var lastTrackingState: ARCamera.TrackingState?  // 상태 변경 감지용
 
@@ -180,12 +186,14 @@ struct ARViewContainer: UIViewRepresentable {
             onTap: ((CGPoint, ARFrame) -> Void)?,
             onFrameUpdate: ((ARFrame) -> Void)?,
             onDepthUpdate: ((CVPixelBuffer) -> Void)?,
-            onTrackingStateChanged: ((ARCamera.TrackingState) -> Void)?
+            onTrackingStateChanged: ((ARCamera.TrackingState) -> Void)?,
+            onAnchorsUpdate: (([ARAnchor]) -> Void)?
         ) {
             self.onTap = onTap
             self.onFrameUpdate = onFrameUpdate
             self.onDepthUpdate = onDepthUpdate
             self.onTrackingStateChanged = onTrackingStateChanged
+            self.onAnchorsUpdate = onAnchorsUpdate
         }
 
         @objc func handleTap(_ gesture: UITapGestureRecognizer) {
@@ -290,28 +298,35 @@ struct ARViewContainer: UIViewRepresentable {
         // MARK: - ARSessionDelegate
 
         func session(_ session: ARSession, didUpdate frame: ARFrame) {
-            // ARFrame 메모리 누수 방지: 프레임 레이트 제한 (30fps)
-            let now = Date()
-            if let lastTime = lastFrameUpdateTime,
-               now.timeIntervalSince(lastTime) < frameUpdateInterval {
-                return  // 프레임 건너뛰기
-            }
-            lastFrameUpdateTime = now
-
-            onFrameUpdate?(frame)
-
-            // 추적 상태 변경 감지
-            let currentTrackingState = frame.camera.trackingState
-            if lastTrackingState == nil || !areSameTrackingState(lastTrackingState!, currentTrackingState) {
-                lastTrackingState = currentTrackingState
-                DispatchQueue.main.async {
-                    self.onTrackingStateChanged?(currentTrackingState)
+            // ARFrame 메모리 누수 방지: autoreleasepool 사용
+            autoreleasepool {
+                // ARFrame 메모리 누수 방지: 프레임 레이트 제한 (30fps)
+                let now = Date()
+                if let lastTime = lastFrameUpdateTime,
+                   now.timeIntervalSince(lastTime) < frameUpdateInterval {
+                    return  // 프레임 건너뛰기
                 }
-            }
+                lastFrameUpdateTime = now
 
-            // 깊이 데이터 전달
-            if let depthData = frame.smoothedSceneDepth?.depthMap ?? frame.sceneDepth?.depthMap {
-                onDepthUpdate?(depthData)
+                onFrameUpdate?(frame)
+
+                // 추적 상태 변경 감지
+                let currentTrackingState = frame.camera.trackingState
+                if lastTrackingState == nil || !areSameTrackingState(lastTrackingState!, currentTrackingState) {
+                    lastTrackingState = currentTrackingState
+                    DispatchQueue.main.async {
+                        self.onTrackingStateChanged?(currentTrackingState)
+                    }
+                }
+
+                // 앵커 업데이트 전달 (평면 감지용)
+                let anchors = frame.anchors
+                onAnchorsUpdate?(anchors)
+
+                // 깊이 데이터 전달
+                if let depthData = frame.smoothedSceneDepth?.depthMap ?? frame.sceneDepth?.depthMap {
+                    onDepthUpdate?(depthData)
+                }
             }
         }
 
@@ -387,7 +402,7 @@ extension ARView {
             print("Depth data updated")
         },
         captureRequested: .constant(false),
-        onImageCaptured: { image, depthMap in
+        onImageCaptured: { image, depthMap, camera in
             print("Image captured: \(image.size), Depth: \(depthMap != nil)")
         }
     )
