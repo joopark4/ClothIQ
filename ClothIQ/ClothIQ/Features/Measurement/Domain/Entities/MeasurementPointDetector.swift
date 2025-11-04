@@ -272,7 +272,6 @@ final class TopMeasurementDetector: MeasurementPointDetector {
 ///
 /// 반바지, 긴바지의 측정 포인트를 자동으로 감지합니다.
 /// - 허리둘레: 상단 좌우 폭
-/// - 엉덩이둘레: 엉덩이 위치 좌우 폭
 /// - 총길이: 허리 중심 → 밑단 중심
 /// - 밑위: 허리 → 밑위 분기점
 ///
@@ -289,15 +288,11 @@ final class BottomMeasurementDetector: MeasurementPointDetector {
         let waistPoints = detectWaistPoints(featurePoints: featurePoints)
         candidates.append(contentsOf: waistPoints)
 
-        // 2. 엉덩이둘레 포인트
-        let hipPoints = detectHipPoints(featurePoints: featurePoints)
-        candidates.append(contentsOf: hipPoints)
-
-        // 3. 총길이 포인트
+        // 2. 총길이 포인트
         let lengthPoints = detectTotalLengthPoints(featurePoints: featurePoints)
         candidates.append(contentsOf: lengthPoints)
 
-        // 4. 밑위 포인트
+        // 3. 밑위 포인트
         let risePoints = detectRisePoints(featurePoints: featurePoints)
         candidates.append(contentsOf: risePoints)
 
@@ -400,29 +395,6 @@ final class BottomMeasurementDetector: MeasurementPointDetector {
         )
     }
 
-    private func detectHipPoints(
-        featurePoints: ClothingFeaturePoints
-    ) -> [MeasurementPointCandidate] {
-        let height = max(featurePoints.height, 0.0001)
-        if let span = featurePoints.bestHorizontalSpan(
-            centeredAt: featurePoints.hipY,
-            halfSpans: [height * 0.03, height * 0.05, height * 0.07],
-            selection: .widest
-        ) {
-            let groupId = UUID().uuidString
-            return [
-                MeasurementPointCandidate(type: .hipCircumference, screenPosition: span.left, confidence: 0.9, groupId: groupId),
-                MeasurementPointCandidate(type: .hipCircumference, screenPosition: span.right, confidence: 0.9, groupId: groupId)
-            ]
-        }
-
-        return detectWidthPointsWithMultipleBands(
-            centerY: featurePoints.hipY,
-            featurePoints: featurePoints,
-            type: .hipCircumference
-        )
-    }
-
     private func detectTotalLengthPoints(
         featurePoints: ClothingFeaturePoints
     ) -> [MeasurementPointCandidate] {
@@ -506,7 +478,6 @@ final class BottomMeasurementDetector: MeasurementPointDetector {
 ///
 /// 치마의 측정 포인트를 자동으로 감지합니다.
 /// - 허리둘레: 상단 좌우 폭
-/// - 엉덩이둘레: 엉덩이 위치 좌우 폭
 /// - 총길이: 허리 중심 → 밑단 중심
 ///
 final class SkirtMeasurementDetector: MeasurementPointDetector {
@@ -522,11 +493,7 @@ final class SkirtMeasurementDetector: MeasurementPointDetector {
         let waistPoints = detectWaistPoints(featurePoints: featurePoints)
         candidates.append(contentsOf: waistPoints)
 
-        // 2. 엉덩이둘레 포인트
-        let hipPoints = detectHipPoints(featurePoints: featurePoints)
-        candidates.append(contentsOf: hipPoints)
-
-        // 3. 총길이 포인트
+        // 2. 총길이 포인트
         let lengthPoints = detectTotalLengthPoints(featurePoints: featurePoints)
         candidates.append(contentsOf: lengthPoints)
 
@@ -553,25 +520,6 @@ final class SkirtMeasurementDetector: MeasurementPointDetector {
         return [
             MeasurementPointCandidate(type: .waistCircumference, screenPosition: span.left, confidence: 0.85, groupId: groupId),
             MeasurementPointCandidate(type: .waistCircumference, screenPosition: span.right, confidence: 0.85, groupId: groupId)
-        ]
-    }
-
-    private func detectHipPoints(
-        featurePoints: ClothingFeaturePoints
-    ) -> [MeasurementPointCandidate] {
-        let height = max(featurePoints.height, 0.0001)
-        guard let span = featurePoints.bestHorizontalSpan(
-            centeredAt: featurePoints.hipY,
-            halfSpans: [height * 0.03, height * 0.05, height * 0.07],
-            selection: .widest
-        ) else {
-            return []
-        }
-
-        let groupId = UUID().uuidString
-        return [
-            MeasurementPointCandidate(type: .hipCircumference, screenPosition: span.left, confidence: 0.85, groupId: groupId),
-            MeasurementPointCandidate(type: .hipCircumference, screenPosition: span.right, confidence: 0.85, groupId: groupId)
         ]
     }
 

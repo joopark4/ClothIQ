@@ -1328,7 +1328,6 @@ final class MeasurementViewModelRefactored: ObservableObject {
                 let isCircumferenceType = [
                     MeasurementType.chestCircumference,
                     MeasurementType.waistCircumference,
-                    MeasurementType.hipCircumference,
                     MeasurementType.thighCircumference,
                     MeasurementType.armCircumference
                 ].contains(type)
@@ -1382,7 +1381,7 @@ final class MeasurementViewModelRefactored: ObservableObject {
                 )
                 print("    📏 Linear distance (plane-projected): \(value)cm")
 
-            case .chestCircumference, .waistCircumference, .hipCircumference, .thighCircumference:
+            case .chestCircumference, .waistCircumference, .thighCircumference:
                 // AutoSize02.md: 평면 투영된 폭 사용 (카메라 기울기 보정)
                 let widthCm = MeasurementCalculator.calculateDistanceOnPlane(
                     from: points3D[0],
@@ -1406,9 +1405,6 @@ final class MeasurementViewModelRefactored: ObservableObject {
                         }
                         // 정상 폭: 평평하게 놓인 반바지 (폭 × 2.0)
                         return 2.0
-                    case .hipCircumference:
-                        // 엉덩이: 반바지는 허리와 비슷 (폭 × 1.3)
-                        return 1.3
                     case .chestCircumference:
                         // 가슴: 상의는 더 둥글게 (폭 × 1.6)
                         return 1.6

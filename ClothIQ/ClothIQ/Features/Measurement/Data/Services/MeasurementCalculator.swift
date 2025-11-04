@@ -272,30 +272,16 @@ struct MeasurementCalculator {
             return (15.0, 80.0)  // 소매길이
         case .armCircumference:
             return (20.0, 50.0)  // 팔둘레
-        case .neckCircumference:
-            return (30.0, 50.0)  // 목둘레
 
         // 하의 측정 항목
         case .waistCircumference:
             return (50.0, 150.0)  // 허리둘레
-        case .hipCircumference:
-            return (70.0, 160.0)  // 엉덩이둘레
         case .rise:
             return (20.0, 40.0)  // 밑위
         case .hem:
             return (30.0, 60.0)  // 밑단
         case .thighCircumference:
             return (40.0, 80.0)  // 허벅지둘레
-        case .inseam:
-            return (50.0, 100.0)  // 인심
-        case .outseam:
-            return (60.0, 120.0)  // 아웃심
-        case .kneeCircumference:
-            return (30.0, 60.0)  // 무릎둘레
-
-        // 공통 측정 항목
-        case .hemWidth:
-            return (30.0, 80.0)  // 밑단너비
         }
     }
 
@@ -398,9 +384,6 @@ struct MeasurementCalculator {
         case .waistCircumference:
             // 허리둘레: 더 납작한 타원
             depthRatio = 0.55  // 깊이가 너비의 약 55%
-        case .hipCircumference:
-            // 엉덩이둘레: 가슴과 유사
-            depthRatio = 0.70  // 깊이가 너비의 약 70%
         case .thighCircumference:
             // 허벅지둘레: 원에 가까움
             depthRatio = 0.85  // 깊이가 너비의 약 85%

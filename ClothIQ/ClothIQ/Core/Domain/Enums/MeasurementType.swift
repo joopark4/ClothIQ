@@ -34,16 +34,10 @@ enum MeasurementType: String, CaseIterable, Codable {
     /// 팔둘레: 팔의 가장 두꺼운 부분의 둘레
     case armCircumference = "arm_circumference"
 
-    /// 목둘레: 목둘레선의 둘레
-    case neckCircumference = "neck_circumference"
-
     // MARK: - 하의 측정 항목
 
     /// 허리둘레: 허리 가장 좁은 부분의 둘레
     case waistCircumference = "waist_circumference"
-
-    /// 엉덩이둘레: 엉덩이 가장 넓은 부분의 둘레
-    case hipCircumference = "hip_circumference"
 
     /// 밑위: 허리에서 밑위까지의 길이
     case rise = "rise"
@@ -53,20 +47,6 @@ enum MeasurementType: String, CaseIterable, Codable {
 
     /// 허벅지둘레: 허벅지 가장 두꺼운 부분의 둘레
     case thighCircumference = "thigh_circumference"
-
-    /// 인심: 밑위에서 바지 밑단까지의 안쪽 솔기 길이
-    case inseam = "inseam"
-
-    /// 아웃심: 허리에서 바지 밑단까지의 바깥쪽 솔기 길이
-    case outseam = "outseam"
-
-    /// 무릎둘레: 무릎 부분의 둘레
-    case kneeCircumference = "knee_circumference"
-
-    // MARK: - 공통 측정 항목
-
-    /// 밑단너비: 밑단의 너비
-    case hemWidth = "hem_width"
 
     /// 측정 항목의 표시 이름
     var displayName: String {
@@ -81,26 +61,14 @@ enum MeasurementType: String, CaseIterable, Codable {
             return "소매길이"
         case .armCircumference:
             return "팔둘레"
-        case .neckCircumference:
-            return "목둘레"
         case .waistCircumference:
             return "허리둘레"
-        case .hipCircumference:
-            return "엉덩이둘레"
         case .rise:
             return "밑위"
         case .hem:
             return "밑단"
         case .thighCircumference:
             return "허벅지둘레"
-        case .inseam:
-            return "인심"
-        case .outseam:
-            return "아웃심"
-        case .kneeCircumference:
-            return "무릎둘레"
-        case .hemWidth:
-            return "밑단너비"
         }
     }
 
@@ -119,37 +87,25 @@ enum MeasurementType: String, CaseIterable, Codable {
             return "어깨 끝점에서 소매 끝까지의 길이를 측정합니다."
         case .armCircumference:
             return "팔의 가장 두꺼운 부분의 둘레를 측정합니다."
-        case .neckCircumference:
-            return "목둘레선의 둘레를 측정합니다."
         case .waistCircumference:
             return "허리 가장 좁은 부분의 둘레를 측정합니다."
-        case .hipCircumference:
-            return "엉덩이 가장 넓은 부분의 둘레를 측정합니다."
         case .rise:
             return "허리에서 밑위까지의 길이를 측정합니다."
         case .hem:
             return "바지 밑단의 둘레를 측정합니다."
         case .thighCircumference:
             return "허벅지 가장 두꺼운 부분의 둘레를 측정합니다."
-        case .inseam:
-            return "밑위에서 바지 밑단까지의 안쪽 솔기 길이를 측정합니다."
-        case .outseam:
-            return "허리에서 바지 밑단까지의 바깥쪽 솔기 길이를 측정합니다."
-        case .kneeCircumference:
-            return "무릎 부분의 둘레를 측정합니다."
-        case .hemWidth:
-            return "밑단의 너비를 측정합니다."
         }
     }
 
     /// 측정 타입의 카테고리
     var category: MeasurementCategory {
         switch self {
-        case .shoulderWidth, .chestCircumference, .sleeveLength, .armCircumference, .neckCircumference:
+        case .shoulderWidth, .chestCircumference, .sleeveLength, .armCircumference:
             return .top
-        case .waistCircumference, .hipCircumference, .rise, .hem, .thighCircumference, .inseam, .outseam, .kneeCircumference:
+        case .waistCircumference, .rise, .hem, .thighCircumference:
             return .bottom
-        case .totalLength, .hemWidth:
+        case .totalLength:
             return .common
         }
     }
