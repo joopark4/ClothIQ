@@ -44,6 +44,9 @@ struct ARViewContainer: UIViewRepresentable {
     /// AR 추적 상태 변경 콜백
     var onTrackingStateChanged: ((ARCamera.TrackingState) -> Void)?
 
+    /// 카메라 각도 업데이트 콜백
+    var onCameraAngleUpdate: ((Float) -> Void)?
+
     /// 스크린샷 캡처 요청 (외부에서 트리거)
     @Binding var captureRequested: Bool
 
@@ -158,7 +161,8 @@ struct ARViewContainer: UIViewRepresentable {
             onTap: onTap,
             onFrameUpdate: onFrameUpdate,
             onDepthUpdate: onDepthUpdate,
-            onTrackingStateChanged: onTrackingStateChanged
+            onTrackingStateChanged: onTrackingStateChanged,
+            onCameraAngleUpdate: onCameraAngleUpdate
         )
     }
 
@@ -169,6 +173,7 @@ struct ARViewContainer: UIViewRepresentable {
         var onFrameUpdate: ((ARFrame) -> Void)?
         var onDepthUpdate: ((CVPixelBuffer) -> Void)?
         var onTrackingStateChanged: ((ARCamera.TrackingState) -> Void)?
+        var onCameraAngleUpdate: ((Float) -> Void)?
         var isCapturing: Bool = false  // 중복 캡처 방지 플래그
         var lastTrackingState: ARCamera.TrackingState?  // 상태 변경 감지용
 
@@ -180,12 +185,14 @@ struct ARViewContainer: UIViewRepresentable {
             onTap: ((CGPoint, ARFrame) -> Void)?,
             onFrameUpdate: ((ARFrame) -> Void)?,
             onDepthUpdate: ((CVPixelBuffer) -> Void)?,
-            onTrackingStateChanged: ((ARCamera.TrackingState) -> Void)?
+            onTrackingStateChanged: ((ARCamera.TrackingState) -> Void)?,
+            onCameraAngleUpdate: ((Float) -> Void)?
         ) {
             self.onTap = onTap
             self.onFrameUpdate = onFrameUpdate
             self.onDepthUpdate = onDepthUpdate
             self.onTrackingStateChanged = onTrackingStateChanged
+            self.onCameraAngleUpdate = onCameraAngleUpdate
         }
 
         @objc func handleTap(_ gesture: UITapGestureRecognizer) {
@@ -307,6 +314,12 @@ struct ARViewContainer: UIViewRepresentable {
                 DispatchQueue.main.async {
                     self.onTrackingStateChanged?(currentTrackingState)
                 }
+            }
+
+            // 카메라 각도 계산 및 전달
+            let cameraPitchAngle = AngleCorrectionService.calculateCameraPitch(from: frame.camera)
+            DispatchQueue.main.async {
+                self.onCameraAngleUpdate?(cameraPitchAngle)
             }
 
             // 깊이 데이터 전달

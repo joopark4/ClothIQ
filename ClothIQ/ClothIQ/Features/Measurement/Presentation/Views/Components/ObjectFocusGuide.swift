@@ -86,6 +86,7 @@ struct ObjectFocusGuide: View {
     let foregroundMask: CVPixelBuffer?
     let depthData: CVPixelBuffer?
     let trackingState: ARCamera.TrackingState
+    var cameraPitchAngle: Float = 0  // 카메라 기울기 각도
 
     private static let analysisQueue = DispatchQueue(label: "com.clothiq.focus-analysis", qos: .userInitiated)
     private static let maskSampleStride = 4

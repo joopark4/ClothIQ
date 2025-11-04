@@ -105,6 +105,9 @@ struct MeasurementView: View {
                 onTrackingStateChanged: { state in
                     viewModel.updateTrackingState(state)
                 },
+                onCameraAngleUpdate: { angle in
+                    viewModel.cameraPitchAngle = angle
+                },
                 captureRequested: $viewModel.captureRequested,
                 onImageCaptured: { image, depthMap in
                     viewModel.handleCapturedImage(image, depthMap: depthMap)
@@ -122,7 +125,8 @@ struct MeasurementView: View {
             ObjectFocusGuide(
                 foregroundMask: currentForegroundMask,
                 depthData: currentDepthData,
-                trackingState: viewModel.trackingState
+                trackingState: viewModel.trackingState,
+                cameraPitchAngle: viewModel.cameraPitchAngle
             )
 
             // AR 초기화 가이드 (최우선 표시)

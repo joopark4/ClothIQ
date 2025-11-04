@@ -42,6 +42,12 @@ struct MeasurementPoint: Identifiable, Equatable {
     /// LiDAR 깊이 데이터의 품질을 나타냅니다.
     let confidence: Float
 
+    /// 카메라 pitch 각도 (도)
+    ///
+    /// 측정 시점의 카메라 기울기 각도입니다.
+    /// 0° = 수평, 90° = 수직 (아래를 향함)
+    let cameraPitchAngle: Float
+
     /// 생성 시간
     let timestamp: Date
 
@@ -59,6 +65,7 @@ struct MeasurementPoint: Identifiable, Equatable {
         screenPosition: CGPoint,
         depth: Float,
         confidence: Float,
+        cameraPitchAngle: Float = 0,
         timestamp: Date = Date(),
         label: String? = nil
     ) {
@@ -67,6 +74,7 @@ struct MeasurementPoint: Identifiable, Equatable {
         self.screenPosition = screenPosition
         self.depth = depth
         self.confidence = confidence
+        self.cameraPitchAngle = cameraPitchAngle
         self.timestamp = timestamp
         self.label = label
     }

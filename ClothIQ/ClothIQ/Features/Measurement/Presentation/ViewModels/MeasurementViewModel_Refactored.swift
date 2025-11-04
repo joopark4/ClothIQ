@@ -66,6 +66,9 @@ final class MeasurementViewModelRefactored: ObservableObject {
     /// AR 초기화 완료 여부
     @Published var isARInitialized: Bool = false
 
+    /// 카메라 pitch 각도 (도)
+    @Published var cameraPitchAngle: Float = 0
+
     /// 이미지 캡처 요청 플래그
     @Published var captureRequested: Bool = false
 
@@ -81,6 +84,7 @@ final class MeasurementViewModelRefactored: ObservableObject {
     private let imageFileManager: ImageFileManager
     private let objectCaptureService: ObjectCaptureService
     private let photoLibraryService: PhotoLibraryService
+    private let measurementFilter = MeasurementFilter()
     var modelContext: ModelContext?
     private var cancellables = Set<AnyCancellable>()
     private var hasShownOrientationWarning = false
@@ -197,6 +201,11 @@ final class MeasurementViewModelRefactored: ObservableObject {
     func setClothingType(_ type: ClothingType) {
         let isSameType = session.clothingType == type
 
+        // 타입이 변경되면 Kalman 필터 리셋
+        if !isSameType {
+            measurementFilter.resetAll()
+        }
+
         if isSameType {
             session.state = .measuring
             return
@@ -224,17 +233,33 @@ final class MeasurementViewModelRefactored: ObservableObject {
         let startPoint = measurementPoints[lastIndex - 1]
         let endPoint = measurementPoints[lastIndex]
 
-        // MeasurementCalculator를 사용한 거리 계산
-        let distanceInCm = MeasurementCalculator.calculateDistance(
+        // 각도 보정이 적용된 거리 계산
+        let rawDistanceInCm = MeasurementCalculator.calculateCorrectedDistance(
             from: startPoint,
-            to: endPoint
+            to: endPoint,
+            useAngleCorrection: true
         )
 
         // 측정 타입이 지정되어 있으면 저장
         if let measurementType = currentMeasurementType {
+            // 신뢰도 계산 (양쪽 포인트의 평균 신뢰도)
+            let avgConfidence = (startPoint.confidence + endPoint.confidence) / 2.0
+
+            // 각도 기반 신뢰도 조정
+            let avgAngle = (startPoint.cameraPitchAngle + endPoint.cameraPitchAngle) / 2.0
+            let angleConfidence = AngleCorrectionService.assessConfidence(for: avgAngle)
+            let totalConfidence = avgConfidence * angleConfidence
+
+            // Kalman 필터 적용
+            let filteredDistance = measurementFilter.update(
+                id: measurementType.rawValue,
+                value: rawDistanceInCm,
+                confidence: totalConfidence
+            )
+
             // 측정값 검증
             let validation = MeasurementCalculator.validateMeasurement(
-                value: distanceInCm,
+                value: filteredDistance,
                 type: measurementType
             )
 
@@ -243,13 +268,18 @@ final class MeasurementViewModelRefactored: ObservableObject {
                 return
             }
 
-            // 경고가 있으면 표시
-            if let warning = validation.warning {
+            // 각도 경고
+            if avgAngle > 45 {
+                showSuccess("⚠️ 카메라를 더 정면으로 향해주세요 (현재 각도: \(Int(avgAngle))°)")
+            } else if let warning = validation.warning {
                 showSuccess("⚠️ \(warning)")
             }
 
-            session.setMeasurement(distanceInCm, for: measurementType)
-            showSuccess("측정 완료: \(measurementType.displayName) = \(String(format: "%.1f", distanceInCm)) cm")
+            session.setMeasurement(filteredDistance, for: measurementType)
+
+            // 측정 품질 표시
+            let qualityDesc = AngleCorrectionService.qualityDescription(for: avgAngle)
+            showSuccess("측정 완료: \(measurementType.displayName) = \(String(format: "%.1f", filteredDistance)) cm (품질: \(qualityDesc))")
         }
     }
 

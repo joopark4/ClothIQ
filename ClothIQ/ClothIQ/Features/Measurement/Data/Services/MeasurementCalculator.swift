@@ -40,6 +40,66 @@ struct MeasurementCalculator {
         return Double(distance) * 100.0  // 미터 → 센티미터
     }
 
+    /// 각도 보정이 적용된 거리 계산
+    ///
+    /// - Parameters:
+    ///   - start: 시작 포인트
+    ///   - end: 끝 포인트
+    ///   - useAngleCorrection: 각도 보정 사용 여부 (기본: true)
+    /// - Returns: 거리 (센티미터)
+    ///
+    /// ## 각도 보정 알고리즘
+    /// 두 포인트의 평균 카메라 각도를 사용하여 수평 거리를 계산합니다.
+    /// 각도가 60도를 초과하면 보정을 적용하지 않습니다 (신뢰도 낮음).
+    ///
+    static func calculateCorrectedDistance(
+        from start: MeasurementPoint,
+        to end: MeasurementPoint,
+        useAngleCorrection: Bool = true
+    ) -> Double {
+        // 원본 거리 계산
+        let rawDistance = calculateDistance(from: start, to: end)
+
+        // 각도 보정 미사용 시 원본 거리 반환
+        guard useAngleCorrection else {
+            return rawDistance
+        }
+
+        // 두 포인트의 평균 카메라 각도
+        let avgAngle = (start.cameraPitchAngle + end.cameraPitchAngle) / 2.0
+
+        // 각도가 너무 크면 보정 안 함 (신뢰도 낮음)
+        guard AngleCorrectionService.isAngleAcceptable(avgAngle) else {
+            return rawDistance
+        }
+
+        // 각도 보정 적용
+        return AngleCorrectionService.correctMeasurement(
+            rawDistance: rawDistance,
+            incidentAngle: avgAngle
+        )
+    }
+
+    /// 수평면 투영 거리 계산 (중력 방향 무시)
+    ///
+    /// - Parameters:
+    ///   - start: 시작 포인트
+    ///   - end: 끝 포인트
+    /// - Returns: 수평 거리 (센티미터)
+    ///
+    /// ARKit의 월드 좌표계는 중력 방향으로 정렬되어 있으므로,
+    /// Y 좌표를 무시하면 수평면상의 거리를 얻을 수 있습니다.
+    ///
+    static func calculateHorizontalDistance(
+        from start: MeasurementPoint,
+        to end: MeasurementPoint
+    ) -> Double {
+        return AngleCorrectionService.calculateHorizontalDistance(
+            from: start.worldPosition,
+            to: end.worldPosition
+        )
+    }
+
     /// 여러 포인트를 거치는 총 거리 계산
     ///
     /// - Parameter points: 측정 포인트 목록

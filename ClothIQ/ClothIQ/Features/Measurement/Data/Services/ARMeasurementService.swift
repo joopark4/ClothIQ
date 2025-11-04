@@ -105,12 +105,16 @@ final class ARMeasurementService: ARMeasurementServiceProtocol {
             viewportSize: viewportSize
         )
 
+        // 카메라 각도 계산
+        let cameraPitchAngle = AngleCorrectionService.calculateCameraPitch(from: frame.camera)
+
         // 측정 포인트 생성
         let point = MeasurementPoint(
             worldPosition: worldPosition,
             screenPosition: screenPoint,
             depth: depth,
-            confidence: confidence
+            confidence: confidence,
+            cameraPitchAngle: cameraPitchAngle
         )
 
         // 유효성 검증

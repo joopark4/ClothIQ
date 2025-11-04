@@ -20,6 +20,7 @@ struct MeasurementGuideOverlay: View {
     let detectionMessage: String?
     let environmentScore: Float
     let currentMeasurementType: MeasurementType?
+    let cameraPitchAngle: Float  // 카메라 기울기 각도
 
     var body: some View {
         ZStack {
@@ -108,6 +109,30 @@ struct MeasurementGuideOverlay: View {
             .background(.ultraThinMaterial)
             .cornerRadius(20)
 
+            // 카메라 각도 경고
+            if !AngleCorrectionService.isAngleOptimal(cameraPitchAngle) {
+                HStack(spacing: 8) {
+                    Image(systemName: "iphone.and.arrow.forward")
+                        .foregroundColor(angleWarningColor)
+                        .font(.body)
+
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(angleWarningMessage)
+                            .font(.caption)
+                            .fontWeight(.semibold)
+                            .foregroundColor(.white)
+
+                        Text("현재 각도: \(Int(cameraPitchAngle))°")
+                            .font(.caption2)
+                            .foregroundColor(.white.opacity(0.8))
+                    }
+                }
+                .padding(.horizontal, 16)
+                .padding(.vertical, 8)
+                .background(angleWarningBackground)
+                .cornerRadius(15)
+            }
+
             // 환경 점수 표시
             if environmentScore < 0.5 {
                 HStack(spacing: 8) {
@@ -135,6 +160,44 @@ struct MeasurementGuideOverlay: View {
             return "측정 환경 개선 필요"
         default:
             return "양호"
+        }
+    }
+
+    /// 각도 경고 메시지
+    private var angleWarningMessage: String {
+        switch cameraPitchAngle {
+        case 30..<45:
+            return "카메라를 조금 더 정면으로"
+        case 45..<60:
+            return "카메라를 정면으로 향해주세요"
+        case 60...:
+            return "각도가 너무 큽니다 - 재측정 권장"
+        default:
+            return ""
+        }
+    }
+
+    /// 각도 경고 색상
+    private var angleWarningColor: Color {
+        switch cameraPitchAngle {
+        case 30..<45:
+            return .yellow
+        case 45..<60:
+            return .orange
+        default:
+            return .red
+        }
+    }
+
+    /// 각도 경고 배경
+    private var angleWarningBackground: Color {
+        switch cameraPitchAngle {
+        case 30..<45:
+            return Color.yellow.opacity(0.7)
+        case 45..<60:
+            return Color.orange.opacity(0.8)
+        default:
+            return Color.red.opacity(0.8)
         }
     }
 
@@ -349,7 +412,8 @@ struct MeasurementChecklistGuide: View {
             isClothingDetected: true,
             detectionMessage: "✅ T-shirt 감지됨",
             environmentScore: 0.8,
-            currentMeasurementType: .shoulderWidth
+            currentMeasurementType: .shoulderWidth,
+            cameraPitchAngle: 20.0
         )
     }
 }
