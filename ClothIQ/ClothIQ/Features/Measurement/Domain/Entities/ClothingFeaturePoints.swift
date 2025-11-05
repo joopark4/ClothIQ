@@ -223,6 +223,198 @@ extension ClothingFeaturePoints {
         guard width > 0 else { return 0 }
         return height / width
     }
+
+    // MARK: - Advanced Analysis Methods
+
+    /// 윤곽선의 곡률(curvature)이 큰 지점들을 찾습니다.
+    ///
+    /// 곡률이 큰 지점은 어깨, 소매 끝, 허리 등의 특징점일 가능성이 높습니다.
+    ///
+    /// - Parameters:
+    ///   - threshold: 곡률 임계값 (0.0 ~ 1.0, 기본값 0.3)
+    ///   - yRange: 검색할 Y좌표 범위 (옵셔널)
+    /// - Returns: 곡률이 큰 포인트들 (곡률 순으로 정렬)
+    func detectCurvaturePoints(
+        threshold: CGFloat = 0.3,
+        yRange: ClosedRange<CGFloat>? = nil
+    ) -> [CGPoint] {
+        guard allPoints.count >= 5 else { return [] }
+
+        // 필터링할 포인트들 선택
+        let pointsToAnalyze: [CGPoint]
+        if let range = yRange {
+            pointsToAnalyze = pointsInYRange(range)
+        } else {
+            pointsToAnalyze = allPoints
+        }
+
+        guard pointsToAnalyze.count >= 5 else { return [] }
+
+        var curvaturePoints: [(point: CGPoint, curvature: CGFloat)] = []
+
+        // 각 포인트의 곡률 계산 (3점을 사용한 근사)
+        for i in 2..<(pointsToAnalyze.count - 2) {
+            let p0 = pointsToAnalyze[i - 2]
+            let p1 = pointsToAnalyze[i]
+            let p2 = pointsToAnalyze[i + 2]
+
+            // 벡터 계산
+            let v1 = CGVector(dx: p1.x - p0.x, dy: p1.y - p0.y)
+            let v2 = CGVector(dx: p2.x - p1.x, dy: p2.y - p1.y)
+
+            // 벡터 길이
+            let len1 = sqrt(v1.dx * v1.dx + v1.dy * v1.dy)
+            let len2 = sqrt(v2.dx * v2.dx + v2.dy * v2.dy)
+
+            guard len1 > 0, len2 > 0 else { continue }
+
+            // 정규화된 벡터
+            let norm1 = CGVector(dx: v1.dx / len1, dy: v1.dy / len1)
+            let norm2 = CGVector(dx: v2.dx / len2, dy: v2.dy / len2)
+
+            // 각도 변화 (내적으로 계산)
+            let dotProduct = norm1.dx * norm2.dx + norm1.dy * norm2.dy
+            let angle = acos(max(-1.0, min(1.0, dotProduct)))
+
+            // 곡률 = 각도 변화 / 평균 거리
+            let avgDistance = (len1 + len2) / 2.0
+            let curvature = angle / max(avgDistance, 0.001)
+
+            if curvature >= threshold {
+                curvaturePoints.append((point: p1, curvature: curvature))
+            }
+        }
+
+        // 곡률이 큰 순서로 정렬
+        curvaturePoints.sort { $0.curvature > $1.curvature }
+
+        return curvaturePoints.map { $0.point }
+    }
+
+    /// 특정 Y좌표 밴드에서 좌우 포인트의 신뢰도를 계산합니다.
+    ///
+    /// 신뢰도는 다음 요소로 계산됩니다:
+    /// - 포인트 밀도 (샘플 포인트가 충분한지)
+    /// - 좌우 대칭성 (Y좌표가 비슷한지)
+    /// - 폭의 일관성 (여러 밴드에서 비슷한 결과인지)
+    ///
+    /// - Parameters:
+    ///   - centerY: 중심 Y좌표
+    ///   - halfSpans: 테스트할 밴드들
+    /// - Returns: 신뢰도 점수 (0.0 ~ 1.0)
+    func calculateSpanConfidence(
+        at centerY: CGFloat,
+        halfSpans: [CGFloat]
+    ) -> Float {
+        var confidenceScores: [Float] = []
+        var widths: [CGFloat] = []
+
+        for halfSpan in halfSpans {
+            let range = (centerY - halfSpan)...(centerY + halfSpan)
+            let candidates = pointsInYRange(range)
+
+            guard !candidates.isEmpty,
+                  let left = candidates.min(by: { $0.x < $1.x }),
+                  let right = candidates.max(by: { $0.x < $1.x }) else {
+                continue
+            }
+
+            // 1. 포인트 밀도 점수
+            let densityScore = min(Float(candidates.count) / 50.0, 1.0)  // 50개 이상이면 만점
+
+            // 2. 좌우 대칭 점수
+            let yDifference = abs(left.y - right.y)
+            let symmetryScore = max(0.0, 1.0 - Float(yDifference / halfSpan))
+
+            // 3. 폭 저장 (일관성 계산용)
+            let spanWidth = right.x - left.x
+            widths.append(spanWidth)
+
+            // 개별 밴드 신뢰도
+            let bandConfidence = (densityScore * 0.5) + (symmetryScore * 0.5)
+            confidenceScores.append(bandConfidence)
+        }
+
+        guard !confidenceScores.isEmpty else { return 0.3 }  // 최소 신뢰도
+
+        // 4. 폭의 일관성 점수
+        let consistencyScore: Float
+        if widths.count >= 2 {
+            let avgWidth = widths.reduce(0, +) / CGFloat(widths.count)
+            let maxDeviation = widths.map { abs($0 - avgWidth) }.max() ?? 0
+            consistencyScore = max(0.0, 1.0 - Float(maxDeviation / avgWidth))
+        } else {
+            consistencyScore = 0.5  // 중립
+        }
+
+        // 최종 신뢰도: 개별 밴드 평균 + 일관성
+        let avgBandConfidence = confidenceScores.reduce(0, +) / Float(confidenceScores.count)
+        let finalConfidence = (avgBandConfidence * 0.7) + (consistencyScore * 0.3)
+
+        return max(0.3, min(1.0, finalConfidence))  // 0.3 ~ 1.0 범위로 제한
+    }
+
+    /// 여러 Y 밴드에서 평균적인 좌우 포인트를 찾습니다 (개선된 버전).
+    ///
+    /// 각 밴드의 신뢰도를 고려하여 가중 평균을 계산합니다.
+    ///
+    /// - Parameters:
+    ///   - centerY: 중심 Y좌표
+    ///   - halfSpans: 테스트할 밴드들
+    /// - Returns: (좌측 포인트, 우측 포인트, 신뢰도)
+    func robustHorizontalSpan(
+        at centerY: CGFloat,
+        halfSpans: [CGFloat]
+    ) -> (left: CGPoint, right: CGPoint, confidence: Float)? {
+        guard !halfSpans.isEmpty else { return nil }
+
+        var weightedLeftX: CGFloat = 0
+        var weightedLeftY: CGFloat = 0
+        var weightedRightX: CGFloat = 0
+        var weightedRightY: CGFloat = 0
+        var totalWeight: Float = 0
+
+        for halfSpan in halfSpans {
+            let range = (centerY - halfSpan)...(centerY + halfSpan)
+            let candidates = pointsInYRange(range)
+
+            guard !candidates.isEmpty,
+                  let left = candidates.min(by: { $0.x < $1.x }),
+                  let right = candidates.max(by: { $0.x < $1.x }) else {
+                continue
+            }
+
+            // 밴드별 가중치 계산
+            let densityWeight = min(Float(candidates.count) / 50.0, 1.0)
+            let yDifference = abs(left.y - right.y)
+            let symmetryWeight = max(0.0, 1.0 - Float(yDifference / halfSpan))
+            let weight = (densityWeight + symmetryWeight) / 2.0
+
+            // 가중 평균에 추가
+            weightedLeftX += left.x * CGFloat(weight)
+            weightedLeftY += left.y * CGFloat(weight)
+            weightedRightX += right.x * CGFloat(weight)
+            weightedRightY += right.y * CGFloat(weight)
+            totalWeight += weight
+        }
+
+        guard totalWeight > 0 else { return nil }
+
+        // 가중 평균 좌표 계산
+        let avgLeft = CGPoint(
+            x: weightedLeftX / CGFloat(totalWeight),
+            y: weightedLeftY / CGFloat(totalWeight)
+        )
+        let avgRight = CGPoint(
+            x: weightedRightX / CGFloat(totalWeight),
+            y: weightedRightY / CGFloat(totalWeight)
+        )
+
+        // 최종 신뢰도 계산
+        let confidence = calculateSpanConfidence(at: centerY, halfSpans: halfSpans)
+
+        return (left: avgLeft, right: avgRight, confidence: confidence)
+    }
 }
 
 // MARK: - CustomStringConvertible

@@ -364,9 +364,13 @@ final class PhotoMeasurementViewModel: ObservableObject {
             return CGPoint(x: 0.5, y: 0.5)
         }
 
+        // SwiftUI 좌표계 (top-left origin) → Vision 좌표계 (bottom-left origin) 변환
+        // SwiftUI: y=0이 상단, y=height가 하단
+        // Vision: y=0이 하단, y=1이 상단
+        // 따라서 Y축 반전 필요: 1.0 - (y / height)
         return CGPoint(
             x: clamp(point.x / size.width, min: 0, max: 1),
-            y: clamp(point.y / size.height, min: 0, max: 1)
+            y: clamp(1.0 - (point.y / size.height), min: 0, max: 1)
         )
     }
 

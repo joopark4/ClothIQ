@@ -477,4 +477,122 @@ struct MeasurementCalculator {
             return 1.0
         }
     }
+
+    // MARK: - Confidence Validation
+
+    /// 측정 포인트 후보의 신뢰도 검증
+    ///
+    /// 자동 감지된 측정 포인트의 신뢰도가 충분한지 검증합니다.
+    ///
+    /// - Parameters:
+    ///   - candidates: 측정 포인트 후보 배열
+    ///   - minConfidence: 최소 허용 신뢰도 (기본값: 0.6)
+    /// - Returns: 검증 결과 (통과 여부, 경고 메시지)
+    static func validateCandidateConfidence(
+        candidates: [MeasurementPointCandidate],
+        minConfidence: Float = 0.6
+    ) -> (isValid: Bool, warning: String?) {
+        guard !candidates.isEmpty else {
+            return (false, "측정 포인트를 찾을 수 없습니다.")
+        }
+
+        // 모든 후보의 평균 신뢰도 계산
+        let avgConfidence = candidates.map { $0.confidence }.reduce(0, +) / Float(candidates.count)
+
+        // 평균 신뢰도가 임계값 미만
+        if avgConfidence < minConfidence {
+            return (false, "측정 포인트 신뢰도가 낮습니다 (\(Int(avgConfidence * 100))%). 의류를 더 평평하게 펼쳐주세요.")
+        }
+
+        // 개별 포인트 중 신뢰도가 매우 낮은 것이 있는지 확인
+        let veryLowConfidenceThreshold: Float = 0.4
+        let lowConfidencePoints = candidates.filter { $0.confidence < veryLowConfidenceThreshold }
+
+        if !lowConfidencePoints.isEmpty {
+            let types = Set(lowConfidencePoints.map { $0.type.displayName }).joined(separator: ", ")
+            return (false, "\(types) 측정 포인트의 신뢰도가 매우 낮습니다. 재측정을 권장합니다.")
+        }
+
+        // 신뢰도가 낮은 포인트가 있으면 경고 (하지만 통과)
+        let lowConfidenceThreshold: Float = 0.7
+        let warnPoints = candidates.filter { $0.confidence < lowConfidenceThreshold }
+
+        if !warnPoints.isEmpty {
+            let types = Set(warnPoints.map { $0.type.displayName }).joined(separator: ", ")
+            return (true, "\(types) 측정 포인트의 신뢰도가 다소 낮습니다 (\(Int(avgConfidence * 100))%). 결과를 확인해주세요.")
+        }
+
+        // 모든 검증 통과
+        return (true, nil)
+    }
+
+    /// 측정값 신뢰도 종합 평가
+    ///
+    /// 여러 요소를 종합하여 최종 신뢰도를 계산합니다.
+    ///
+    /// - Parameters:
+    ///   - candidateConfidence: 포인트 감지 신뢰도
+    ///   - depthQuality: 깊이 데이터 품질 (0.0 ~ 1.0)
+    ///   - environmentScore: 환경 점수 (0.0 ~ 1.0)
+    ///   - valueInRange: 측정값이 합리적 범위 내인지
+    /// - Returns: 최종 신뢰도 (0.0 ~ 1.0)
+    static func calculateOverallConfidence(
+        candidateConfidence: Float,
+        depthQuality: Float = 0.9,
+        environmentScore: Float = 0.85,
+        valueInRange: Bool = true
+    ) -> Float {
+        // 가중치 설정
+        let candidateWeight: Float = 0.4   // 포인트 감지 신뢰도: 40%
+        let depthWeight: Float = 0.3       // 깊이 데이터 품질: 30%
+        let environmentWeight: Float = 0.2 // 환경 점수: 20%
+        let rangeWeight: Float = 0.1       // 범위 검증: 10%
+
+        // 범위 점수 계산
+        let rangeScore: Float = valueInRange ? 1.0 : 0.5
+
+        // 가중 평균 계산
+        let overallConfidence = (candidateConfidence * candidateWeight) +
+                                (depthQuality * depthWeight) +
+                                (environmentScore * environmentWeight) +
+                                (rangeScore * rangeWeight)
+
+        return max(0.0, min(1.0, overallConfidence))
+    }
+
+    /// 신뢰도에 따른 사용자 피드백 생성
+    ///
+    /// - Parameter confidence: 신뢰도 (0.0 ~ 1.0)
+    /// - Returns: 사용자에게 표시할 피드백 메시지
+    static func getFeedbackMessage(for confidence: Float) -> String {
+        switch confidence {
+        case 0.9...1.0:
+            return "측정 품질이 매우 좋습니다."
+        case 0.8..<0.9:
+            return "측정 품질이 좋습니다."
+        case 0.7..<0.8:
+            return "측정 품질이 양호합니다."
+        case 0.6..<0.7:
+            return "측정 품질이 다소 낮습니다. 결과를 확인해주세요."
+        case 0.5..<0.6:
+            return "측정 품질이 낮습니다. 의류를 더 평평하게 펼쳐주세요."
+        default:
+            return "측정 품질이 매우 낮습니다. 재측정을 권장합니다."
+        }
+    }
+
+    /// 신뢰도에 따른 색상 반환 (UI용)
+    ///
+    /// - Parameter confidence: 신뢰도 (0.0 ~ 1.0)
+    /// - Returns: 신뢰도 수준 (high, medium, low)
+    static func getConfidenceLevel(for confidence: Float) -> String {
+        switch confidence {
+        case 0.8...1.0:
+            return "high"      // 녹색
+        case 0.6..<0.8:
+            return "medium"    // 노란색
+        default:
+            return "low"       // 빨간색
+        }
+    }
 }
