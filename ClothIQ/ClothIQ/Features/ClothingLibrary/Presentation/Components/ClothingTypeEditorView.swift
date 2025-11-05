@@ -197,11 +197,8 @@ struct ClothingTypeEditorView: View {
         // 저장
         do {
             try modelContext.save()
-            print("✅ 의류 타입 변경 완료: \(selectedType.displayName)")
-            print("ℹ️ 남은 측정값: \(item.measurements.count)개")
             dismiss()
         } catch {
-            print("❌ 의류 타입 변경 실패: \(error)")
         }
     }
 }

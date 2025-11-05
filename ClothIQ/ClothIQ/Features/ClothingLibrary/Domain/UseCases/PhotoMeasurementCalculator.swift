@@ -70,11 +70,8 @@ struct PhotoMeasurementCalculator {
         // 1. 두 지점의 depth 값 추출
         guard let depth1 = extractDepth(at: point1, from: depthMap, imageSize: imageSize),
               let depth2 = extractDepth(at: point2, from: depthMap, imageSize: imageSize) else {
-            print("❌ Depth 값 추출 실패")
             return nil
         }
-
-        print("📊 Depth 값: P1=\(depth1)m, P2=\(depth2)m")
 
         // 2. 이미지 좌표 → 정규화 좌표 (0~1)
         let normalized1 = CGPoint(
@@ -91,7 +88,6 @@ struct PhotoMeasurementCalculator {
         let pos2: SIMD3<Float>
 
         if let intrinsics = cameraIntrinsics, let resolution = cameraResolution {
-            print("📐 Intrinsics 기반 좌표 변환 사용")
             pos1 = projectToCameraSpace(
                 point: point1,
                 depth: depth1,
@@ -107,8 +103,6 @@ struct PhotoMeasurementCalculator {
                 cameraResolution: resolution
             )
         } else {
-            print("ℹ️ Intrinsics 없음 - FOV 근사 사용")
-
             // 정규화 좌표 → NDC (Normalized Device Coordinates: -1~1)
             // 중심이 (0, 0)인 좌표계로 변환
             let ndc1 = SIMD2<Float>(
@@ -140,8 +134,6 @@ struct PhotoMeasurementCalculator {
             )
         }
 
-        print("📍 3D 위치: P1=(\(pos1.x), \(pos1.y), \(pos1.z)), P2=(\(pos2.x), \(pos2.y), \(pos2.z))")
-
         // 5. 평면 투영 거리 계산
         // 의류는 평평하게 놓여있으므로, 평면상의 거리를 계산해야 정확함
         let distance3D = simd_distance(pos1, pos2)
@@ -156,20 +148,11 @@ struct PhotoMeasurementCalculator {
         // 투영된 평면상의 거리 계산
         let distanceProjected = simd_distance(projected1, projected2)
 
-        // 두 방식 모두 로깅
-        print("📏 3D 직선 거리: \(String(format: "%.2f", distance3D * 100))cm")
-        print("📏 평면 투영 거리: \(String(format: "%.2f", distanceProjected * 100))cm (권장)")
-
         // 평면 투영 거리 사용 (더 정확함)
         let distanceCM = Double(distanceProjected * 100.0)  // 미터 → 센티미터
 
         // Z축 차이가 클 경우 경고
         let zDiff = abs(pos1.z - pos2.z)
-        if zDiff > 0.1 {  // 10cm 이상 차이
-            print("⚠️ Z축 차이 큼: \(String(format: "%.2f", zDiff * 100))cm - 카메라 각도 확인 필요")
-        }
-
-        print("📏 측정 거리: \(String(format: "%.2f", distanceCM))cm")
 
         // 6. 신뢰도 계산
         let confidence = calculateConfidence(depth1: depth1, depth2: depth2)

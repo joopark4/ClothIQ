@@ -34,29 +34,22 @@ final class AutoMeasurementService {
     /// - Parameter frame: AR 프레임
     /// - Returns: 감지된 윤곽선, 없으면 nil
     func detectClothingContour(from frame: ARFrame) async throws -> VNContoursObservation? {
-        print("    🔍 [AutoMeasure/Service] Starting clothing contour detection...")
-
         // 1. 전경 마스크 생성 (검증 용도)
         guard let foregroundMask = foregroundService.generateForegroundMask(
             from: frame.capturedImage,
             depthMap: frame.sceneDepth?.depthMap  // AutoSize.md에 따라 sceneDepth 사용
         ) else {
-            print("    ❌ [AutoMeasure/Service] Foreground segmentation failed")
             throw AutoMeasurementError.foregroundSegmentationFailed
         }
-        print("    ✅ [AutoMeasure/Service] Foreground mask generated for validation")
 
         // 2. 원본 이미지에서 직접 윤곽선 감지 (중요!)
-        print("    🔍 [AutoMeasure/Service] Detecting contours from ORIGINAL image...")
         let contour = try await detectContourFromOriginal(frame.capturedImage)
 
         if contour == nil {
-            print("    ⚠️ [AutoMeasure/Service] No contour found in original image, trying from mask...")
             // 대체 경로: 마스크에서 윤곽선 추출 시도
             return try await detectContour(from: foregroundMask)
         }
 
-        print("    ✅ [AutoMeasure/Service] Contour detected from original image")
         return contour
     }
 
@@ -65,21 +58,18 @@ final class AutoMeasurementService {
         return try await withCheckedThrowingContinuation { continuation in
             let request = VNDetectContoursRequest { request, error in
                 if let error = error {
-                    print("      ❌ [AutoMeasure/Service] Original contour detection error: \(error.localizedDescription)")
                     continuation.resume(returning: nil)
                     return
                 }
 
                 guard let results = request.results as? [VNContoursObservation],
                       !results.isEmpty else {
-                    print("      ⚠️ [AutoMeasure/Service] No contours found in original image")
                     continuation.resume(returning: nil)
                     return
                 }
 
                 // 가장 큰 윤곽선 선택
                 let largestContour = results.max(by: { $0.contourCount < $1.contourCount })
-                print("      ✅ [AutoMeasure/Service] Found \(results.count) contours, selected largest with \(largestContour?.contourCount ?? 0) paths")
                 continuation.resume(returning: largestContour)
             }
 
@@ -93,7 +83,6 @@ final class AutoMeasurementService {
             do {
                 try handler.perform([request])
             } catch {
-                print("      ❌ [AutoMeasure/Service] Failed to perform original contour detection: \(error)")
                 continuation.resume(returning: nil)
             }
         }
@@ -108,16 +97,12 @@ final class AutoMeasurementService {
         var bestContour: VNContour?
         var bestArea: CGFloat = 0
 
-        print("      🔍 [AutoMeasure/Service] Analyzing \(contour.contourCount) contours...")
-
         for i in 0..<contour.contourCount {
             if let childContour = try? contour.contour(at: i) {
                 let points = childContour.normalizedPath.points()
-                print("      📍 [AutoMeasure/Service] Contour \(i): \(points.count) points")
 
                 // 포인트가 너무 적으면 노이즈
                 guard points.count >= 30 else {
-                    print("        ⚠️ Skipping: Too few points (\(points.count)), likely noise")
                     continue
                 }
 
@@ -131,11 +116,8 @@ final class AutoMeasurementService {
                 let height = maxY - minY
                 let area = width * height
 
-                print("        📐 BoundingBox: \(width*100)% x \(height*100)% = area \(area*10000)%")
-
                 // 너무 작은 윤곽선 제외 (면적 기준)
                 if area < 0.05 {  // 5% 미만
-                    print("        ⚠️ Skipping: Area too small (\(area*10000)%)")
                     continue
                 }
 
@@ -144,13 +126,11 @@ final class AutoMeasurementService {
                 if area > bestArea {
                     bestArea = area
                     bestContour = childContour
-                    print("        ✅ New best contour! (area: \(area*10000)%)")
                 }
             }
         }
 
         guard let selectedContour = bestContour else {
-            print("      ❌ [AutoMeasure/Service] No valid contour found")
             return ClothingFeaturePoints(
                 topPoint: CGPoint(x: 0.5, y: 1.0),
                 bottomPoint: CGPoint(x: 0.5, y: 0.0),
@@ -162,10 +142,8 @@ final class AutoMeasurementService {
 
         // 선택된 윤곽선의 포인트 추출
         let normalizedPoints = selectedContour.normalizedPath.points()
-        print("      ✅ [AutoMeasure/Service] Selected best contour with \(normalizedPoints.count) points (area: \(bestArea*10000)%)")
 
         guard !normalizedPoints.isEmpty else {
-            print("      ❌ [AutoMeasure/Service] No points in selected contour")
             return ClothingFeaturePoints(
                 topPoint: CGPoint(x: 0.5, y: 1.0),
                 bottomPoint: CGPoint(x: 0.5, y: 0.0),
@@ -180,26 +158,6 @@ final class AutoMeasurementService {
         let bottomPoint = normalizedPoints.min(by: { $0.y < $1.y }) ?? CGPoint(x: 0.5, y: 0.0)
         let leftmostPoint = normalizedPoints.min(by: { $0.x < $1.x }) ?? CGPoint(x: 0.0, y: 0.5)
         let rightmostPoint = normalizedPoints.max(by: { $0.x < $1.x }) ?? CGPoint(x: 1.0, y: 0.5)
-
-        print("      📏 [AutoMeasure/Service] Feature points:")
-        print("        - Top: \(topPoint)")
-        print("        - Bottom: \(bottomPoint)")
-        print("        - Left: \(leftmostPoint)")
-        print("        - Right: \(rightmostPoint)")
-        print("        - Width: \(rightmostPoint.x - leftmostPoint.x)")
-        print("        - Height: \(topPoint.y - bottomPoint.y)")
-
-        // 의류 윤곽이 너무 작거나 크면 경고
-        let width = rightmostPoint.x - leftmostPoint.x
-        let height = topPoint.y - bottomPoint.y
-
-        if width < 0.1 || width > 0.9 {
-            print("      ⚠️ [AutoMeasure/Service] Warning: Unusual width \(width). Check if clothing is properly positioned.")
-        }
-
-        if height < 0.1 || height > 0.9 {
-            print("      ⚠️ [AutoMeasure/Service] Warning: Unusual height \(height). Check if clothing is properly positioned.")
-        }
 
         return ClothingFeaturePoints(
             topPoint: topPoint,
@@ -240,45 +198,32 @@ final class AutoMeasurementService {
             // 윤곽선 감지 요청
             let request = VNDetectContoursRequest { request, error in
                 if let error = error {
-                    print("      ❌ [AutoMeasure/Service] VNDetectContoursRequest error: \(error.localizedDescription)")
                     continuation.resume(throwing: error)
                     return
                 }
 
                 guard let results = request.results as? [VNContoursObservation] else {
-                    print("      ❌ [AutoMeasure/Service] No contour results")
                     continuation.resume(throwing: AutoMeasurementError.noContourDetected)
                     return
-                }
-
-                print("      📊 [AutoMeasure/Service] Found \(results.count) contours")
-                for (index, result) in results.enumerated() {
-                    print("        Contour \(index): \(result.contourCount) paths")
                 }
 
                 guard let largestContour = results.max(by: { $0.contourCount < $1.contourCount }) else {
-                    print("      ❌ [AutoMeasure/Service] No valid contours found")
                     continuation.resume(throwing: AutoMeasurementError.noContourDetected)
                     return
                 }
 
-                print("      ✅ [AutoMeasure/Service] Selected largest contour with \(largestContour.contourCount) paths")
                 continuation.resume(returning: largestContour)
             }
 
             // 윤곽선 감지 파라미터 설정
             request.contrastAdjustment = 1.0  // 대비 조정
             request.detectsDarkOnLight = true  // 밝은 배경(테이블, 바닥)에 어두운 객체(의류)
-            print("      ⚙️ [AutoMeasure/Service] Contour detection parameters:")
-            print("        - contrastAdjustment: \(request.contrastAdjustment)")
-            print("        - detectsDarkOnLight: \(request.detectsDarkOnLight)")
 
             // 요청 실행
             let handler = VNImageRequestHandler(ciImage: ciImage, options: [:])
             do {
                 try handler.perform([request])
             } catch {
-                print("      ❌ [AutoMeasure/Service] Failed to perform contour detection: \(error.localizedDescription)")
                 continuation.resume(throwing: error)
             }
         }

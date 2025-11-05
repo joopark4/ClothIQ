@@ -1,0 +1,44 @@
+{
+  "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/ClothIQ/Features/Measurement/Presentation/ViewModels/MeasurementViewModel+ImageCapture.swift" : {
+    "const-values" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphoneos/ClothIQ.build/Objects-normal/arm64/MeasurementViewModel+ImageCapture.swiftconstvalues",
+    "dependencies" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphoneos/ClothIQ.build/Objects-normal/arm64/MeasurementViewModel+ImageCapture.d",
+    "diagnostics" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphoneos/ClothIQ.build/Objects-normal/arm64/MeasurementViewModel+ImageCapture.dia",
+    "object" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphoneos/ClothIQ.build/Objects-normal/arm64/MeasurementViewModel+ImageCapture.o",
+    "swift-dependencies" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphoneos/ClothIQ.build/Objects-normal/arm64/MeasurementViewModel+ImageCapture.swiftdeps"
+  },
+  "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/ClothIQ/Features/Measurement/Presentation/ViewModels/MeasurementViewModel+MeasurementManagement.swift" : {
+    "const-values" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphoneos/ClothIQ.build/Objects-normal/arm64/MeasurementViewModel+MeasurementManagement.swiftconstvalues",
+    "dependencies" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphoneos/ClothIQ.build/Objects-normal/arm64/MeasurementViewModel+MeasurementManagement.d",
+    "diagnostics" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphoneos/ClothIQ.build/Objects-normal/arm64/MeasurementViewModel+MeasurementManagement.dia",
+    "object" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphoneos/ClothIQ.build/Objects-normal/arm64/MeasurementViewModel+MeasurementManagement.o",
+    "swift-dependencies" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphoneos/ClothIQ.build/Objects-normal/arm64/MeasurementViewModel+MeasurementManagement.swiftdeps"
+  },
+  "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/ClothIQ/Features/Measurement/Presentation/Views/ARViewContainer.swift" : {
+    "const-values" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphoneos/ClothIQ.build/Objects-normal/arm64/ARViewContainer.swiftconstvalues",
+    "dependencies" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphoneos/ClothIQ.build/Objects-normal/arm64/ARViewContainer.d",
+    "diagnostics" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphoneos/ClothIQ.build/Objects-normal/arm64/ARViewContainer.dia",
+    "object" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphoneos/ClothIQ.build/Objects-normal/arm64/ARViewContainer.o",
+    "swift-dependencies" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphoneos/ClothIQ.build/Objects-normal/arm64/ARViewContainer.swiftdeps"
+  },
+  "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/ClothIQ/Features/Measurement/Presentation/Views/Components/ObjectFocusGuide.swift" : {
+    "const-values" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphoneos/ClothIQ.build/Objects-normal/arm64/ObjectFocusGuide.swiftconstvalues",
+    "dependencies" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphoneos/ClothIQ.build/Objects-normal/arm64/ObjectFocusGuide.d",
+    "diagnostics" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphoneos/ClothIQ.build/Objects-normal/arm64/ObjectFocusGuide.dia",
+    "object" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphoneos/ClothIQ.build/Objects-normal/arm64/ObjectFocusGuide.o",
+    "swift-dependencies" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphoneos/ClothIQ.build/Objects-normal/arm64/ObjectFocusGuide.swiftdeps"
+  },
+  "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/ClothIQ/Features/Measurement/Presentation/Views/MeasurementView.swift" : {
+    "const-values" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphoneos/ClothIQ.build/Objects-normal/arm64/MeasurementView.swiftconstvalues",
+    "dependencies" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphoneos/ClothIQ.build/Objects-normal/arm64/MeasurementView.d",
+    "diagnostics" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphoneos/ClothIQ.build/Objects-normal/arm64/MeasurementView.dia",
+    "object" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphoneos/ClothIQ.build/Objects-normal/arm64/MeasurementView.o",
+    "swift-dependencies" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphoneos/ClothIQ.build/Objects-normal/arm64/MeasurementView.swiftdeps"
+  },
+  "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphoneos/ClothIQ.build/DerivedSources/GeneratedAssetSymbols.swift" : {
+    "const-values" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphoneos/ClothIQ.build/Objects-normal/arm64/GeneratedAssetSymbols.swiftconstvalues",
+    "dependencies" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphoneos/ClothIQ.build/Objects-normal/arm64/GeneratedAssetSymbols.d",
+    "diagnostics" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphoneos/ClothIQ.build/Objects-normal/arm64/GeneratedAssetSymbols.dia",
+    "object" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphoneos/ClothIQ.build/Objects-normal/arm64/GeneratedAssetSymbols.o",
+    "swift-dependencies" : "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/build/Build/Intermediates.noindex/ClothIQ.build/Debug-iphoneos/ClothIQ.build/Objects-normal/arm64/GeneratedAssetSymbols.swiftdeps"
+  }
+}

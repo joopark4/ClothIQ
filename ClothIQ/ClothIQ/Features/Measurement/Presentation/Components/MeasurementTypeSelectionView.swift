@@ -255,7 +255,6 @@ private struct CircularProgressView: View {
             ],
             selectedType: .sleeveLength,
             onSelect: { type in
-                print("Selected: \(type.displayName)")
             }
         )
         .frame(height: 400)

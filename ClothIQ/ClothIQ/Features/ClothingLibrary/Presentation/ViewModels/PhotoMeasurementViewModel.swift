@@ -73,11 +73,6 @@ final class PhotoMeasurementViewModel: ObservableObject {
     // MARK: - Initialization
 
     init(item: ClothingItemModel, modelContext: ModelContext) {
-        print("🔵 [PhotoMeasurementViewModel] init 시작")
-        print("🔵   - Item ID: \(item.id)")
-        print("🔵   - Clothing Type: \(item.clothingType?.displayName ?? "없음")")
-        print("🔵   - Measurements count: \(item.measurements.count)")
-
         self.item = item
         self.modelContext = modelContext
 
@@ -87,10 +82,6 @@ final class PhotoMeasurementViewModel: ObservableObject {
         let resolvedCropRect = item.cropRect
         let resolvedIntrinsics = item.cameraIntrinsicsMatrix
         let resolvedCameraResolution = item.cameraResolutionSize
-
-        print("🔵   - Image size: \(resolvedImage.size)")
-        print("🔵   - Original size: \(resolvedOriginalSize?.debugDescription ?? "nil")")
-        print("🔵   - Processed size: \(resolvedProcessedSize)")
 
         self.image = resolvedImage
         self.originalImageSize = resolvedOriginalSize
@@ -102,22 +93,11 @@ final class PhotoMeasurementViewModel: ObservableObject {
         // Depth map 로드
         let loadedDepthMap: CVPixelBuffer?
         if let depthMapPath = item.depthMapPath {
-            print("🔵   - Depth map path: \(depthMapPath)")
-            let depthMap = DepthDataProcessor.loadDepthMap(from: depthMapPath)
-            loadedDepthMap = depthMap
-            if depthMap != nil {
-                print("✅ Depth map 로드 성공")
-            } else {
-                print("❌ Depth map 로드 실패")
-            }
+            loadedDepthMap = DepthDataProcessor.loadDepthMap(from: depthMapPath)
         } else {
             loadedDepthMap = nil
-            print("ℹ️ Depth map 경로 없음")
         }
         self.depthMap = loadedDepthMap
-
-        print("🔵 [PhotoMeasurementViewModel] init 완료")
-        print("🔵   - hasDepthMap: \(loadedDepthMap != nil)")
     }
 
     // MARK: - Actions
@@ -163,7 +143,6 @@ final class PhotoMeasurementViewModel: ObservableObject {
         // 2개 초과 시 초기화
         if measurementAnchors.count == 2, let activeID = activeAnchorID, let index = measurementAnchors.firstIndex(where: { $0.id == activeID }) {
             measurementAnchors[index].position = clamped
-            print("✏️ 활성 포인트 업데이트: \(clamped)")
             calculateDistance()
             return
         }
@@ -178,7 +157,6 @@ final class PhotoMeasurementViewModel: ObservableObject {
         let anchor = MeasurementAnchor(position: clamped)
         measurementAnchors.append(anchor)
         activeAnchorID = anchor.id
-        print("📍 측정 포인트 추가: \(clamped) (총 \(measurementAnchors.count)개)")
 
         if measurementAnchors.count == 2 {
             calculateDistance()
@@ -215,8 +193,6 @@ final class PhotoMeasurementViewModel: ObservableObject {
         let distanceText = String(format: "%.1f cm", result.distance)
         let confidenceText = String(format: "%.0f%%", result.confidence * 100)
         showSuccess("\(distanceText) (신뢰도: \(confidenceText))")
-
-        print("📏 측정 완료: \(distanceText), 신뢰도: \(confidenceText)")
     }
 
     /// 측정값 저장
@@ -249,7 +225,6 @@ final class PhotoMeasurementViewModel: ObservableObject {
             existingMeasurement.startPointY = Double(normalizedStart.y)
             existingMeasurement.endPointX = Double(normalizedEnd.x)
             existingMeasurement.endPointY = Double(normalizedEnd.y)
-            print("✏️ 측정값 업데이트: \(measurementType.displayName)")
         } else {
             // 새로 추가
             let measurement = MeasurementModel(
@@ -265,7 +240,6 @@ final class PhotoMeasurementViewModel: ObservableObject {
             )
             item.measurements.append(measurement)
             measurement.clothingItem = item
-            print("➕ 측정값 추가: \(measurementType.displayName)")
         }
 
         // 업데이트 시간 갱신
@@ -296,30 +270,18 @@ final class PhotoMeasurementViewModel: ObservableObject {
 
     /// 기존 측정값을 편집용으로 로드
     func loadAnchors(for type: MeasurementType) {
-        print("🟠 [PhotoMeasurementViewModel] loadAnchors 호출")
-        print("🟠   - Type: \(type.displayName) (\(type.rawValue))")
-        print("🟠   - 현재 measurementAnchors 개수: \(measurementAnchors.count)")
-
         measurementAnchors.removeAll()
         currentMeasurementResult = nil
 
         guard let existing = item.measurements.first(where: { $0.type == type.rawValue }) else {
-            print("🟠   ❌ 기존 측정값 없음")
             activeAnchorID = nil
             isEditingAnchors = false
             return
         }
 
-        print("🟠   ✅ 기존 측정값 발견: \(existing.value)cm")
-        print("🟠   - hasCoordinates: \(existing.hasCoordinates)")
-        print("🟠   - startPoint: \(existing.startPoint?.debugDescription ?? "nil")")
-        print("🟠   - endPoint: \(existing.endPoint?.debugDescription ?? "nil")")
-
         let imageSize = processedImageSize ?? image.size
-        print("🟠   - Image size: \(imageSize)")
 
         guard imageSize.width > 0, imageSize.height > 0 else {
-            print("🟠   ❌ Image size가 유효하지 않음")
             return
         }
 
@@ -330,20 +292,13 @@ final class PhotoMeasurementViewModel: ObservableObject {
             activeAnchorID = endAnchor.id
             isEditingAnchors = false
 
-            print("🟠   ✅ Anchors 로드 성공!")
-            print("🟠   - Start anchor: \(startAnchor.position)")
-            print("🟠   - End anchor: \(endAnchor.position)")
-            print("🟠   - measurementAnchors 개수: \(measurementAnchors.count)")
-
             // UI 업데이트를 위한 명시적 트리거
             DispatchQueue.main.async {
                 self.objectWillChange.send()
-                print("🟠   - objectWillChange.send() 호출됨")
             }
 
             calculateDistance()
         } else {
-            print("🟠   ❌ startPoint 또는 endPoint가 nil")
             activeAnchorID = nil
             isEditingAnchors = false
         }
@@ -351,28 +306,16 @@ final class PhotoMeasurementViewModel: ObservableObject {
 
     /// 포인트 위치 갱신
     func updateAnchorPosition(id: UUID, to newPosition: CGPoint, shouldRecalculate: Bool) {
-        print("🟧 [PhotoMeasurementViewModel] updateAnchorPosition 호출")
-        print("🟧   - id: \(id)")
-        print("🟧   - newPosition: \(newPosition)")
-        print("🟧   - shouldRecalculate: \(shouldRecalculate)")
-
         guard let index = measurementAnchors.firstIndex(where: { $0.id == id }) else {
-            print("🟧   ❌ 앵커를 찾을 수 없음!")
             return
         }
 
-        print("🟧   - 찾은 앵커 인덱스: \(index)")
-        print("🟧   - 기존 position: \(measurementAnchors[index].position)")
-
         let clamped = clampedPosition(newPosition)
-        print("🟧   - clamped position: \(clamped)")
 
         measurementAnchors[index].position = clamped
         activeAnchorID = id
-        print("🟧   - activeAnchorID 설정: \(id)")
 
         if shouldRecalculate {
-            print("🟧   - 거리 재계산 시작")
             calculateDistance()
         }
     }
@@ -452,7 +395,6 @@ final class PhotoMeasurementViewModel: ObservableObject {
             item.imagePath = newPath
             item.updatedAt = Date()
             try modelContext.save()
-            print("✅ 회전된 이미지 저장 완료")
         } catch {
             showError("이미지 저장 실패: \(error.localizedDescription)")
         }

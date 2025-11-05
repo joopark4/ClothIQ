@@ -188,7 +188,6 @@ struct EditableTitleView: View {
             title: $title,
             placeholder: "의류 아이템 이름"
         ) { newTitle in
-            print("Saved: \(newTitle ?? "nil")")
         }
         .padding()
 
@@ -208,7 +207,6 @@ struct EditableTitleView: View {
             title: $title,
             placeholder: "의류 아이템 이름"
         ) { newTitle in
-            print("Saved: \(newTitle ?? "nil")")
         }
         .padding()
 

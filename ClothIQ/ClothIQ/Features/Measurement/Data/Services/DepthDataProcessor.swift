@@ -159,8 +159,6 @@ struct DepthDataProcessor {
         let worldPosition4 = cameraTransform * SIMD4<Float>(cameraSpacePosition, 1.0)
         let worldPosition = SIMD3<Float>(worldPosition4.x, worldPosition4.y, worldPosition4.z)
 
-        print("📍 좌표 변환: 화면(\(screenPoint.x), \(screenPoint.y)) → 이미지(\(imagePoint.x), \(imagePoint.y)) → 카메라(\(x), \(y), \(z)) → 월드(\(worldPosition.x), \(worldPosition.y), \(worldPosition.z)) @ \(depth)m")
-
         return worldPosition
     }
 

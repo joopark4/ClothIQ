@@ -306,9 +306,7 @@ struct CameraAlignmentGuide: View {
                 distance: 0.5,
                 hasPlaneDetected: true
             ),
-            onOptimalAlignment: {
-                print("최적 정렬 상태!")
-            }
+            onOptimalAlignment: nil
         )
     }
 }

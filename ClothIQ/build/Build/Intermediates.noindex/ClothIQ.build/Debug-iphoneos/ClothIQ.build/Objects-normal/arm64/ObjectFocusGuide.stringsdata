@@ -1,0 +1,16 @@
+{
+  "source": "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/ClothIQ/Features/Measurement/Presentation/Views/Components/ObjectFocusGuide.swift",
+  "tables": {
+    "Localizable": [
+      {
+        "comment": "",
+        "key": "%lld%%",
+        "location": {
+          "startingColumn": 41,
+          "startingLine": 138
+        }
+      }
+    ]
+  },
+  "version": 1
+}

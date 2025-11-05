@@ -1,0 +1,72 @@
+{
+  "source": "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/ClothIQ/Core/UI/Components/UnsupportedDeviceView.swift",
+  "tables": {
+    "Localizable": [
+      {
+        "comment": "",
+        "key": "기기가 지원되지 않습니다",
+        "location": {
+          "startingColumn": 18,
+          "startingLine": 32
+        }
+      },
+      {
+        "comment": "",
+        "key": "ClothIQ는 LiDAR 센서가 탑재된 기기에서만 사용할 수 있습니다.",
+        "location": {
+          "startingColumn": 18,
+          "startingLine": 118
+        }
+      },
+      {
+        "comment": "",
+        "key": "현재 기기 정보",
+        "location": {
+          "startingColumn": 22,
+          "startingLine": 48
+        }
+      },
+      {
+        "comment": "",
+        "key": "기기 모델:",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 52
+        }
+      },
+      {
+        "comment": "",
+        "key": "iOS 버전:",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 61
+        }
+      },
+      {
+        "comment": "",
+        "key": "지원되는 기기",
+        "location": {
+          "startingColumn": 22,
+          "startingLine": 75
+        }
+      },
+      {
+        "comment": "",
+        "key": "iPhone",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 79
+        }
+      },
+      {
+        "comment": "",
+        "key": "iPad",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 97
+        }
+      }
+    ]
+  },
+  "version": 1
+}

@@ -1,0 +1,248 @@
+{
+  "source": "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/ClothIQ/Features/ClothingLibrary/Presentation/Views/ClothingLibraryView.swift",
+  "tables": {
+    "Localizable": [
+      {
+        "comment": "",
+        "key": "의류 검색",
+        "location": {
+          "startingColumn": 69,
+          "startingLine": 156
+        }
+      },
+      {
+        "comment": "",
+        "key": "내 옷장",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 64
+        }
+      },
+      {
+        "comment": "",
+        "key": "의류 검색",
+        "location": {
+          "startingColumn": 52,
+          "startingLine": 65
+        }
+      },
+      {
+        "comment": "",
+        "key": "전체 삭제",
+        "location": {
+          "startingColumn": 20,
+          "startingLine": 87
+        }
+      },
+      {
+        "comment": "",
+        "key": "취소",
+        "location": {
+          "startingColumn": 24,
+          "startingLine": 88
+        }
+      },
+      {
+        "comment": "",
+        "key": "전체 삭제",
+        "location": {
+          "startingColumn": 24,
+          "startingLine": 89
+        }
+      },
+      {
+        "comment": "",
+        "key": "모든 의류 아이템을 삭제하시겠습니까?\n이 작업은 취소할 수 없습니다.",
+        "location": {
+          "startingColumn": 22,
+          "startingLine": 93
+        }
+      },
+      {
+        "comment": "",
+        "key": "내 옷장",
+        "location": {
+          "startingColumn": 34,
+          "startingLine": 105
+        }
+      },
+      {
+        "comment": "",
+        "key": "전체 삭제",
+        "location": {
+          "startingColumn": 24,
+          "startingLine": 132
+        }
+      },
+      {
+        "comment": "",
+        "key": "취소",
+        "location": {
+          "startingColumn": 28,
+          "startingLine": 133
+        }
+      },
+      {
+        "comment": "",
+        "key": "전체 삭제",
+        "location": {
+          "startingColumn": 28,
+          "startingLine": 134
+        }
+      },
+      {
+        "comment": "",
+        "key": "모든 의류 아이템을 삭제하시겠습니까?\n이 작업은 취소할 수 없습니다.",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 138
+        }
+      },
+      {
+        "comment": "",
+        "key": "왼쪽 목록에서 의류를 선택하세요",
+        "location": {
+          "startingColumn": 39,
+          "startingLine": 151
+        }
+      },
+      {
+        "comment": "",
+        "key": "의류 선택",
+        "location": {
+          "startingColumn": 21,
+          "startingLine": 149
+        }
+      },
+      {
+        "comment": "",
+        "key": "+ 버튼을 눌러 첫 번째 의류를 추가하세요",
+        "location": {
+          "startingColumn": 43,
+          "startingLine": 168
+        }
+      },
+      {
+        "comment": "",
+        "key": "의류가 없습니다",
+        "location": {
+          "startingColumn": 25,
+          "startingLine": 166
+        }
+      },
+      {
+        "comment": "",
+        "key": "삭제",
+        "location": {
+          "startingColumn": 39,
+          "startingLine": 183
+        }
+      },
+      {
+        "comment": "",
+        "key": "즐겨찾기 해제",
+        "location": {
+          "startingColumn": 55,
+          "startingLine": 191
+        }
+      },
+      {
+        "comment": "",
+        "key": "즐겨찾기",
+        "location": {
+          "startingColumn": 79,
+          "startingLine": 191
+        }
+      },
+      {
+        "comment": "",
+        "key": "아직 저장된 의류가 없습니다",
+        "location": {
+          "startingColumn": 22,
+          "startingLine": 228
+        }
+      },
+      {
+        "comment": "",
+        "key": "첫 번째 의류를 추가해보세요",
+        "location": {
+          "startingColumn": 22,
+          "startingLine": 232
+        }
+      },
+      {
+        "comment": "",
+        "key": "의류 추가하기",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 240
+        }
+      },
+      {
+        "comment": "",
+        "key": "최신순",
+        "location": {
+          "startingColumn": 23,
+          "startingLine": 282
+        }
+      },
+      {
+        "comment": "",
+        "key": "이름순",
+        "location": {
+          "startingColumn": 23,
+          "startingLine": 288
+        }
+      },
+      {
+        "comment": "",
+        "key": "진행률순",
+        "location": {
+          "startingColumn": 23,
+          "startingLine": 294
+        }
+      },
+      {
+        "comment": "",
+        "key": "즐겨찾기 해제",
+        "location": {
+          "startingColumn": 35,
+          "startingLine": 307
+        }
+      },
+      {
+        "comment": "",
+        "key": "즐겨찾기",
+        "location": {
+          "startingColumn": 59,
+          "startingLine": 307
+        }
+      },
+      {
+        "comment": "",
+        "key": "삭제",
+        "location": {
+          "startingColumn": 19,
+          "startingLine": 315
+        }
+      },
+      {
+        "comment": "",
+        "key": "%lld%%",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 456
+        }
+      },
+      {
+        "comment": "",
+        "key": "%lld/%lld",
+        "location": {
+          "startingColumn": 25,
+          "startingLine": 448
+        }
+      }
+    ]
+  },
+  "version": 1
+}

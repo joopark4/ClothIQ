@@ -108,7 +108,6 @@ struct ARViewContainer: UIViewRepresentable {
 
                         self.onImageCaptured?(image, depthMap, currentFrame?.camera)
                     } else {
-                        print("❌ [ARViewContainer] AR 프레임 캡처 실패")
                     }
                     // 캡처 완료 후 플래그 리셋
                     context.coordinator.isCapturing = false
@@ -208,7 +207,6 @@ struct ARViewContainer: UIViewRepresentable {
             // ARKit의 카메라는 자동으로 조절되므로 AVCaptureDevice를 사용하여 포커스 설정
             // ARSession의 카메라 디바이스에 접근
             guard let device = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: .back) else {
-                print("⚠️ 카메라 디바이스를 찾을 수 없습니다")
                 return
             }
 
@@ -225,14 +223,12 @@ struct ARViewContainer: UIViewRepresentable {
                 if device.isFocusPointOfInterestSupported && device.isFocusModeSupported(.autoFocus) {
                     device.focusPointOfInterest = normalizedPoint
                     device.focusMode = .autoFocus
-                    print("✅ 카메라 포커스 설정: \(normalizedPoint)")
                 }
 
                 // 노출 설정
                 if device.isExposurePointOfInterestSupported && device.isExposureModeSupported(.autoExpose) {
                     device.exposurePointOfInterest = normalizedPoint
                     device.exposureMode = .autoExpose
-                    print("✅ 카메라 노출 설정: \(normalizedPoint)")
                 }
 
                 device.unlockForConfiguration()
@@ -241,7 +237,6 @@ struct ARViewContainer: UIViewRepresentable {
                 showFocusIndicator(at: point, in: arView)
 
             } catch {
-                print("❌ 카메라 설정 실패: \(error.localizedDescription)")
             }
         }
 
@@ -341,15 +336,12 @@ struct ARViewContainer: UIViewRepresentable {
         }
 
         func session(_ session: ARSession, didFailWithError error: Error) {
-            print("AR Session failed: \(error.localizedDescription)")
         }
 
         func sessionWasInterrupted(_ session: ARSession) {
-            print("AR Session was interrupted")
         }
 
         func sessionInterruptionEnded(_ session: ARSession) {
-            print("AR Session interruption ended")
         }
     }
 }
@@ -386,20 +378,16 @@ extension ARView {
 #Preview {
     ARViewContainer(
         onSessionStarted: {
-            print("AR Session started")
         },
         onTap: { location, frame in
-            print("Tapped at: \(location)")
         },
         onFrameUpdate: { frame in
             // Frame updates
         },
         onDepthUpdate: { depthData in
-            print("Depth data updated")
         },
         captureRequested: .constant(false),
         onImageCaptured: { image, depthMap, camera in
-            print("Image captured: \(image.size), Depth: \(depthMap != nil)")
         }
     )
 }

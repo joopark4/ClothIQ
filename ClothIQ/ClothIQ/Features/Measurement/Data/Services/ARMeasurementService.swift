@@ -233,12 +233,6 @@ final class ARMeasurementService: ARMeasurementServiceProtocol {
         // 카메라에서 평면까지의 거리 계산
         let distance = simd_distance(cameraPosition, planePosition)
 
-        print("📐 [ARMeasurementService] 카메라 정렬 계산")
-        print("📐   - dotProduct: \(String(format: "%.3f", dotProduct)) → adjusted: \(String(format: "%.3f", adjustedDotProduct))")
-        print("📐   - 틸트 각도: \(String(format: "%.1f", tiltAngle))°")
-        print("📐   - 거리: \(String(format: "%.2f", distance))m")
-        print("📐   - 평면 크기: \(String(format: "%.2f", planeAnchor.planeExtent.width))m x \(String(format: "%.2f", planeAnchor.planeExtent.height))m")
-
         return CameraAlignmentData(
             tiltAngle: tiltAngle,
             distance: Double(distance),

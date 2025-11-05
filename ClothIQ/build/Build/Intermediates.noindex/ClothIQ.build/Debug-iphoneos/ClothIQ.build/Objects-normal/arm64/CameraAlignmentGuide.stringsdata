@@ -1,0 +1,96 @@
+{
+  "source": "/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ/ClothIQ/Features/Measurement/Presentation/Components/CameraAlignmentGuide.swift",
+  "tables": {
+    "Localizable": [
+      {
+        "comment": "",
+        "key": "의류 평면 탐지 중...",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 128
+        }
+      },
+      {
+        "comment": "",
+        "key": "카메라를 의류 위에 천천히 움직여주세요",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 132
+        }
+      },
+      {
+        "comment": "",
+        "key": "✓",
+        "location": {
+          "startingColumn": 41,
+          "startingLine": 239
+        }
+      },
+      {
+        "comment": "",
+        "key": "✗",
+        "location": {
+          "startingColumn": 49,
+          "startingLine": 239
+        }
+      },
+      {
+        "comment": "",
+        "key": "카메라 각도",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 228
+        }
+      },
+      {
+        "comment": "",
+        "key": "%@°",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 232
+        }
+      },
+      {
+        "comment": "",
+        "key": "✓",
+        "location": {
+          "startingColumn": 44,
+          "startingLine": 269
+        }
+      },
+      {
+        "comment": "",
+        "key": "✗",
+        "location": {
+          "startingColumn": 52,
+          "startingLine": 269
+        }
+      },
+      {
+        "comment": "",
+        "key": "촬영 거리",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 254
+        }
+      },
+      {
+        "comment": "",
+        "key": "%@ cm",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 258
+        }
+      },
+      {
+        "comment": "",
+        "key": "권장: 40-60 cm",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 262
+        }
+      }
+    ]
+  },
+  "version": 1
+}

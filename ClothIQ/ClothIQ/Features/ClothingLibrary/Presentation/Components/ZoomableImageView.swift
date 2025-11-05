@@ -88,10 +88,8 @@ struct ZoomableImageView: View {
         MagnificationGesture()
             .onChanged { value in
                 if isEditingAnchors {
-                    print("⚪️ [ZoomableImageView] Magnification 제스처 차단 (isEditingAnchors=true)")
                     return
                 }
-                print("🔵 [ZoomableImageView] Magnification 제스처 - scale: \(value)")
                 let delta = value / currentScale
                 currentScale = delta
                 let newScale = finalScale * currentScale
@@ -101,10 +99,8 @@ struct ZoomableImageView: View {
             }
             .onEnded { _ in
                 if isEditingAnchors {
-                    print("⚪️ [ZoomableImageView] Magnification 종료 차단 (isEditingAnchors=true)")
                     return
                 }
-                print("🔵 [ZoomableImageView] Magnification 종료")
                 let newScale = finalScale * currentScale
                 finalScale = min(max(newScale, minScale), maxScale)
                 currentScale = 1.0
@@ -122,18 +118,14 @@ struct ZoomableImageView: View {
         DragGesture()
             .onChanged { value in
                 if isEditingAnchors {
-                    print("⚪️ [ZoomableImageView] Drag 제스처 차단 (isEditingAnchors=true)")
                     return
                 }
-                print("🟣 [ZoomableImageView] Drag 제스처 - translation: \(value.translation)")
                 currentOffset = value.translation
             }
             .onEnded { _ in
                 if isEditingAnchors {
-                    print("⚪️ [ZoomableImageView] Drag 종료 차단 (isEditingAnchors=true)")
                     return
                 }
-                print("🟣 [ZoomableImageView] Drag 종료")
                 finalOffset.width += currentOffset.width
                 finalOffset.height += currentOffset.height
                 currentOffset = .zero
@@ -318,8 +310,6 @@ struct MeasurementAnchorsOverlay: View {
                     .zIndex(1000)  // 최상위에 표시
                     .position(viewPoint)
                     .onTapGesture {
-                        print("🟦 [MeasurementAnchorsOverlay] 탭 감지 - Anchor ID: \(anchor.id)")
-                        print("🟦 [MeasurementAnchorsOverlay] 탭 위치: \(viewPoint)")
                         onSelect(anchor.id)
                     }
                     .highPriorityGesture(
@@ -358,12 +348,8 @@ struct MeasurementAnchorsOverlay: View {
             .zIndex(999)  // 오버레이를 최상위에 표시
             .allowsHitTesting(true)
             .onChange(of: anchors.count) { oldValue, newValue in
-                print("🟡 [MeasurementAnchorsOverlay] onChange - anchors.count: \(oldValue) → \(newValue)")
             }
             .onChange(of: anchors.map { $0.id }) { oldValue, newValue in
-                print("🟡 [MeasurementAnchorsOverlay] onChange - anchor IDs changed")
-                print("🟡   - Old IDs: \(oldValue)")
-                print("🟡   - New IDs: \(newValue)")
             }
         }
     }
@@ -374,42 +360,6 @@ struct MeasurementAnchorsOverlay: View {
     }
 
     private func logRenderingDetails(geometry: GeometryProxy, point1: CGPoint, point2: CGPoint) {
-        print("🟣 [MeasurementAnchorsOverlay] 라인 렌더링")
-        print("🟣   - Geometry size: \(geometry.size)")
-        print("🟣   - Image size: \(imageSize)")
-        print("🟣   - Scale: \(scale)")
-        print("🟣   - Offset: \(offset)")
-        print("🟣   - Anchors count: \(anchors.count)")
-        print("🟣   - Anchor[0] position (픽셀): \(anchors[0].position)")
-        print("🟣   - Anchor[1] position (픽셀): \(anchors[1].position)")
-        print("🟣   - Point1 (뷰): \(point1)")
-        print("🟣   - Point2 (뷰): \(point2)")
-
-        // 좌표 변환 상세 로깅
-        let imageAspect = imageSize.width / imageSize.height
-        let viewAspect = geometry.size.width / geometry.size.height
-        print("🟣   - Image aspect: \(imageAspect)")
-        print("🟣   - View aspect: \(viewAspect)")
-
-        var displaySize: CGSize
-        if imageAspect > viewAspect {
-            displaySize = CGSize(width: geometry.size.width, height: geometry.size.width / imageAspect)
-        } else {
-            displaySize = CGSize(width: geometry.size.height * imageAspect, height: geometry.size.height)
-        }
-        print("🟣   - Display size: \(displaySize)")
-
-        let scaledDisplaySize = CGSize(width: displaySize.width * scale, height: displaySize.height * scale)
-        print("🟣   - Scaled display size: \(scaledDisplaySize)")
-
-        let imageCenter = CGPoint(x: geometry.size.width / 2, y: geometry.size.height / 2)
-        print("🟣   - Image center: \(imageCenter)")
-
-        let imageOrigin = CGPoint(
-            x: imageCenter.x - scaledDisplaySize.width / 2 + offset.width,
-            y: imageCenter.y - scaledDisplaySize.height / 2 + offset.height
-        )
-        print("🟣   - Image origin: \(imageOrigin)")
     }
 
     private func convertImageToViewCoordinates(_ point: CGPoint, in viewSize: CGSize) -> CGPoint {

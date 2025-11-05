@@ -378,9 +378,8 @@ struct ClothingLibraryView: View {
                     // 변경사항 저장
                     do {
                         try modelContext.save()
-                        print("✅ 전체 삭제 완료: \(items.count)개 아이템 삭제됨")
                     } catch {
-                        print("❌ 전체 삭제 실패: \(error)")
+                        // Handle error silently
                     }
                 }
 

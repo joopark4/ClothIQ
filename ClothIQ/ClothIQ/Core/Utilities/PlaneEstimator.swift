@@ -75,11 +75,8 @@ final class PlaneEstimator {
     /// - Returns: 추정된 평면, 포인트가 부족하면 nil
     static func estimatePlane(from points: [SIMD3<Float>]) -> Plane? {
         guard points.count >= 3 else {
-            print("⚠️ [PlaneEstimator] Not enough points for plane estimation: \(points.count)")
             return nil
         }
-
-        print("📐 [PlaneEstimator] Estimating plane from \(points.count) points...")
 
         // 1. 중심(centroid) 계산
         var centroid = SIMD3<Float>(0, 0, 0)
@@ -87,8 +84,6 @@ final class PlaneEstimator {
             centroid += point
         }
         centroid /= Float(points.count)
-
-        print("  📍 Centroid: (\(centroid.x), \(centroid.y), \(centroid.z))")
 
         // 2. 중심으로부터의 상대 좌표
         let centered = points.map { $0 - centroid }
@@ -128,24 +123,12 @@ final class PlaneEstimator {
         let crossProduct = cross(pc1, pc2)
         let normal = safeNormalize(crossProduct)
 
-        print("  🧭 Normal vector: (\(normal.x), \(normal.y), \(normal.z))")
-
         // 5. 평면 방정식의 d 계산
         // d = -dot(normal, centroid)
         let d = -dot(normal, centroid)
 
-        print("  📊 Plane equation: \(normal.x)x + \(normal.y)y + \(normal.z)z + \(d) = 0")
-
         // 6. Plane 객체 생성
         let plane = Plane(normal: normal, d: d)
-
-        // 7. 평면 적합도(goodness of fit) 계산
-        let avgDistance = averageDistanceToPlane(points: points, plane: plane)
-        print("  ✅ Average distance to plane: \(avgDistance * 100)cm")
-
-        if avgDistance > 0.05 { // 5cm 이상 오차
-            print("  ⚠️ Warning: Large average distance, plane fit may be poor")
-        }
 
         return plane
     }
@@ -223,7 +206,6 @@ final class PlaneEstimator {
         defer { CVPixelBufferUnlockBaseAddress(depthMap, .readOnly) }
 
         guard let baseAddress = CVPixelBufferGetBaseAddress(depthMap) else {
-            print("❌ [PlaneEstimator] Failed to access depth map")
             return nil
         }
 
@@ -275,8 +257,6 @@ final class PlaneEstimator {
                 break
             }
         }
-
-        print("📊 [PlaneEstimator] Sampled \(points.count) depth points from region")
 
         // 평면 추정
         return estimatePlane(from: points)

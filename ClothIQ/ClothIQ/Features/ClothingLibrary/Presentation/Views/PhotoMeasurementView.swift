@@ -38,23 +38,14 @@ struct PhotoMeasurementView: View {
         Group {
             if let viewModel = viewModel {
                 mainContent(viewModel: viewModel)
-                    .onAppear {
-                        print("🟢 [PhotoMeasurementView] View appeared")
-                        print("🟢   - ViewModel 있음")
-                        print("🟢   - hasDepthMap: \(viewModel.hasDepthMap)")
-                        print("🟢   - measurementAnchors: \(viewModel.measurementAnchors.count)개")
-                        print("🟢   - selectedMeasurementType: \(viewModel.selectedMeasurementType?.displayName ?? "nil")")
-                    }
             } else {
                 ProgressView("로딩 중...")
                     .onAppear {
-                        print("🟡 [PhotoMeasurementView] ViewModel 초기화 시작...")
                         // Environment modelContext를 사용하여 ViewModel 초기화
                         self.viewModel = PhotoMeasurementViewModel(
                             item: item,
                             modelContext: modelContext
                         )
-                        print("🟡 [PhotoMeasurementView] ViewModel 초기화 완료")
                     }
             }
         }
@@ -91,7 +82,6 @@ struct PhotoMeasurementView: View {
                         get: { viewModel.measurementAnchors },
                         set: { newValue in
                             viewModel.measurementAnchors = newValue
-                            print("🟢 [PhotoMeasurementView] measurementAnchors 업데이트: \(newValue.count)개")
                         }
                     ),
                     isEditingAnchors: Binding(
@@ -102,31 +92,20 @@ struct PhotoMeasurementView: View {
                     ),
                     activeAnchorID: viewModel.activeAnchorID,
                     onTap: { point in
-                        print("🟨 [PhotoMeasurementView] onTap - point: \(point)")
                         viewModel.addMeasurementPoint(point)
                     },
                     onAnchorDragBegan: { id in
-                        print("🟨 [PhotoMeasurementView] onAnchorDragBegan - id: \(id)")
                         viewModel.isEditingAnchors = true
                         viewModel.activeAnchorID = id
-                        print("🟨   - viewModel.isEditingAnchors 설정됨: \(viewModel.isEditingAnchors)")
                     },
                     onAnchorDragChanged: { id, position in
-                        print("🟨 [PhotoMeasurementView] onAnchorDragChanged")
-                        print("🟨   - id: \(id)")
-                        print("🟨   - position: \(position)")
                         viewModel.updateAnchorPosition(id: id, to: position, shouldRecalculate: true)
                     },
                     onAnchorDragEnded: { id, position in
-                        print("🟨 [PhotoMeasurementView] onAnchorDragEnded")
-                        print("🟨   - id: \(id)")
-                        print("🟨   - position: \(position)")
                         viewModel.updateAnchorPosition(id: id, to: position, shouldRecalculate: true)
                         viewModel.isEditingAnchors = false
-                        print("🟨   - viewModel.isEditingAnchors 해제: \(viewModel.isEditingAnchors)")
                     },
                     onAnchorSelected: { id in
-                        print("🟨 [PhotoMeasurementView] onAnchorSelected - id: \(id)")
                         viewModel.activeAnchorID = id
                     }
                 )
@@ -237,11 +216,9 @@ struct PhotoMeasurementView: View {
                             .foregroundStyle(.white)
 
                         Button {
-                            print("🔷 [PhotoMeasurementView] 측정 항목 선택 해제")
                             viewModel!.selectedMeasurementType = nil
                             viewModel!.resetPoints()
                             refreshID = UUID()
-                            print("🔷   - refreshID 업데이트됨: \(refreshID)")
                         } label: {
                             Image(systemName: "xmark.circle.fill")
                                 .foregroundStyle(.white.opacity(0.7))
@@ -261,7 +238,6 @@ struct PhotoMeasurementView: View {
                                 self.viewModel!.selectedMeasurementType
                             },
                             set: { newValue in
-                                print("🔷 [PhotoMeasurementView] 측정 항목 선택: \(newValue?.displayName ?? "nil")")
                                 self.viewModel!.selectedMeasurementType = newValue
                                 self.viewModel!.activeAnchorID = nil
                                 if let type = newValue {
@@ -269,7 +245,6 @@ struct PhotoMeasurementView: View {
                                     // 뷰 강제 업데이트
                                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
                                         self.refreshID = UUID()
-                                        print("🔷   - refreshID 업데이트됨: \(self.refreshID)")
                                     }
                                 } else {
                                     self.viewModel!.resetPoints()
@@ -303,7 +278,7 @@ struct PhotoMeasurementView: View {
     /// 하단 컨트롤
     @ViewBuilder
     private var bottomControls: some View {
-        if let selectedType = viewModel!.selectedMeasurementType {
+        if viewModel!.selectedMeasurementType != nil {
             HStack(spacing: 16) {
                 // 측정값 표시
                 if let result = viewModel!.currentMeasurementResult {

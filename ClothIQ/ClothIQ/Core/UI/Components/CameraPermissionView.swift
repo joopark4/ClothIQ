@@ -167,6 +167,5 @@ struct FeatureRow: View {
 
 #Preview {
     CameraPermissionView {
-        print("Permission granted")
     }
 }

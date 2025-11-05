@@ -163,7 +163,6 @@ final class PhotoLibraryService {
     func saveImageToAlbum(_ image: UIImage, albumName: String = "ClothIQ", completion: @escaping (Bool, Error?) -> Void) {
         // 권한 확인
         guard isAuthorized else {
-            print("❌ PhotoLibraryService: 권한 없음")
             DispatchQueue.main.async {
                 completion(false, PhotoLibraryError.permissionDenied)
             }
@@ -172,10 +171,6 @@ final class PhotoLibraryService {
 
         // 앨범 가져오기 또는 생성
         getOrCreateAlbum(named: albumName) { album, error in
-            if let error = error {
-                print("❌ PhotoLibraryService: 앨범 생성/조회 실패 - \(error.localizedDescription)")
-            }
-
             guard let album = album else {
                 DispatchQueue.main.async {
                     completion(false, error ?? PhotoLibraryError.albumNotFound)
@@ -183,38 +178,24 @@ final class PhotoLibraryService {
                 return
             }
 
-            print("✅ PhotoLibraryService: 앨범 준비됨 - \(albumName)")
-            print("📐 PhotoLibraryService: 이미지 크기 - \(image.size)")
-
             // 앨범에 이미지 추가 (JPEG 형식으로 저장)
             PHPhotoLibrary.shared().performChanges {
                 // JPEG 데이터로 변환 (고품질 압축)
                 if let jpegData = image.jpegData(compressionQuality: 0.9) {
-                    print("✅ PhotoLibraryService: JPEG 변환 성공 - \(jpegData.count) bytes")
                     let assetRequest = PHAssetCreationRequest.forAsset()
                     assetRequest.addResource(with: .photo, data: jpegData, options: nil)
-                    print("📝 PhotoLibraryService: Asset 생성 요청 완료")
 
                     // 앨범에 추가
                     if let albumChangeRequest = PHAssetCollectionChangeRequest(for: album),
                        let placeholder = assetRequest.placeholderForCreatedAsset {
                         albumChangeRequest.addAssets([placeholder] as NSArray)
-                        print("✅ PhotoLibraryService: 앨범에 추가 요청 완료")
-                    } else {
-                        print("❌ PhotoLibraryService: 앨범 변경 요청 또는 placeholder 생성 실패")
                     }
-                } else {
-                    print("❌ PhotoLibraryService: JPEG 데이터 변환 실패")
                 }
             } completionHandler: { success, error in
                 DispatchQueue.main.async {
                     if success {
-                        print("✅ PhotoLibraryService: 이미지 저장 성공")
                         completion(true, nil)
                     } else {
-                        if let error = error {
-                            print("❌ PhotoLibraryService: 저장 실패 - \(error.localizedDescription)")
-                        }
                         completion(false, error ?? PhotoLibraryError.saveFailed)
                     }
                 }

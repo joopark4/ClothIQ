@@ -13,7 +13,11 @@
       "Bash(git push:*)",
       "Read(//Users/cauca/.ssh/**)",
       "Bash(rm:*)",
-      "Bash(test:*)"
+      "Bash(test:*)",
+      "Bash(git stash pop:*)",
+      "Bash(git stash:*)",
+      "Bash(done)",
+      "Bash(git add:*)"
     ],
     "deny": [],
     "ask": []

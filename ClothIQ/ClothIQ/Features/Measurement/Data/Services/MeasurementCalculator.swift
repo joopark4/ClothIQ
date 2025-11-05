@@ -125,8 +125,6 @@ struct MeasurementCalculator {
         cameraTransform: simd_float4x4,
         cameraIntrinsics: simd_float3x3
     ) -> Double {
-        print("📐 [MeasurementCalculator] Calculating distance with plane projection...")
-
         // 두 포인트 중심의 영역 정의 (두 포인트를 포함하는 영역)
         let centerX = (start.screenPosition.x + end.screenPosition.x) / 2.0
         let centerY = (start.screenPosition.y + end.screenPosition.y) / 2.0
@@ -148,8 +146,6 @@ struct MeasurementCalculator {
             height: min(1.0, regionSize)
         )
 
-        print("  📍 Region: \(region)")
-
         // 평면 추정
         guard let plane = PlaneEstimator.estimatePlaneFromDepth(
             depthMap: depthMap,
@@ -158,7 +154,6 @@ struct MeasurementCalculator {
             cameraIntrinsics: cameraIntrinsics,
             sampleCount: 100
         ) else {
-            print("  ⚠️ Plane estimation failed, using direct distance")
             return calculateDistance(from: start, to: end)
         }
 
@@ -176,16 +171,9 @@ struct MeasurementCalculator {
         let difference = abs(distanceCm - directDistance)
         let percentDiff = (difference / directDistance) * 100.0
 
-        print("  📏 Direct distance: \(directDistance)cm")
-        print("  📐 Plane-projected distance: \(distanceCm)cm")
-        print("  📊 Difference: \(difference)cm (\(percentDiff)%)")
-
         // 평면 투영이 50% 이상 차이나면 직접 거리 사용
         if percentDiff > 50.0 {
-            print("  ⚠️ Excessive distortion detected (\(percentDiff)%) - using direct distance instead")
             return directDistance
-        } else if percentDiff > 10.0 {
-            print("  ⚠️ Large difference detected - camera may be tilted significantly")
         }
 
         return distanceCm

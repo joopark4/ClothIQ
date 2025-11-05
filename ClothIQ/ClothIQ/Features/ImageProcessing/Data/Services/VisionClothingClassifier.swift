@@ -107,8 +107,6 @@ final class VisionClothingClassifier {
     /// - Returns: (의류 타입, 신뢰도)
     ///
     private func classifyByAspectRatio(_ aspectRatio: CGFloat) -> (ClothingType, Double) {
-        print("📐 이미지 종횡비: \(String(format: "%.2f", aspectRatio))")
-
         // 분류 로직
         switch aspectRatio {
         // 반바지: 0.8 ~ 1.2 (정사각형에 가까운 형태)
@@ -118,7 +116,6 @@ final class VisionClothingClassifier {
                 idealRatio: 1.0,
                 tolerance: 0.2
             )
-            print("✅ 분류 결과: 반바지 (신뢰도: \(String(format: "%.1f%%", confidence * 100)))")
             return (.shorts, confidence)
 
         // 치마: 1.2 ~ 1.8 (중간 길이)
@@ -128,7 +125,6 @@ final class VisionClothingClassifier {
                 idealRatio: 1.5,
                 tolerance: 0.3
             )
-            print("✅ 분류 결과: 치마 (신뢰도: \(String(format: "%.1f%%", confidence * 100)))")
             return (.skirt, confidence)
 
         // 긴바지: 1.8 ~ 2.5 (세로로 긴 형태)
@@ -138,12 +134,10 @@ final class VisionClothingClassifier {
                 idealRatio: 2.0,
                 tolerance: 0.4
             )
-            print("✅ 분류 결과: 긴바지 (신뢰도: \(String(format: "%.1f%%", confidence * 100)))")
             return (.pants, confidence)
 
         // 긴바지 (2.5 초과)
         case 2.5...:
-            print("✅ 분류 결과: 긴바지 (매우 긴 형태)")
             return (.pants, 0.9)
 
         // 상의 (기본값: 반팔)
@@ -153,10 +147,8 @@ final class VisionClothingClassifier {
             if aspectRatio < 0.8 {
                 // 너무 넓은 이미지는 신뢰도 낮음
                 confidence = 0.5
-                print("⚠️ 분류 결과: 반팔 (넓은 비율, 신뢰도 낮음)")
             } else {
                 confidence = 0.7
-                print("✅ 분류 결과: 반팔 (기본 분류)")
             }
             return (.shortSleeve, confidence)
         }

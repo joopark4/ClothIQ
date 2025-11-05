@@ -371,13 +371,6 @@ struct ClothingDetailView: View {
             ForEach(item.measurements.sorted(by: { $0.measuredAt < $1.measuredAt })) { measurement in
                 Button {
                     withAnimation(.spring(response: 0.3)) {
-                        // 디버그 로그
-                        print("📍 [ClothingDetailView] Measurement tapped: \(measurement.measurementType?.displayName ?? measurement.type)")
-                        print("   Has coordinates: \(measurement.hasCoordinates)")
-                        if let start = measurement.startPoint, let end = measurement.endPoint {
-                            print("   Start: \(start), End: \(end)")
-                        }
-
                         // 이미 선택된 경우 해제, 아니면 선택
                         if selectedMeasurement?.id == measurement.id {
                             selectedMeasurement = nil
@@ -403,13 +396,6 @@ struct ClothingDetailView: View {
             RoundedRectangle(cornerRadius: 12)
                 .fill(Color(.systemGray6))
         )
-        .onAppear {
-            // 디버그: 측정값 좌표 확인
-            print("📊 [ClothingDetailView] Total measurements: \(item.measurements.count)")
-            for measurement in item.measurements {
-                print("   - \(measurement.measurementType?.displayName ?? measurement.type): hasCoordinates=\(measurement.hasCoordinates)")
-            }
-        }
     }
 
     // MARK: - Notes Section

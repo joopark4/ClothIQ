@@ -54,15 +54,6 @@ struct MeasurementLinesOverlay: View {
                     }
                 }
             }
-            .onAppear {
-                print("📐 [MeasurementLinesOverlay] Overlay appeared")
-                print("   Show lines: \(showLines)")
-                print("   Total measurements: \(measurements.count)")
-                print("   Image size: \(imageSize)")
-                print("   Display rect: \(calculateDisplayRect(in: geometry.size))")
-                let withCoords = measurements.filter { $0.hasCoordinates }.count
-                print("   Measurements with coordinates: \(withCoords)/\(measurements.count)")
-            }
         }
     }
 

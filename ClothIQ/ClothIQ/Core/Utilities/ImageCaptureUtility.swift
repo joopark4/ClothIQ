@@ -275,7 +275,7 @@ struct ImageCaptureUtility {
     ) -> Data? {
         guard let source = CGImageSourceCreateWithData(imageData as CFData, nil),
               let imageType = CGImageSourceGetType(source),
-              let mutableData = CFDataCreateMutable(nil, 0) as? NSMutableData else {
+              let mutableData = CFDataCreateMutable(nil, 0) else {
             return nil
         }
 
