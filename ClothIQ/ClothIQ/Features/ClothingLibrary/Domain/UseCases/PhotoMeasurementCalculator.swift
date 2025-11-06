@@ -88,6 +88,10 @@ struct PhotoMeasurementCalculator {
         let pos2: SIMD3<Float>
 
         if let intrinsics = cameraIntrinsics, let resolution = cameraResolution {
+            print("📐 [PhotoMeasurementCalculator] Camera intrinsics 사용")
+            print("  - fx: \(intrinsics[0, 0]), fy: \(intrinsics[1, 1])")
+            print("  - cx: \(intrinsics[2, 0]), cy: \(intrinsics[2, 1])")
+            print("  - resolution: \(resolution)")
             pos1 = projectToCameraSpace(
                 point: point1,
                 depth: depth1,
@@ -103,6 +107,7 @@ struct PhotoMeasurementCalculator {
                 cameraResolution: resolution
             )
         } else {
+            print("📐 [PhotoMeasurementCalculator] FOV 추정값 사용 (intrinsics 없음)")
             // 정규화 좌표 → NDC (Normalized Device Coordinates: -1~1)
             // 중심이 (0, 0)인 좌표계로 변환
             let ndc1 = SIMD2<Float>(

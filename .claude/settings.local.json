@@ -18,7 +18,16 @@
       "Bash(git stash:*)",
       "Bash(done)",
       "Bash(git add:*)",
-      "Bash(git commit:*)"
+      "Bash(git commit:*)",
+      "Bash(devicectl --help:*)",
+      "Bash(xcrun --help:*)",
+      "Bash(sw_vers:*)",
+      "Bash(xcrun xctrace:*)",
+      "Bash(instruments:*)",
+      "Bash(xctrace list:*)",
+      "Bash(xcrun xcodebuild:*)",
+      "Bash(xcrun lldb:*)",
+      "Bash(log help:*)"
     ],
     "deny": [],
     "ask": []

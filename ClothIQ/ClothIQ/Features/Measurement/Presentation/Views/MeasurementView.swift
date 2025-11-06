@@ -56,6 +56,14 @@ struct MeasurementView: View {
         segmentationService.strictClothingDetection = false  // 엄격한 검증 비활성화
     }
 
+    /// 촬영 가능 여부
+    /// AR이 완전히 초기화되고 tracking이 정상일 때만 촬영 가능
+    private var canCapture: Bool {
+        viewModel.isARInitialized &&
+        viewModel.trackingState == .normal &&
+        !viewModel.isLoading
+    }
+
     var body: some View {
         ZStack {
             // AR 카메라 뷰
@@ -233,20 +241,20 @@ struct MeasurementView: View {
             Button(action: viewModel.captureImage) {
                 ZStack {
                     Circle()
-                        .fill(Color.white.opacity(0.2))
+                        .fill(Color.white.opacity(canCapture ? 0.2 : 0.1))
                         .frame(width: 88, height: 88)
 
                     Circle()
-                        .fill(Color.white)
+                        .fill(canCapture ? Color.white : Color.gray.opacity(0.5))
                         .frame(width: 68, height: 68)
 
                     Circle()
-                        .stroke(Color.white.opacity(0.4), lineWidth: 2)
+                        .stroke(Color.white.opacity(canCapture ? 0.4 : 0.2), lineWidth: 2)
                         .frame(width: 88, height: 88)
                 }
             }
             .buttonStyle(PlainButtonStyle())
-            .disabled(viewModel.isLoading)
+            .disabled(!canCapture)
 
             // 로딩 인디케이터
             if viewModel.isLoading {

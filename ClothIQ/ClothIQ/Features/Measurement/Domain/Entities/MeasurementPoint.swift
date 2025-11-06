@@ -117,19 +117,24 @@ extension MeasurementPoint {
     ///
     /// 신뢰도가 최소 임계값 이상인지 확인합니다.
     var isValid: Bool {
-        confidence >= 0.3 && depth > 0  // 신뢰도 기준 완화: 0.5 → 0.3
+        let settings = MeasurementSettings.shared
+        return confidence >= settings.minConfidence && depth > 0
     }
 }
 
 // MARK: - Static Helpers
 
 extension MeasurementPoint {
-    /// 최소 신뢰도 임계값 (완화됨)
-    static let minimumConfidence: Float = 0.3  // 0.5 → 0.3
+    /// 최소 신뢰도 임계값
+    ///
+    /// MeasurementSettings에서 동적으로 가져옵니다.
+    static var minimumConfidence: Float {
+        return MeasurementSettings.shared.minConfidence
+    }
 
     /// 최소 깊이 (미터) - 너무 가까우면 측정 불가
-    static let minimumDepth: Float = 0.2  // 30cm → 20cm
+    static let minimumDepth: Float = 0.2
 
     /// 최대 깊이 (미터) - 너무 멀면 정확도 감소
-    static let maximumDepth: Float = 3.0  // 3m
+    static let maximumDepth: Float = 3.0
 }

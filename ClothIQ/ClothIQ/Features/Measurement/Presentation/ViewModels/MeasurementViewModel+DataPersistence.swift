@@ -58,14 +58,17 @@ extension MeasurementViewModelRefactored {
                 let depthFilename = clothingItem.id.uuidString
                 let depthPath = try DepthDataProcessor.saveDepthMap(depthMap, filename: depthFilename)
                 clothingItem.depthMapPath = depthPath
+                print("✅ [ClothIQ-Save] Depth map 저장 성공: \(depthPath)")
 
                 // 메모리 해제 (CVPixelBuffer는 큰 메모리 객체이므로 즉시 해제)
                 self.capturedDepthMap = nil
             } catch {
+                print("❌ [ClothIQ-Save] Depth map 저장 실패: \(error.localizedDescription)")
                 // 저장 실패해도 메모리 해제
                 self.capturedDepthMap = nil
             }
         } else {
+            print("⚠️ [ClothIQ-Save] Depth map이 없어서 저장 건너뜀")
         }
 
         // 메타데이터 저장

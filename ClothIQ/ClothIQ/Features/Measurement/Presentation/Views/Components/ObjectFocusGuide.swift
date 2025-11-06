@@ -349,48 +349,58 @@ struct ObjectFocusGuide: View {
 
     /// 포커싱 상태 결정
     private static func determineFocusState(coverage: Float, depth: Float) -> FocusState {
-        // 커버리지 기준
-        let idealCoverageMin: Float = 0.15  // 최소 15%
-        let idealCoverageMax: Float = 0.70  // 최대 70%
-        let goodCoverageMin: Float = 0.20   // 좋은 범위 최소 20%
-        let goodCoverageMax: Float = 0.60   // 좋은 범위 최대 60%
+        // 커버리지 기준 (반바지 등 작은 의류를 위해 매우 완화)
+        let idealCoverageMin: Float = 0.05  // 최소 5% (매우 작은 의류 대응)
+        let idealCoverageMax: Float = 0.80  // 최대 80%
+        let goodCoverageMin: Float = 0.08   // 좋은 범위 최소 8%
+        let goodCoverageMax: Float = 0.70   // 좋은 범위 최대 70%
 
-        // 거리 기준 (미터)
-        let idealDepthMin: Float = 0.4      // 최소 40cm
-        let idealDepthMax: Float = 1.5      // 최대 1.5m
-        let goodDepthMin: Float = 0.5       // 좋은 범위 최소 50cm
-        let goodDepthMax: Float = 1.2       // 좋은 범위 최대 1.2m
+        // 거리 기준 (미터) - 거리 우선 판단
+        let idealDepthMin: Float = 0.3      // 최소 30cm
+        let idealDepthMax: Float = 2.0      // 최대 2.0m
+        let goodDepthMin: Float = 0.4       // 좋은 범위 최소 40cm
+        let goodDepthMax: Float = 1.5       // 좋은 범위 최대 1.5m
 
-        // 1. 커버리지 체크
-        if coverage < idealCoverageMin {
-            return .tooSmall
-        }
-        if coverage > idealCoverageMax {
-            return .tooLarge
-        }
-
-        // 2. 깊이 체크 (깊이 데이터가 있을 때만)
+        // 1. 깊이 우선 체크 (깊이 데이터가 있을 때)
         if depth > 0 {
+            // 너무 가까우면 커버리지 무시하고 경고
             if depth < idealDepthMin {
                 return .tooClose
             }
+            // 너무 멀면 커버리지 무시하고 경고
             if depth > idealDepthMax {
                 return .tooFar
             }
 
-            // 3. 최적 범위 체크
-            if coverage >= goodCoverageMin && coverage <= goodCoverageMax &&
-               depth >= goodDepthMin && depth <= goodDepthMax {
-                return .ready
+            // 최적 거리 범위 내면 커버리지 관대하게 판단
+            if depth >= goodDepthMin && depth <= goodDepthMax {
+                // 커버리지가 극단적이지 않으면 OK
+                if coverage >= idealCoverageMin && coverage <= idealCoverageMax {
+                    return .ready
+                }
+            }
+
+            // 거리는 괜찮은데 커버리지가 문제
+            if coverage > idealCoverageMax {
+                return .tooLarge
+            }
+            if coverage < idealCoverageMin {
+                return .tooSmall
             }
         } else {
-            // 깊이 데이터 없이 커버리지만으로 판단
+            // 깊이 데이터 없으면 커버리지만으로 판단
             if coverage >= goodCoverageMin && coverage <= goodCoverageMax {
                 return .ready
             }
+            if coverage > idealCoverageMax {
+                return .tooLarge
+            }
+            if coverage < idealCoverageMin {
+                return .tooSmall
+            }
         }
 
-        // 4. 거리 우선순위
+        // 기본값: 거리 기준 판단
         if depth > 0 {
             if depth < goodDepthMin {
                 return .tooClose
@@ -400,8 +410,7 @@ struct ObjectFocusGuide: View {
             }
         }
 
-        // 기본값
-        return .tooSmall
+        return .ready  // 모든 조건이 애매하면 촬영 허용
     }
 
     /// 신뢰도 계산
@@ -410,31 +419,32 @@ struct ObjectFocusGuide: View {
             return 1.0
         }
 
-        // 커버리지 점수 (0.0 ~ 1.0)
+        // 커버리지 점수 (0.0 ~ 1.0) - 매우 완화된 임계값
         let coverageScore: Float
-        if coverage < 0.15 {
-            coverageScore = coverage / 0.15
-        } else if coverage > 0.70 {
-            coverageScore = max(0, 1.0 - (coverage - 0.70) / 0.30)
+        if coverage < 0.05 {
+            coverageScore = coverage / 0.05
+        } else if coverage > 0.80 {
+            coverageScore = max(0, 1.0 - (coverage - 0.80) / 0.20)
         } else {
             coverageScore = 1.0
         }
 
-        // 깊이 점수 (0.0 ~ 1.0)
+        // 깊이 점수 (0.0 ~ 1.0) - 거리 우선
         let depthScore: Float
         if depth > 0 {
-            if depth < 0.4 {
-                depthScore = depth / 0.4
-            } else if depth > 1.5 {
-                depthScore = max(0, 1.0 - (depth - 1.5) / 1.5)
+            if depth < 0.3 {
+                depthScore = depth / 0.3
+            } else if depth > 2.0 {
+                depthScore = max(0, 1.0 - (depth - 2.0) / 2.0)
             } else {
                 depthScore = 1.0
             }
         } else {
-            depthScore = 0.5  // 깊이 데이터 없으면 중간값
+            depthScore = 0.7  // 깊이 데이터 없으면 높은 값 (더 관대)
         }
 
-        return (coverageScore + depthScore) / 2.0
+        // 깊이를 더 중요하게 (60% vs 40%)
+        return (depthScore * 0.6) + (coverageScore * 0.4)
     }
 }
 

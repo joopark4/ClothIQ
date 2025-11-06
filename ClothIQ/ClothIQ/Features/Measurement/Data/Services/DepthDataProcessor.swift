@@ -81,7 +81,7 @@ struct DepthDataProcessor {
         from confidenceMap: CVPixelBuffer?
     ) -> Float? {
         guard let confidenceMap = confidenceMap else {
-            return 0.7 // 기본값
+            return MeasurementSettings.shared.lowConfidenceWarning // 기본값
         }
 
         let width = CVPixelBufferGetWidth(confidenceMap)
@@ -199,10 +199,11 @@ struct DepthDataProcessor {
         // 유효한 픽셀 비율
         let coverage = Float(validPixelCount) / Float(totalPixels)
 
-        // 더 관대한 평가 기준: 20% 이상이면 충분
-        if coverage >= 0.2 {
+        // 런타임 설정 기준으로 평가
+        let settings = MeasurementSettings.shared
+        if coverage >= settings.minDepthCoverage {
             return min(coverage * 2.5, 1.0)
-        } else if coverage >= 0.1 {
+        } else if coverage >= settings.midDepthCoverage {
             return 0.5
         } else {
             return coverage * 5.0

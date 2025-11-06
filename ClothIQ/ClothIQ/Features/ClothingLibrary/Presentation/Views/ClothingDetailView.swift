@@ -101,7 +101,7 @@ struct ClothingDetailView: View {
             }
         }
         .fullScreenCover(isPresented: $showingPhotoMeasurement) {
-            PhotoMeasurementView(item: item)
+            PhotoMeasurementView(item: item, modelContext: modelContext)
         }
         .sheet(isPresented: $showingTypeEditor) {
             ClothingTypeEditorView(item: item)

@@ -24,6 +24,7 @@ import AVFoundation
 /// 기기 지원 여부와 권한을 확인하여 메인 앱 또는 안내 화면을 표시합니다.
 ///
 struct AppContainerView: View {
+    @Environment(\.modelContext) private var modelContext
     @State private var deviceSupported: Bool = false
     @State private var supportCheckMessage: String? = nil
     @State private var cameraPermissionGranted: Bool = false
@@ -53,6 +54,7 @@ struct AppContainerView: View {
         }
         .onAppear {
             checkDeviceSupport()
+            initializeCalibrationProfile()
         }
     }
 
@@ -96,6 +98,45 @@ struct AppContainerView: View {
 
         @unknown default:
             cameraPermissionGranted = false
+        }
+    }
+
+    // MARK: - Calibration Profile Initialization
+
+    /// 교정 프로파일 초기화
+    ///
+    /// 앱 실행 시 기본 교정 프로파일을 생성하고 활성화합니다.
+    /// 이미 프로파일이 존재하면 건너뜁니다.
+    private func initializeCalibrationProfile() {
+        // CalibrationProfile이 존재하는지 확인
+        let descriptor = FetchDescriptor<CalibrationProfile>()
+
+        do {
+            let existingProfiles = try modelContext.fetch(descriptor)
+
+            if existingProfiles.isEmpty {
+                // 프로파일이 없으면 생성
+                print("📊 [AppContainerView] 기본 교정 프로파일 생성 중...")
+                let profile = MeasurementSettings.createDefaultCalibrationProfile(modelContext: modelContext)
+
+                // MeasurementSettings에 활성화
+                MeasurementSettings.shared.applyProfile(profile)
+                MeasurementSettings.shared.useCalibration = true
+
+                print("✅ [AppContainerView] 교정 프로파일 활성화 완료")
+                print("  - 프로파일: \(profile.name)")
+                print("  - 보정 계수 개수: \(profile.calibrationFactors.count)")
+            } else {
+                // 프로파일이 이미 존재하면 첫 번째 프로파일 활성화
+                print("📊 [AppContainerView] 기존 교정 프로파일 발견")
+                if let firstProfile = existingProfiles.first {
+                    MeasurementSettings.shared.applyProfile(firstProfile)
+                    MeasurementSettings.shared.useCalibration = true
+                    print("✅ [AppContainerView] 기존 프로파일 활성화: \(firstProfile.name)")
+                }
+            }
+        } catch {
+            print("❌ [AppContainerView] 교정 프로파일 초기화 실패: \(error)")
         }
     }
 }

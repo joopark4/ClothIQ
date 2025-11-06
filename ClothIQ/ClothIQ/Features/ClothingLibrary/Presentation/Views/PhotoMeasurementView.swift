@@ -17,101 +17,120 @@ struct PhotoMeasurementView: View {
 
     // MARK: - Properties
 
-    let item: ClothingItemModel
-
-    @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) private var dismiss
 
-    @State private var viewModel: PhotoMeasurementViewModel?
+    @StateObject private var viewModel: PhotoMeasurementViewModel
     @State private var showingSaveConfirmation = false
+    @State private var showingDepthMapWarning = false
     @State private var refreshID = UUID()  // 뷰 강제 업데이트용
 
     // MARK: - Initialization
 
-    init(item: ClothingItemModel) {
-        self.item = item
+    init(item: ClothingItemModel, modelContext: ModelContext) {
+        _viewModel = StateObject(wrappedValue: PhotoMeasurementViewModel(
+            item: item,
+            modelContext: modelContext
+        ))
     }
 
     // MARK: - Body
 
     var body: some View {
-        Group {
-            if let viewModel = viewModel {
-                mainContent(viewModel: viewModel)
-            } else {
-                ProgressView("로딩 중...")
-                    .onAppear {
-                        // Environment modelContext를 사용하여 ViewModel 초기화
-                        self.viewModel = PhotoMeasurementViewModel(
-                            item: item,
-                            modelContext: modelContext
-                        )
+        mainContent
+            .onAppear {
+                // Depth map이 없으면 경고 표시
+                if !viewModel.hasDepthMap {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                        showingDepthMapWarning = true
                     }
+                }
             }
-        }
-        .navigationBarHidden(true)
-        .alert("이미지 회전 저장", isPresented: $showingSaveConfirmation) {
-            Button("저장") {
-                viewModel?.saveRotatedImage()
-                dismiss()
+            .navigationBarHidden(true)
+            .alert("이미지 회전 저장", isPresented: $showingSaveConfirmation) {
+                Button("저장") {
+                    viewModel.saveRotatedImage()
+                    dismiss()
+                }
+                Button("저장 안 함") {
+                    dismiss()
+                }
+                Button("취소", role: .cancel) {}
+            } message: {
+                Text("이미지를 회전했습니다.\n회전된 이미지를 저장하시겠습니까?")
             }
-            Button("저장 안 함") {
-                dismiss()
+            .alert("Depth Map 없음", isPresented: $showingDepthMapWarning) {
+                Button("확인") {
+                    dismiss()
+                }
+                Button("계속", role: .cancel) {}
+            } message: {
+                Text("""
+                이 사진은 Depth map이 저장되지 않아 측정할 수 없습니다.
+
+                Depth map은 AR 촬영 시 자동으로 저장됩니다.
+
+                ✓ 촬영 버튼이 흰색으로 바뀔 때까지 기다린 후 촬영하세요
+                ✓ AR 추적 상태가 "Normal"일 때 촬영하세요
+
+                다시 촬영하시겠습니까?
+                """)
             }
-            Button("취소", role: .cancel) {}
-        } message: {
-            Text("이미지를 회전했습니다.\n회전된 이미지를 저장하시겠습니까?")
-        }
     }
 
     // MARK: - Main Content
 
     @ViewBuilder
-    private func mainContent(viewModel: PhotoMeasurementViewModel) -> some View {
+    private var mainContent: some View {
         ZStack {
-            // 메인 콘텐츠
-            VStack(spacing: 0) {
-                // 상단 툴바
+            // 배경
+            Color.black.ignoresSafeArea()
+
+            // 이미지 뷰 (터치 수신)
+            ZoomableImageView(
+                image: viewModel.image,
+                rotation: viewModel.rotationDegrees,
+                measurementAnchors: Binding(
+                    get: { viewModel.measurementAnchors },
+                    set: { viewModel.measurementAnchors = $0 }
+                ),
+                isEditingAnchors: Binding(
+                    get: { viewModel.isEditingAnchors },
+                    set: { viewModel.isEditingAnchors = $0 }
+                ),
+                activeAnchorID: viewModel.activeAnchorID,
+                onTap: { point in
+                    viewModel.addMeasurementPoint(point)
+                },
+                onAnchorDragBegan: { id in
+                    viewModel.isEditingAnchors = true
+                    viewModel.activeAnchorID = id
+                },
+                onAnchorDragChanged: { id, position in
+                    viewModel.updateAnchorPosition(id: id, to: position, shouldRecalculate: true)
+                },
+                onAnchorDragEnded: { id, position in
+                    viewModel.updateAnchorPosition(id: id, to: position, shouldRecalculate: true)
+                    viewModel.isEditingAnchors = false
+                },
+                onAnchorSelected: { id in
+                    viewModel.activeAnchorID = id
+                }
+            )
+            .id("\(refreshID)-\(viewModel.anchorsVersion)")
+            .onChange(of: viewModel.measurementAnchors.count) { oldValue, newValue in
+                print("🔄 [PhotoMeasurementView] measurementAnchors.count 변경됨: \(oldValue) → \(newValue)")
+                // 뷰 강제 새로고침
+                DispatchQueue.main.async {
+                    refreshID = UUID()
+                    print("🔄 [PhotoMeasurementView] refreshID 업데이트됨: \(refreshID)")
+                }
+            }
+            .overlay(alignment: .top) {
+                // 상단 툴바 (오버레이)
                 topToolbar
-
-                // 이미지 뷰
-                ZoomableImageView(
-                    image: viewModel.image,
-                    rotation: viewModel.rotationDegrees,
-                    measurementAnchors: Binding(
-                        get: { viewModel.measurementAnchors },
-                        set: { newValue in
-                            viewModel.measurementAnchors = newValue
-                        }
-                    ),
-                    isEditingAnchors: Binding(
-                        get: { viewModel.isEditingAnchors },
-                        set: { newValue in
-                            viewModel.isEditingAnchors = newValue
-                        }
-                    ),
-                    activeAnchorID: viewModel.activeAnchorID,
-                    onTap: { point in
-                        viewModel.addMeasurementPoint(point)
-                    },
-                    onAnchorDragBegan: { id in
-                        viewModel.isEditingAnchors = true
-                        viewModel.activeAnchorID = id
-                    },
-                    onAnchorDragChanged: { id, position in
-                        viewModel.updateAnchorPosition(id: id, to: position, shouldRecalculate: true)
-                    },
-                    onAnchorDragEnded: { id, position in
-                        viewModel.updateAnchorPosition(id: id, to: position, shouldRecalculate: true)
-                        viewModel.isEditingAnchors = false
-                    },
-                    onAnchorSelected: { id in
-                        viewModel.activeAnchorID = id
-                    }
-                )
-                .id(refreshID)
-
-                // 하단 컨트롤
+            }
+            .overlay(alignment: .bottom) {
+                // 하단 컨트롤 (오버레이)
                 bottomControls
             }
 
@@ -128,6 +147,7 @@ struct PhotoMeasurementView: View {
                         .padding()
                     Spacer()
                 }
+                .allowsHitTesting(false)  // 터치 통과
                 .transition(.move(edge: .bottom).combined(with: .opacity))
             }
 
@@ -144,6 +164,7 @@ struct PhotoMeasurementView: View {
                         .padding()
                     Spacer()
                 }
+                .allowsHitTesting(false)  // 터치 통과
                 .transition(.move(edge: .bottom).combined(with: .opacity))
             }
 
@@ -207,8 +228,8 @@ struct PhotoMeasurementView: View {
             Spacer()
 
             // 측정 항목 선택 또는 선택된 항목 표시
-            if viewModel!.hasDepthMap {
-                if let selectedType = viewModel!.selectedMeasurementType {
+            if viewModel.hasDepthMap {
+                if let selectedType = viewModel.selectedMeasurementType {
                     // 선택된 측정 항목 표시
                     HStack(spacing: 8) {
                         Text(selectedType.displayName)
@@ -216,8 +237,8 @@ struct PhotoMeasurementView: View {
                             .foregroundStyle(.white)
 
                         Button {
-                            viewModel!.selectedMeasurementType = nil
-                            viewModel!.resetPoints()
+                            viewModel.selectedMeasurementType = nil
+                            viewModel.resetPoints()
                             refreshID = UUID()
                         } label: {
                             Image(systemName: "xmark.circle.fill")
@@ -231,23 +252,23 @@ struct PhotoMeasurementView: View {
                 } else {
                     // 측정 항목 선택
                     MeasurementTypePickerView(
-                        clothingType: item.clothingType ?? .shortSleeve,
-                        existingMeasurements: viewModel!.existingMeasurementTypes,
+                        clothingType: viewModel.item.clothingType ?? .shortSleeve,
+                        existingMeasurements: viewModel.existingMeasurementTypes,
                         selectedType: Binding(
                             get: {
-                                self.viewModel!.selectedMeasurementType
+                                self.viewModel.selectedMeasurementType
                             },
                             set: { newValue in
-                                self.viewModel!.selectedMeasurementType = newValue
-                                self.viewModel!.activeAnchorID = nil
+                                self.viewModel.selectedMeasurementType = newValue
+                                self.viewModel.activeAnchorID = nil
                                 if let type = newValue {
-                                    self.viewModel!.loadAnchors(for: type)
+                                    self.viewModel.loadAnchors(for: type)
                                     // 뷰 강제 업데이트
                                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
                                         self.refreshID = UUID()
                                     }
                                 } else {
-                                    self.viewModel!.resetPoints()
+                                    self.viewModel.resetPoints()
                                     self.refreshID = UUID()
                                 }
                             }
@@ -263,7 +284,7 @@ struct PhotoMeasurementView: View {
 
             // 회전 버튼
             Button {
-                viewModel!.rotateImage()
+                viewModel.rotateImage()
             } label: {
                 Image(systemName: "rotate.right")
                     .foregroundStyle(.white)
@@ -278,15 +299,15 @@ struct PhotoMeasurementView: View {
     /// 하단 컨트롤
     @ViewBuilder
     private var bottomControls: some View {
-        if viewModel!.selectedMeasurementType != nil {
+        if viewModel.selectedMeasurementType != nil {
             HStack(spacing: 16) {
                 // 측정값 표시
-                if let result = viewModel!.currentMeasurementResult {
+                if let result = viewModel.currentMeasurementResult {
                     Text("\(String(format: "%.1f", result.distance)) cm")
                         .font(.title2)
                         .fontWeight(.bold)
                         .foregroundStyle(.blue)
-                } else if let storedValue = viewModel!.selectedMeasurementType.flatMap({ viewModel!.existingMeasurementValue(for: $0) }) {
+                } else if let storedValue = viewModel.selectedMeasurementType.flatMap({ viewModel.existingMeasurementValue(for: $0) }) {
                     Text("\(String(format: "%.1f", storedValue)) cm")
                         .font(.title2)
                         .fontWeight(.semibold)
@@ -296,9 +317,9 @@ struct PhotoMeasurementView: View {
                 Spacer()
 
                 // 초기화 버튼
-                if !viewModel!.measurementAnchors.isEmpty {
+                if !viewModel.measurementAnchors.isEmpty {
                     Button {
-                        viewModel!.resetPoints()
+                        viewModel.resetPoints()
                     } label: {
                         Image(systemName: "arrow.counterclockwise")
                             .foregroundStyle(.white)
@@ -309,9 +330,9 @@ struct PhotoMeasurementView: View {
                 }
 
                 // 저장 버튼
-                if viewModel!.currentMeasurementResult != nil {
+                if viewModel.currentMeasurementResult != nil {
                     Button {
-                        viewModel!.saveMeasurement()
+                        viewModel.saveMeasurement()
                     } label: {
                         Label("저장", systemImage: "checkmark.circle.fill")
                             .font(.headline)
@@ -331,7 +352,7 @@ struct PhotoMeasurementView: View {
     // MARK: - Actions
 
     private func closeView() {
-        if let viewModel = viewModel, viewModel.confirmSaveRotatedImage() {
+        if viewModel.confirmSaveRotatedImage() {
             showingSaveConfirmation = true
         } else {
             dismiss()
@@ -342,19 +363,24 @@ struct PhotoMeasurementView: View {
 // MARK: - Preview
 
 #Preview {
-    let config = ModelConfiguration(isStoredInMemoryOnly: true)
-    let container = try! ModelContainer(for: ClothingItemModel.self, configurations: config)
+    @Previewable @State var container: ModelContainer = {
+        let config = ModelConfiguration(isStoredInMemoryOnly: true)
+        let container = try! ModelContainer(for: ClothingItemModel.self, configurations: config)
 
-    let item = ClothingItemModel(
-        type: ClothingType.shortSleeve.rawValue,
-        imagePath: nil,
-        notes: nil
-    )
+        let item = ClothingItemModel(
+            type: ClothingType.shortSleeve.rawValue,
+            imagePath: nil,
+            notes: nil
+        )
 
-    container.mainContext.insert(item)
+        container.mainContext.insert(item)
+        return container
+    }()
 
-    return NavigationStack {
-        PhotoMeasurementView(item: item)
+    let item = try! container.mainContext.fetch(FetchDescriptor<ClothingItemModel>()).first!
+
+    NavigationStack {
+        PhotoMeasurementView(item: item, modelContext: container.mainContext)
             .modelContainer(container)
     }
 }

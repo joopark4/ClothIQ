@@ -4,11 +4,11 @@
 
 LiDAR 센서를 활용하여 의류의 각 부위별 사이즈를 정확하게 측정하는 iOS 네이티브 애플리케이션입니다. ARKit과 Vision Framework를 활용하여 3D 깊이 정보 기반의 실측 데이터를 제공하며, 촬영한 의류 이미지와 측정값을 로컬에 저장하여 관리합니다.
 
-## 현재 구현 상태 (2025년 11월 3일 업데이트)
+## 현재 구현 상태 (2025년 11월 6일 업데이트)
 
 ### Phase 1: MVP - 100% 완료 ✅ 🎉
 
-**✅ 완료된 기능 (16/16)**
+**✅ 완료된 기능 (19/19)**
 
 1. **LiDAR 기반 측정 시스템**
    - ARKit Scene Depth API 통합 완료
@@ -105,6 +105,30 @@ LiDAR 센서를 활용하여 의류의 각 부위별 사이즈를 정확하게 �
     - ARKit 평면 감지 및 카메라 각도 자동 계산
     - CameraAlignmentGuide 컴포넌트 추가
 
+17. **사진 측정 UI 렌더링 문제 해결** (2025.11.06)
+    - PhotoMeasurementView의 @State → @StateObject 리팩토링
+    - ObservableObject의 @Published 변경 감지 문제 해결
+    - 측정 포인트, 연결선, 거리 값 UI 정상 표시
+    - StateObject 초기화 패턴 개선 (지연 초기화 → init 초기화)
+    - 강제 언래핑 제거 (viewModel! → viewModel)
+    - SwiftUI 속성 래퍼 선택 가이드 문서화
+
+18. **사진 측정 교정 시스템 구현** (2025.11.06)
+    - SwiftData 기반 CalibrationProfile 및 CalibrationFactor 모델 구현
+    - 의류 타입 + 측정 타입별 보정 계수 자동 계산
+    - 반바지 기준 교정 데이터 (10회 측정 평균)
+    - MeasurementSettings.shared를 통한 중앙 집중식 교정 관리
+    - 평균 오차율 91.3% 개선 (24.1% → 2.12%)
+    - 모든 측정 항목에서 ±2cm 이내 정확도 달성
+    - AppContainerView에서 앱 시작 시 자동 프로파일 초기화
+
+19. **재측정 시 앵커 위치 버그 수정** (2025.11.06)
+    - Y축 좌표 변환 불일치 문제 해결 (저장 시 Vision, 로드 시 SwiftUI 좌표계)
+    - PhotoMeasurementViewModel.loadAnchors() 메서드 수정
+    - 저장된 정규화 좌표를 올바르게 픽셀 좌표로 복원 (`1.0 - y` 변환 추가)
+    - 재측정 시 앵커와 라인이 정확한 위치에 표시
+    - 디버그 로깅 추가로 좌표 변환 과정 추적 가능
+
 ### 구현된 주요 컴포넌트
 
 #### 서비스 레이어
@@ -152,6 +176,11 @@ LiDAR 센서를 활용하여 의류의 각 부위별 사이즈를 정확하게 �
      - 최적 각도(±10도) 및 거리(40-60cm) 안내
      - 수평계 방식 시각적 피드백
      - 햅틱 진동으로 최적 상태 알림
+   - **사진 측정 교정 시스템** (2025.11.06)
+     - 평균 오차율 91.3% 개선 (24.1% → 2.12%)
+     - 모든 측정 항목에서 ±2cm 이내 정확도 달성
+     - 의류/측정 타입별 자동 보정 계수 적용
+     - SwiftData 기반 영속적 교정 프로파일 관리
    - 환경 조건에 따른 신뢰도 평가 시스템
 
 2. **배경 제거 품질**
@@ -208,9 +237,12 @@ LiDAR 센서를 활용하여 의류의 각 부위별 사이즈를 정확하게 �
 5. [프로젝트 구조](#프로젝트-구조)
 6. [데이터 모델](#데이터-모델)
 7. [측정 항목 정의](#측정-항목-정의)
-8. [개발 가이드라인](#개발-가이드라인)
-9. [Phase별 개발 계획](#phase별-개발-계획)
-10. [향후 확장 계획](#향후-확장-계획)
+8. [iOS 디바이스 개발 도구](#ios-디바이스-개발-도구)
+9. [라이브 디버깅 및 교정 시스템](#라이브-디버깅-및-교정-시스템)
+10. [개발 가이드라인](#개발-가이드라인)
+11. [Phase별 개발 계획](#phase별-개발-계획)
+12. [향후 확장 계획](#향후-확장-계획)
+13. [프로젝트 문서](#프로젝트-문서)
 
 ---
 
@@ -874,6 +906,303 @@ enum MeasurementUnit: String, CaseIterable, Codable {
 
 ---
 
+## iOS 디바이스 개발 도구
+
+### CLI 기반 자동화 워크플로우 (2025.11.05 추가)
+
+프로젝트에 **CLI 기반 iOS 디바이스 개발 도구**가 통합되었습니다. 이를 통해 Claude Code CLI에서 완전히 자동화된 빌드, 배포, 디버깅 워크플로우를 실행할 수 있습니다.
+
+#### 주요 기능
+
+- ✅ **자동 빌드**: xcodebuild를 통한 프로젝트 빌드
+- ✅ **디바이스 배포**: 연결된 아이패드/아이폰에 자동 설치
+- ✅ **실시간 로그**: 앱 실행 중 로그 스트리밍
+- ✅ **프로세스 관리**: 앱 실행/종료/모니터링
+- ✅ **성능 분석**: Instruments 기반 프로파일링
+- ✅ **크래시 수집**: 자동 크래시 로그 수집
+
+#### 빠른 시작
+
+```bash
+cd scripts
+
+# 1. 디바이스 확인
+./ios_device_tools.sh list-devices
+
+# 2. 빌드 + 배포 + 로그 (권장)
+./ios_device_tools.sh full-deploy
+
+# 3. 앱 종료
+./ios_device_tools.sh stop
+```
+
+#### 주요 명령어
+
+| 명령어 | 설명 | 사용 예시 |
+|--------|------|----------|
+| `list-devices` | 연결된 디바이스 목록 | `./ios_device_tools.sh list-devices` |
+| `build` | 프로젝트 빌드 | `./ios_device_tools.sh build` |
+| `install` | 앱 설치 | `./ios_device_tools.sh install` |
+| `launch` | 앱 실행 | `./ios_device_tools.sh launch` |
+| `logs` | 실시간 로그 스트리밍 | `./ios_device_tools.sh logs` |
+| `stop` | 앱 종료 | `./ios_device_tools.sh stop` |
+| **`full-deploy`** | **빌드→설치→실행→로그** | `./ios_device_tools.sh full-deploy` |
+| `monitor` | 프로세스 모니터링 | `./ios_device_tools.sh monitor` |
+| `crash-logs` | 크래시 로그 수집 | `./ios_device_tools.sh crash-logs` |
+| `profile` | 성능 프로파일링 | `./ios_device_tools.sh profile "Time Profiler" 60` |
+
+#### 실전 개발 워크플로우
+
+**시나리오 1: 일반 개발**
+```bash
+# 1. 코드 수정 후...
+
+# 2. 빌드 + 배포 + 테스트
+./ios_device_tools.sh full-deploy
+
+# 3. 로그 확인하면서 테스트 (자동 스트리밍)
+
+# 4. 문제 발견 시 Ctrl+C로 종료
+
+# 5. 코드 수정 후 다시 full-deploy
+```
+
+**시나리오 2: 크래시 디버깅**
+```bash
+# 1. 앱 실행 및 모니터링
+./ios_device_tools.sh full-deploy
+
+# 2. 크래시 발생!
+
+# 3. 크래시 로그 수집
+./ios_device_tools.sh crash-logs ./crash_$(date +%Y%m%d_%H%M%S)
+
+# 4. 크래시 로그 분석
+cat crash_*/ClothIQ*.ips
+```
+
+**시나리오 3: 성능 분석**
+```bash
+# 1. 앱 실행
+./ios_device_tools.sh launch
+
+# 2. CPU 프로파일링 (60초)
+./ios_device_tools.sh profile "Time Profiler" 60
+
+# 3. 메모리 프로파일링
+./ios_device_tools.sh profile "Allocations" 60
+
+# 4. Instruments로 결과 분석
+open profiling_*.trace
+```
+
+#### 도구 파일 위치
+
+```
+scripts/
+├── ios_device_tools.sh          # 메인 실행 스크립트
+├── ios_device_config.sh         # ClothIQ 설정 파일
+├── ios_device_config.template   # 설정 템플릿
+└── README.md                    # 빠른 시작 가이드
+
+IOS_DEVICE_GUIDE.md              # 상세 사용 가이드 (프로젝트 루트)
+```
+
+#### 상세 문서
+
+완전한 사용 가이드는 **[IOS_DEVICE_GUIDE.md](./IOS_DEVICE_GUIDE.md)**를 참조하세요:
+- 설정 방법 상세 설명
+- 트러블슈팅 가이드
+- 고급 사용법 (여러 디바이스, CI/CD 통합)
+- 다른 프로젝트에 적용하는 방법
+
+#### 다른 프로젝트 적용
+
+이 도구는 **모든 iOS 프로젝트에 적용 가능**합니다:
+
+1. 파일 복사 (`ios_device_tools.sh`, `ios_device_config.template`)
+2. 설정 파일 생성 및 프로젝트 정보 입력
+3. `./ios_device_tools.sh full-deploy` 실행
+
+자세한 내용은 [IOS_DEVICE_GUIDE.md](./DOC/IOS_DEVICE_GUIDE.md)의 "다른 프로젝트에 적용하기" 섹션 참조.
+
+---
+
+## 라이브 디버깅 및 교정 시스템
+
+### 개요 (2025.11.05 분석 완료)
+
+ClothIQ는 **라이브 디버깅 및 교정 시스템** 구현이 완전히 가능합니다. 현재 측정 시스템의 아키텍처가 확장 가능하게 설계되어 있어, 다음 기능들을 추가할 수 있습니다:
+
+- ✅ **실시간 임계값 조정**: 30+ 파라미터를 라이브로 조정
+- ✅ **AR 카메라 오버레이**: 환경 점수, 깊이 품질, 거리 실시간 표시
+- ✅ **교정 워크플로우**: 기준 샘플 → 실측값 입력 → 측정 → 보정 계수 저장
+- ✅ **반복 학습**: 10회 측정 평균 → 자동 보정 적용
+- ✅ **알고리즘 실험**: BFS, A*, 헤밀턴 거리 등 다양한 알고리즘 테스트
+
+### 현재 측정 시스템 분석
+
+#### 1. 핵심 컴포넌트
+
+| 컴포넌트 | 위치 | 주요 기능 |
+|---------|------|----------|
+| **ARMeasurementService** | `Features/Measurement/Data/Services/` | LiDAR 측정, 환경 평가, 카메라 정렬 |
+| **DepthDataProcessor** | `Features/Measurement/Data/Services/` | 깊이 맵 샘플링, 3D 좌표 계산 |
+| **MeasurementCalculator** | `Features/Measurement/Data/Services/` | 거리 계산, 각도 보정, 평면 투영 |
+| **PhotoMeasurementCalculator** | `Features/ClothingLibrary/Domain/UseCases/` | 저장된 depth map 기반 측정 |
+
+#### 2. 하드코딩된 임계값 (30+ 파라미터)
+
+**신뢰도 임계값**
+- 최소 신뢰도: `0.6`
+- 낮은 신뢰도 경고: `0.7`
+- 매우 낮은 신뢰도: `0.4`
+
+**거리 범위 (센티미터)**
+- 어깨너비: `30.0 ~ 60.0`
+- 가슴둘레: `70.0 ~ 150.0`
+- 허리둘레: `50.0 ~ 150.0`
+
+**최적 측정 거리 (미터)**
+- 최적 범위: `0.7 ~ 1.0`
+
+**환경 평가**
+- 최적 조명: `1000 ~ 1500 lumens`
+
+자세한 임계값 목록은 **[LIVE_DEBUG_ANALYSIS.md](./DOC/LIVE_DEBUG_ANALYSIS.md#하드코딩된-임계값-목록)** 참조.
+
+### 제안 아키텍처
+
+#### 1. 런타임 설정 관리자
+
+```swift
+class MeasurementSettings: ObservableObject {
+    static let shared = MeasurementSettings()
+
+    // 실시간 조정 가능한 파라미터
+    @Published var minConfidence: Float = 0.6
+    @Published var minDepthCoverage: Float = 0.2
+    @Published var optimalMinDistance: Float = 0.7
+    @Published var optimalMaxDistance: Float = 1.0
+
+    // 교정 활성화 여부
+    @Published var useCalibration: Bool = false
+}
+```
+
+#### 2. 교정 데이터 모델 (SwiftData)
+
+```swift
+@Model
+final class CalibrationProfile {
+    var name: String  // "반바지 기준"
+    var minConfidence: Float
+    var calibrationFactors: [CalibrationFactor]
+}
+
+@Model
+final class CalibrationFactor {
+    var actualValue: Double      // 78.0 cm (실측값)
+    var measuredValue: Double     // 76.5 cm (측정값)
+    var correctionFactor: Double  // 1.0196 (보정 계수)
+    var sampleCount: Int          // 10회
+}
+```
+
+#### 3. 라이브 디버깅 UI
+
+**DebugMetricsPanel** - 실시간 메트릭 표시
+- 환경 점수: 색상 코딩 (녹색/노랑/빨강)
+- 깊이 품질: 커버리지 퍼센트
+- 카메라 거리: 최적 범위 피드백
+- 감지된 포인트 수
+
+**DebugSettingsPanel** - 슬라이더로 임계값 조정
+- 최소 신뢰도
+- 최소 깊이 커버리지
+- 최적 측정 거리 (최소/최대)
+
+### 워크플로우 예시
+
+#### 시나리오: 반바지 기준 교정
+
+```
+1. [기준 샘플 선택]
+   - 반바지 선택
+   - 측정 타입: 허리둘레
+
+2. [실측값 입력]
+   - 자로 직접 측정: 78cm
+
+3. [AR 측정 10회 반복]
+   측정 1: 76.2 cm
+   측정 2: 77.5 cm
+   ...
+   측정 10: 76.9 cm
+
+   평균: 76.5 cm
+   표준편차: 0.8 cm
+
+4. [결과 비교]
+   실측값: 78.0 cm
+   측정값: 76.5 cm
+   오차: 1.5 cm (1.9%)
+
+   보정 계수: 78.0 / 76.5 = 1.0196
+
+5. [교정 저장]
+   "반바지 기준" 프로파일 생성
+   허리둘레 보정 계수: 1.0196
+
+6. [다른 의류에 적용]
+   긴바지 허리둘레 측정: 82.3 cm
+   보정 적용: 82.3 × 1.0196 = 83.9 cm ✅
+```
+
+### 구현 계획
+
+**총 소요 시간: 7-10일**
+
+#### Phase 1: 기본 인프라 (1-2일)
+- MeasurementSettings 클래스 구현
+- CalibrationProfile SwiftData 모델
+- 기존 코드에 런타임 파라미터 주입
+
+#### Phase 2: 라이브 디버깅 UI (2-3일)
+- LiveDebugOverlay 구현
+- DebugMetricsPanel (실시간 메트릭)
+- DebugSettingsPanel (슬라이더 조정)
+- 깊이 맵 히트맵 시각화
+
+#### Phase 3: 교정 워크플로우 (2-3일)
+- CalibrationViewModel 구현 (5단계 워크플로우)
+- CalibrationWorkflowView (단계별 UI)
+- 실측값 입력 폼
+- 결과 비교 화면
+
+#### Phase 4: 통합 및 테스트 (1-2일)
+- 반바지 샘플 테스트 (10회 측정)
+- 교정 계수 검증
+- UI/UX 개선
+
+### 예상 효과
+
+1. **측정 정확도 향상**: 보정 계수 적용으로 ±0.5cm 정확도 달성
+2. **개발 효율성 증가**: 실시간 디버깅으로 빠른 문제 파악
+3. **사용자 경험 개선**: 환경별 최적 프로파일 제공
+4. **알고리즘 실험 용이**: BFS, A*, 헤밀턴 거리 등 다양한 알고리즘 테스트
+
+### 상세 문서
+
+완전한 분석 보고서는 **[LIVE_DEBUG_ANALYSIS.md](./DOC/LIVE_DEBUG_ANALYSIS.md)** 참조:
+- 현재 시스템 상세 분석
+- 하드코딩된 임계값 전체 목록 (8개 카테고리)
+- 제안 아키텍처 및 코드 예제
+- 교정 워크플로우 UI 설계
+- 알고리즘 실험 시나리오
+
+---
+
 ## 개발 가이드라인
 
 ### 코드 작성 규칙
@@ -1248,7 +1577,329 @@ struct MeasurementViewFactory {
 }
 ```
 
-#### 8. Git 작업 규칙
+#### 8. SwiftUI 속성 래퍼 선택 가이드
+
+**중요**: SwiftUI에서 ObservableObject를 사용할 때는 반드시 적절한 속성 래퍼를 선택해야 합니다.
+
+##### 속성 래퍼 선택 기준표
+
+| 속성 래퍼 | 용도 | 예시 | 생명주기 관리 |
+|-----------|------|------|--------------|
+| `@State` | 간단한 값 타입 | `Int`, `String`, `Bool` | View가 관리 |
+| `@StateObject` | **View가 소유하는** ObservableObject | ViewModel 생성 | View가 관리 |
+| `@ObservedObject` | **외부에서 전달받은** ObservableObject | 부모→자식 전달 | 외부에서 관리 |
+| `@Binding` | 양방향 바인딩 | 값 공유 | 외부에서 관리 |
+
+##### 핵심 원칙
+
+**✅ 올바른 사용**
+```swift
+// ObservableObject + @Published = 반드시 @StateObject 또는 @ObservedObject 사용
+@MainActor
+final class PhotoMeasurementViewModel: ObservableObject {
+    @Published var measurementAnchors: [MeasurementAnchor] = []
+    @Published var currentMeasurementResult: MeasurementResult?
+}
+
+struct PhotoMeasurementView: View {
+    // View가 ViewModel을 생성하고 소유 → @StateObject
+    @StateObject private var viewModel: PhotoMeasurementViewModel
+
+    init(item: ClothingItemModel, modelContext: ModelContext) {
+        _viewModel = StateObject(wrappedValue: PhotoMeasurementViewModel(
+            item: item,
+            modelContext: modelContext
+        ))
+    }
+
+    var body: some View {
+        // viewModel.measurementAnchors 변경 시 UI 자동 업데이트 ✅
+    }
+}
+```
+
+**❌ 잘못된 사용**
+```swift
+struct PhotoMeasurementView: View {
+    // ❌ ObservableObject를 @State로 선언하면 @Published 변경을 감지하지 못함!
+    @State private var viewModel: PhotoMeasurementViewModel?
+
+    var body: some View {
+        // viewModel.measurementAnchors 변경해도 UI 업데이트 안 됨 ❌
+    }
+}
+```
+
+##### 일반적인 실수와 해결 방법
+
+**문제 1: UI가 업데이트되지 않음**
+```swift
+// 증상: 백엔드 로그에는 데이터 변경이 보이지만 UI는 그대로
+✅ [Backend] 앵커 추가됨 - 총 개수: 1
+❌ [UI] anchors.count: 0  // UI가 업데이트 안 됨!
+
+// 원인: @State로 ObservableObject 선언
+@State private var viewModel: PhotoMeasurementViewModel?
+
+// 해결: @StateObject로 변경
+@StateObject private var viewModel: PhotoMeasurementViewModel
+```
+
+**문제 2: 초기화 패턴 혼동**
+```swift
+// ❌ 잘못된 패턴: 지연 초기화
+@State private var viewModel: PhotoMeasurementViewModel?
+
+init(item: ClothingItemModel) {
+    self.item = item
+}
+
+var body: some View {
+    if viewModel != nil {
+        mainContent
+    } else {
+        ProgressView()
+            .onAppear {
+                self.viewModel = PhotoMeasurementViewModel(...)
+            }
+    }
+}
+
+// ✅ 올바른 패턴: init에서 StateObject 초기화
+@StateObject private var viewModel: PhotoMeasurementViewModel
+
+init(item: ClothingItemModel, modelContext: ModelContext) {
+    _viewModel = StateObject(wrappedValue: PhotoMeasurementViewModel(
+        item: item,
+        modelContext: modelContext
+    ))
+}
+
+var body: some View {
+    mainContent  // 즉시 사용 가능
+}
+```
+
+##### 디버깅 방법론
+
+1. **로그 분석으로 불일치 발견**
+   ```
+   ✅ [Backend] 앵커 추가됨 - 총 개수: 1
+   ❌ [UI] anchors.count: 0
+   → 백엔드 데이터와 UI 데이터의 불일치 발견
+   ```
+
+2. **테스트 마커 활용**
+   - 오버레이 자체는 렌더링되는지 확인 (테스트용 원 표시)
+   - 렌더링이 되면 → 데이터 바인딩 문제
+   - 렌더링이 안 되면 → UI 구조 문제
+
+3. **코드 검토**
+   ```swift
+   // 의심스러운 패턴 찾기
+   @State private var viewModel: PhotoMeasurementViewModel?  // ⚠️
+
+   final class PhotoMeasurementViewModel: ObservableObject {  // ObservableObject!
+       @Published var measurementAnchors: [MeasurementAnchor] = []  // @Published!
+   }
+   ```
+
+4. **가설 검증**
+   - SwiftUI 문서 확인: `@State`는 값 타입용, `@StateObject`는 ObservableObject용
+   - 결론: `@State`가 `@Published` 변경을 감지하지 못하는 것이 원인
+
+##### 참고: 관련 이슈 문서
+
+이 가이드는 실제 발생한 버그를 기반으로 작성되었습니다:
+- **이슈**: [ISSUE/2025-11-06-사진측정UI렌더링문제.md](./ISSUE/2025-11-06-사진측정UI렌더링문제.md)
+- **증상**: 측정 포인트, 연결선, 거리 값이 화면에 표시되지 않음
+- **근본 원인**: `@State`로 ObservableObject 선언
+- **해결**: `@StateObject`로 변경 후 정상 작동
+
+---
+
+#### 9. ISSUE 문서 작성 가이드
+
+**중요한 버그나 기술적 문제를 해결했을 때는 반드시 ISSUE 폴더에 문서를 작성하여 향후 참고 자료로 남겨야 합니다.**
+
+##### 파일명 규칙
+
+```
+YYYY-MM-DD-이슈내용.md
+
+예시:
+- 2025-11-06-사진측정UI렌더링문제.md
+- 2025-11-03-평면투영정확도개선.md
+- 2025-10-30-네비게이션탭이벤트버그.md
+```
+
+**규칙:**
+- 날짜: `YYYY-MM-DD` 형식 (해결 완료 날짜)
+- 이슈내용: **20자 이내**로 핵심만 간결하게
+- 띄어쓰기 없이 작성 (가독성을 위해)
+- 한글 사용 가능
+
+##### 문서 구조 템플릿
+
+```markdown
+# [이슈 제목]
+
+**날짜**: YYYY년 MM월 DD일
+**상태**: ✅ 해결 완료 / ⏳ 진행 중 / ❌ 미해결
+**심각도**: Critical / High / Medium / Low
+**영향 범위**: [영향받은 주요 컴포넌트]
+
+---
+
+## 문제 현상
+
+### 증상
+- [사용자가 겪는 문제 상황을 구체적으로 기술]
+- [스크린샷이 있다면 포함]
+
+### 백엔드 로그 분석 (해당되는 경우)
+```
+[관련 로그 내용]
+```
+
+- **백엔드**: [백엔드 동작 상태]
+- **UI**: [UI 동작 상태]
+- **결론**: [로그에서 발견한 핵심 단서]
+
+---
+
+## 근본 원인
+
+### 잘못된 코드 (파일명:줄번호)
+
+```swift
+// ❌ 잘못된 코드
+[문제가 있는 코드]
+```
+
+### 문제점
+
+**[기술적 개념 설명]:**
+- [왜 이 코드가 문제인지]
+- [어떤 원리로 작동하지 않는지]
+
+### 왜 작동하지 않았나?
+
+1. [단계별로 문제 발생 과정 설명]
+2. [...]
+3. **결과**: [최종적으로 나타난 문제]
+
+---
+
+## 해결 방법
+
+### 1. [파일명] 수정
+
+```swift
+// Before ❌
+[수정 전 코드]
+
+// After ✅
+[수정 후 코드]
+```
+
+**변경 사항 설명:**
+- [무엇을 어떻게 바꿨는지]
+- [왜 이렇게 바꾸면 해결되는지]
+
+### 2. [파일명2] 수정 (필요시)
+
+[...]
+
+---
+
+## 원인을 찾은 방법
+
+### 1. [디버깅 단계 1]
+[무엇을 했고, 무엇을 발견했는지]
+
+**핵심 단서**: [이 단계에서 발견한 중요한 정보]
+
+### 2. [디버깅 단계 2]
+[...]
+
+### 3. [...]
+
+---
+
+## 교훈
+
+### [기술적 개념] 가이드
+
+[이번 이슈를 통해 배운 기술적 개념이나 Best Practice]
+
+**핵심 원칙:**
+- [...]
+- [...]
+
+---
+
+## 영향 받은 파일
+
+### 수정된 파일
+1. `파일경로` - [변경 내용]
+2. `파일경로` - [변경 내용]
+
+### 테스트 결과
+- ✅ [테스트 항목 1]
+- ✅ [테스트 항목 2]
+
+---
+
+## 참고 자료
+
+### 관련 파일 위치
+- `/경로/파일명.swift:줄번호`
+
+### 관련 로그
+- [중요한 로그 내용이나 파일 경로]
+
+### 참고 문서
+- [Apple 공식 문서 링크]
+- [Stack Overflow 답변 링크]
+```
+
+##### 작성 시 주의사항
+
+1. **문제 현상은 구체적으로**
+   - "안 된다"가 아니라 "어떤 상황에서 어떤 증상이 발생하는지" 명확히 작성
+   - 로그가 있다면 반드시 포함 (핵심 부분만)
+
+2. **근본 원인은 기술적으로**
+   - "잘못됐다"가 아니라 "왜 잘못됐는지" 기술적 원리를 설명
+   - 코드 예시는 Before/After 형식으로 비교
+
+3. **디버깅 과정은 단계별로**
+   - 어떤 순서로 문제를 추적했는지 재현 가능하게 작성
+   - 각 단계에서 발견한 핵심 단서를 명시
+
+4. **교훈은 재사용 가능하게**
+   - 이번 경험을 통해 배운 원칙을 일반화
+   - 향후 비슷한 문제를 예방할 수 있는 가이드라인 제시
+
+5. **파일 위치는 정확하게**
+   - 상대 경로 사용
+   - 줄번호 포함 (예: `PhotoMeasurementView.swift:22`)
+
+##### 실제 예시
+
+실제로 작성된 이슈 문서 예시:
+- [ISSUE/2025-11-06-사진측정UI렌더링문제.md](./ISSUE/2025-11-06-사진측정UI렌더링문제.md)
+
+이 문서는 위 템플릿을 따라 작성되었으며, 다음 내용을 포함합니다:
+- @State vs @StateObject 사용 오류
+- 로그 분석을 통한 데이터 불일치 발견
+- 5단계 디버깅 과정
+- SwiftUI 속성 래퍼 선택 가이드
+
+---
+
+#### 10. Git 작업 규칙
 
 **중요**: 다음 Git 작업은 사용자의 **명시적 요청이 있을 때만** 수행합니다.
 
@@ -1306,8 +1957,37 @@ git push origin main
 - [Clean Architecture in iOS](https://tech.olx.com/clean-architecture-and-mvvm-on-ios-c9d167d9f5b3)
 - [LiDAR Technology](https://en.wikipedia.org/wiki/Lidar)
 
+---
+
+## 프로젝트 문서
+
+모든 프로젝트 관련 문서는 **[DOC/](./DOC/)** 폴더에 정리되어 있습니다.
+
+### 개발 도구 문서
+- **[IOS_DEVICE_GUIDE.md](./DOC/IOS_DEVICE_GUIDE.md)** - iOS 디바이스 빌드 및 디버깅 완전 가이드
+  - CLI 기반 자동화 도구 사용법
+  - 디바이스 연결 및 배포 방법
+  - 로그 수집 및 크래시 분석
+  - 성능 프로파일링
+  - 다른 프로젝트에 적용하기
+
+### 측정 시스템 분석
+- **[LIVE_DEBUG_ANALYSIS.md](./DOC/LIVE_DEBUG_ANALYSIS.md)** - 라이브 디버깅 및 교정 시스템 설계 문서
+  - 현재 측정 시스템 완전 분석 (ARMeasurementService, DepthDataProcessor, MeasurementCalculator, PhotoMeasurementCalculator)
+  - 하드코딩된 임계값 전체 목록 (30+ 파라미터, 8개 카테고리)
+  - 런타임 설정 관리자 아키텍처
+  - 교정 워크플로우 UI 설계 (5단계)
+  - 구현 계획 (7-10일)
+  - 워크플로우 예시 (반바지 기준 교정, 라이브 임계값 조정, BFS 알고리즘 실험)
+
+### 진행 상황
+- **[PROGRESS.md](./PROGRESS.md)** - 개발 진행 상황 및 최신 업데이트
+  - Phase별 완료 항목
+  - 최신 작업 내용
+  - 다음 작업 예정 사항
+  - 기술적 이슈 및 해결 과정
 
 ---
 
-**마지막 업데이트**: 2025년 11월 3일
-**문서 버전**: 1.2.0
+**마지막 업데이트**: 2025년 11월 6일
+**문서 버전**: 1.5.0

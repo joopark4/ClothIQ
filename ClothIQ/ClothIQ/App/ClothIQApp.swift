@@ -18,7 +18,9 @@ struct ClothIQApp: App {
         let schema = Schema([
             ClothingItemModel.self,
             MeasurementModel.self,
-            TagModel.self
+            TagModel.self,
+            CalibrationProfile.self,
+            CalibrationFactor.self
         ])
         let modelConfiguration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
 

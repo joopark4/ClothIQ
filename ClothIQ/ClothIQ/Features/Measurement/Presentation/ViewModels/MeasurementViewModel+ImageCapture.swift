@@ -53,6 +53,20 @@ extension MeasurementViewModelRefactored {
     ) {
         isLoading = true
 
+        // Depth map 진단 로깅
+        if depthMap != nil {
+            print("✅ [ClothIQ-Capture] Depth map 캡처 성공!")
+            print("  - Depth map size: \(CVPixelBufferGetWidth(depthMap!))x\(CVPixelBufferGetHeight(depthMap!))")
+            print("  - Image size: \(image.size)")
+            print("  - AR 초기화 상태: \(isARInitialized)")
+            print("  - 추적 상태: \(trackingState)")
+        } else {
+            print("❌ [ClothIQ-Capture] Depth map 캡처 실패!")
+            print("  - AR 초기화 상태: \(isARInitialized)")
+            print("  - 추적 상태: \(trackingState)")
+            print("  - 카메라 정보: \(camera != nil ? "있음" : "없음")")
+        }
+
         // Depth map 저장 (사진 측정에 사용)
         self.capturedDepthMap = depthMap
         self.capturedOriginalImageSize = image.size

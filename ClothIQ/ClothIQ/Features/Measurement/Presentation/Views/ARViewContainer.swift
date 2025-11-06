@@ -106,6 +106,11 @@ struct ARViewContainer: UIViewRepresentable {
                         let depthMap = currentFrame?.smoothedSceneDepth?.depthMap
                             ?? currentFrame?.sceneDepth?.depthMap
 
+                        // Depth map이 없으면 경고 로그 출력 (디버깅용)
+                        if depthMap == nil {
+                            print("⚠️ [ClothIQ] Depth map not available during capture. Photo measurement may not work.")
+                        }
+
                         self.onImageCaptured?(image, depthMap, currentFrame?.camera)
                     } else {
                     }
