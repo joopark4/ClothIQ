@@ -58,8 +58,8 @@ struct CameraAlignmentData {
         let isAngleGood = abs(tiltAngle) < 10.0  // 10도 이내
         let isAngleFair = abs(tiltAngle) < 20.0  // 20도 이내
 
-        let isDistanceGood = (0.4...0.6).contains(distance)  // 40-60cm
-        let isDistanceFair = (0.3...0.8).contains(distance)  // 30-80cm
+        let isDistanceGood = (0.6...0.9).contains(distance)  // 60-90cm
+        let isDistanceFair = (0.5...1.1).contains(distance)  // 50-110cm
 
         if isAngleGood && isDistanceGood {
             return .good
@@ -77,7 +77,7 @@ struct CameraAlignmentData {
 
     /// 거리가 적절한지
     var isDistanceGood: Bool {
-        (0.4...0.6).contains(distance)
+        (0.6...0.9).contains(distance)
     }
 }
 
@@ -259,7 +259,7 @@ struct CameraAlignmentGuide: View {
                         .font(.headline)
                         .foregroundStyle(.white)
 
-                    Text("권장: 40-60 cm")
+                    Text("권장: 60-90 cm")
                         .font(.caption2)
                         .foregroundStyle(.white.opacity(0.6))
                 }
@@ -303,7 +303,7 @@ struct CameraAlignmentGuide: View {
         CameraAlignmentGuide(
             alignmentData: CameraAlignmentData(
                 tiltAngle: 5.0,
-                distance: 0.5,
+                distance: 0.75,
                 hasPlaneDetected: true
             ),
             onOptimalAlignment: nil

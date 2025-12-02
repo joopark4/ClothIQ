@@ -19,6 +19,7 @@ import Foundation
 import Vision
 import ARKit
 import CoreImage
+import simd
 
 /// 자동 측정 서비스
 final class AutoMeasurementService {
@@ -26,28 +27,179 @@ final class AutoMeasurementService {
     // MARK: - Properties
 
     private let foregroundService = ForegroundSegmentationService()
+    private let featureAnalyzer = ClothingFeatureAnalyzer()
+    private let keypointDetector = ClothingKeypointDetector()
+
+    // MARK: - Public Methods
+
+    /// 키포인트 기반 자동 측정 수행 (개선된 버전)
+    ///
+    /// - Parameters:
+    ///   - contour: 감지된 윤곽선
+    ///   - clothingType: 의류 타입
+    ///   - depthMap: Depth map
+    ///   - imageSize: 이미지 크기
+    ///   - cameraIntrinsics: 카메라 intrinsics (옵션)
+    ///   - cameraResolution: 카메라 해상도 (옵션)
+    /// - Returns: 자동 측정 결과 (측정 타입별 거리 맵)
+    func performKeypointBasedMeasurement(
+        contour: VNContoursObservation,
+        clothingType: ClothingType,
+        depthMap: CVPixelBuffer,
+        imageSize: CGSize,
+        cameraIntrinsics: simd_float3x3?,
+        cameraResolution: CGSize?
+    ) -> [MeasurementType: AutoMeasurementResult] {
+        return autoreleasepool {
+            print("🎯 [KeypointMeasurement] 키포인트 기반 자동 측정 시작")
+            print("  - 의류 타입: \(clothingType.displayName)")
+            print("  - 이미지 크기: \(imageSize)")
+
+            // 1. 기본 특징점 추출
+            let featurePoints = extractFeaturePoints(from: contour, clothingType: clothingType)
+            print("  - 기본 특징점 추출 완료")
+
+            // 2. 키포인트 감지
+            let keypoints = keypointDetector.detectKeypoints(
+                from: contour,
+                clothingType: clothingType,
+                featurePoints: featurePoints
+            )
+            print("  - 키포인트 감지 완료: \(keypoints.count)개")
+
+            // 3. 측정 라인 생성
+            let measurementLines = keypointDetector.generateMeasurementLines(
+                from: keypoints,
+                clothingType: clothingType
+            )
+            print("  - 측정 라인 생성 완료: \(measurementLines.count)개")
+
+            // 4. 각 라인에 대한 거리 측정
+            var measurements: [MeasurementType: AutoMeasurementResult] = [:]
+
+            for line in measurementLines {
+                if let result = measureDistance(
+                    from: line.start,
+                    to: line.end,
+                    depthMap: depthMap,
+                    imageSize: imageSize,
+                    confidence: 0.8,
+                    cameraIntrinsics: cameraIntrinsics,
+                    cameraResolution: cameraResolution,
+                    measurementType: line.type,
+                    clothingType: clothingType
+                ) {
+                    measurements[line.type] = result
+                    print("  - \(line.type.displayName): \(String(format: "%.1f", result.distance))cm")
+                }
+            }
+
+            print("✅ [KeypointMeasurement] 키포인트 기반 자동 측정 완료: \(measurements.count)개 항목")
+            return measurements
+        }
+    }
+
+    /// 윤곽선 기반 자동 측정 수행
+    ///
+    /// - Parameters:
+    ///   - contour: 감지된 윤곽선
+    ///   - clothingType: 의류 타입
+    ///   - depthMap: Depth map
+    ///   - imageSize: 이미지 크기
+    ///   - cameraIntrinsics: 카메라 intrinsics (옵션)
+    ///   - cameraResolution: 카메라 해상도 (옵션)
+    /// - Returns: 자동 측정 결과 (측정 타입별 거리 맵)
+    func performAutoMeasurement(
+        contour: VNContoursObservation,
+        clothingType: ClothingType,
+        depthMap: CVPixelBuffer,
+        imageSize: CGSize,
+        cameraIntrinsics: simd_float3x3?,
+        cameraResolution: CGSize?
+    ) -> [MeasurementType: AutoMeasurementResult] {
+        // LiDAR_SIZE_Ref.md: autoreleasepool을 사용한 메모리 관리
+        return autoreleasepool {
+            print("🤖 [AutoMeasurement] 자동 측정 시작")
+            print("  - 의류 타입: \(clothingType.displayName)")
+            print("  - 이미지 크기: \(imageSize)")
+
+            // 1. 특징점 추출
+            let featurePoints = extractFeaturePoints(from: contour, clothingType: clothingType)
+            print("  - 특징점 추출 완료")
+
+            // 2. 의류 타입별 측정 항목 추출
+            let measurements = extractMeasurementsForClothingType(
+                featurePoints: featurePoints,
+                clothingType: clothingType,
+                depthMap: depthMap,
+                imageSize: imageSize,
+                cameraIntrinsics: cameraIntrinsics,
+                cameraResolution: cameraResolution
+            )
+
+            print("✅ [AutoMeasurement] 자동 측정 완료: \(measurements.count)개 항목")
+            return measurements
+        }
+    }
 
     // MARK: - Public Methods
 
     /// 의류 윤곽선 감지
     ///
-    /// - Parameter frame: AR 프레임
+    /// - Parameters:
+    ///   - capturedImage: 캡처된 이미지
+    ///   - depthMap: LiDAR depth map (선택)
     /// - Returns: 감지된 윤곽선, 없으면 nil
-    func detectClothingContour(from frame: ARFrame) async throws -> VNContoursObservation? {
+    func detectClothingContour(
+        from capturedImage: CVPixelBuffer,
+        depthMap: CVPixelBuffer?
+    ) async throws -> VNContoursObservation? {
+        print("🔍 [윤곽선 감지 시작]")
+
         // 1. 전경 마스크 생성 (검증 용도)
         guard let foregroundMask = foregroundService.generateForegroundMask(
-            from: frame.capturedImage,
-            depthMap: frame.sceneDepth?.depthMap  // AutoSize.md에 따라 sceneDepth 사용
+            from: capturedImage,
+            depthMap: depthMap
         ) else {
+            print("❌ 전경 마스크 생성 실패")
             throw AutoMeasurementError.foregroundSegmentationFailed
         }
 
+        print("✅ 전경 마스크 생성 성공")
+
         // 2. 원본 이미지에서 직접 윤곽선 감지 (중요!)
-        let contour = try await detectContourFromOriginal(frame.capturedImage)
+        let contour = try await detectContourFromOriginal(capturedImage)
 
         if contour == nil {
+            print("⚠️ 원본에서 윤곽선 감지 실패, 마스크에서 재시도")
             // 대체 경로: 마스크에서 윤곽선 추출 시도
             return try await detectContour(from: foregroundMask)
+        }
+
+        // 3. 윤곽선 기반 특징 분석 (디버깅/로깅용)
+        if let contour = contour {
+            print("✅ 윤곽선 감지 성공, 특징 분석 시작")
+
+            let features = featureAnalyzer.extractFeatures(from: contour)
+            let detectedType = featureAnalyzer.detectClothingCategory(from: features)
+
+            let sleeveTypeStr: String = {
+                switch features.sleeveDetection.sleeveType {
+                case .none: return "없음"
+                case .short: return "반팔"
+                case .long: return "긴팔"
+                }
+            }()
+
+            print("📊 [ClothIQ-Contour] 윤곽 기반 분석 결과:")
+            print("  - 감지된 타입: \(detectedType.displayName)")
+            print("  - 종횡비: \(String(format: "%.2f", features.aspectRatio))")
+            print("  - 소매: \(features.sleeveDetection.hasSleeves ? "있음" : "없음") (\(sleeveTypeStr))")
+            print("  - 밑단: \(features.hemlineShape.isVShaped ? "V자형" : "평평")")
+            print("  - 상단: \(features.topRegionShape.isNarrow ? "좁음(목선)" : features.topRegionShape.isWide ? "넓음(허리)" : "중간")")
+            print("  - 신뢰도: \(String(format: "%.1f%%", features.confidence * 100))")
+        } else {
+            print("❌ 윤곽선 감지 실패")
         }
 
         return contour
@@ -57,7 +209,7 @@ final class AutoMeasurementService {
     private func detectContourFromOriginal(_ pixelBuffer: CVPixelBuffer) async throws -> VNContoursObservation? {
         return try await withCheckedThrowingContinuation { continuation in
             let request = VNDetectContoursRequest { request, error in
-                if let error = error {
+                if error != nil {
                     continuation.resume(returning: nil)
                     return
                 }
@@ -90,9 +242,11 @@ final class AutoMeasurementService {
 
     /// 윤곽선에서 특징점 추출
     ///
-    /// - Parameter contour: 윤곽선
+    /// - Parameters:
+    ///   - contour: 윤곽선
+    ///   - clothingType: 의류 타입 (템플릿 선택용)
     /// - Returns: 추출된 특징점
-    func extractFeaturePoints(from contour: VNContoursObservation) -> ClothingFeaturePoints {
+    func extractFeaturePoints(from contour: VNContoursObservation, clothingType: ClothingType) -> ClothingFeaturePoints {
         // AutoSize02.md: boundingBox 면적 기준으로 최대 윤곽 선택
         var bestContour: VNContour?
         var bestArea: CGFloat = 0
@@ -159,12 +313,14 @@ final class AutoMeasurementService {
         let leftmostPoint = normalizedPoints.min(by: { $0.x < $1.x }) ?? CGPoint(x: 0.0, y: 0.5)
         let rightmostPoint = normalizedPoints.max(by: { $0.x < $1.x }) ?? CGPoint(x: 1.0, y: 0.5)
 
-        return ClothingFeaturePoints(
+        // 템플릿 기반 특징점 생성 (종횡비에 따라 자동 템플릿 선택)
+        return ClothingFeaturePoints.withTemplate(
             topPoint: topPoint,
             bottomPoint: bottomPoint,
             leftmostPoint: leftmostPoint,
             rightmostPoint: rightmostPoint,
-            allPoints: normalizedPoints
+            allPoints: normalizedPoints,
+            clothingType: clothingType
         )
     }
 
@@ -232,14 +388,332 @@ final class AutoMeasurementService {
     /// 의류 타입에 맞는 감지기 생성
     private func createDetector(for type: ClothingType) -> MeasurementPointDetector {
         switch type {
-        case .shortSleeve, .longSleeve:
+        case .shortSleeve, .longSleeve, .shirt, .polo, .hoodie, .vest, .cardigan:
             return TopMeasurementDetector()
-        case .pants, .shorts:
+        case .pants, .shorts, .jeans, .leggings:
             return BottomMeasurementDetector()
         case .skirt:
             return SkirtMeasurementDetector()
+        case .jacket, .coat:
+            return TopMeasurementDetector()  // 아우터도 상의 감지기 사용
+        case .dress, .jumpsuit:
+            return TopMeasurementDetector()  // 원피스류는 상의 감지기로 시작
         }
     }
+
+    /// 의류 타입별 측정 항목 추출
+    private func extractMeasurementsForClothingType(
+        featurePoints: ClothingFeaturePoints,
+        clothingType: ClothingType,
+        depthMap: CVPixelBuffer,
+        imageSize: CGSize,
+        cameraIntrinsics: simd_float3x3?,
+        cameraResolution: CGSize?
+    ) -> [MeasurementType: AutoMeasurementResult] {
+        var measurements: [MeasurementType: AutoMeasurementResult] = [:]
+
+        switch clothingType {
+        case .shortSleeve, .longSleeve, .shirt, .polo, .hoodie, .vest, .cardigan, .jacket, .coat, .dress, .jumpsuit:
+            // 상의 측정: 어깨너비, 가슴둘레, 총길이, 소매길이
+            if let shoulderWidth = measureShoulderWidth(
+                featurePoints: featurePoints,
+                depthMap: depthMap,
+                imageSize: imageSize,
+                cameraIntrinsics: cameraIntrinsics,
+                cameraResolution: cameraResolution,
+                clothingType: clothingType
+            ) {
+                measurements[.shoulderWidth] = shoulderWidth
+            }
+
+            if let chestWidth = measureChestWidth(
+                featurePoints: featurePoints,
+                depthMap: depthMap,
+                imageSize: imageSize,
+                cameraIntrinsics: cameraIntrinsics,
+                cameraResolution: cameraResolution,
+                clothingType: clothingType
+            ) {
+                measurements[.chestCircumference] = chestWidth
+            }
+
+            if let totalLength = measureTotalLength(
+                featurePoints: featurePoints,
+                depthMap: depthMap,
+                imageSize: imageSize,
+                cameraIntrinsics: cameraIntrinsics,
+                cameraResolution: cameraResolution,
+                clothingType: clothingType
+            ) {
+                measurements[.totalLength] = totalLength
+            }
+
+        case .pants, .shorts, .jeans, .leggings:
+            // 하의 측정: 허리둘레, 엉덩이둘레, 총길이
+            if let waistWidth = measureWaistWidth(
+                featurePoints: featurePoints,
+                depthMap: depthMap,
+                imageSize: imageSize,
+                cameraIntrinsics: cameraIntrinsics,
+                cameraResolution: cameraResolution,
+                clothingType: clothingType
+            ) {
+                measurements[.waistCircumference] = waistWidth
+            }
+
+            // TODO: hipCircumference를 MeasurementType enum에 추가 필요
+            // if let hipWidth = measureHipWidth(...) {
+            //     measurements[.hipCircumference] = hipWidth
+            // }
+
+            if let totalLength = measureTotalLength(
+                featurePoints: featurePoints,
+                depthMap: depthMap,
+                imageSize: imageSize,
+                cameraIntrinsics: cameraIntrinsics,
+                cameraResolution: cameraResolution,
+                clothingType: clothingType
+            ) {
+                measurements[.totalLength] = totalLength
+            }
+
+        case .skirt:
+            // 치마 측정: 허리둘레, 총길이
+            if let waistWidth = measureWaistWidth(
+                featurePoints: featurePoints,
+                depthMap: depthMap,
+                imageSize: imageSize,
+                cameraIntrinsics: cameraIntrinsics,
+                cameraResolution: cameraResolution,
+                clothingType: clothingType
+            ) {
+                measurements[.waistCircumference] = waistWidth
+            }
+
+            // TODO: hipCircumference를 MeasurementType enum에 추가 필요
+            // if let hipWidth = measureHipWidth(...) {
+            //     measurements[.hipCircumference] = hipWidth
+            // }
+
+            if let totalLength = measureTotalLength(
+                featurePoints: featurePoints,
+                depthMap: depthMap,
+                imageSize: imageSize,
+                cameraIntrinsics: cameraIntrinsics,
+                cameraResolution: cameraResolution,
+                clothingType: clothingType
+            ) {
+                measurements[.totalLength] = totalLength
+            }
+        }
+
+        return measurements
+    }
+
+    // MARK: - Individual Measurement Methods
+
+    /// 어깨너비 측정
+    private func measureShoulderWidth(
+        featurePoints: ClothingFeaturePoints,
+        depthMap: CVPixelBuffer,
+        imageSize: CGSize,
+        cameraIntrinsics: simd_float3x3?,
+        cameraResolution: CGSize?,
+        clothingType: ClothingType
+    ) -> AutoMeasurementResult? {
+        // 상단 5% 영역에서 최대 너비 찾기
+        guard let (left, right, confidence) = featurePoints.robustHorizontalSpan(
+            at: featurePoints.topPoint.y - featurePoints.height * 0.02,
+            halfSpans: [0.01, 0.02, 0.03]
+        ) else {
+            return nil
+        }
+
+        return measureDistance(
+            from: left,
+            to: right,
+            depthMap: depthMap,
+            imageSize: imageSize,
+            confidence: confidence,
+            cameraIntrinsics: cameraIntrinsics,
+            cameraResolution: cameraResolution,
+            measurementType: .shoulderWidth,
+            clothingType: clothingType
+        )
+    }
+
+    /// 가슴둘레 측정 (실제로는 가슴 너비)
+    private func measureChestWidth(
+        featurePoints: ClothingFeaturePoints,
+        depthMap: CVPixelBuffer,
+        imageSize: CGSize,
+        cameraIntrinsics: simd_float3x3?,
+        cameraResolution: CGSize?,
+        clothingType: ClothingType
+    ) -> AutoMeasurementResult? {
+        // 가슴 위치에서 최대 너비 찾기
+        guard let (left, right, confidence) = featurePoints.robustHorizontalSpan(
+            at: featurePoints.chestY,
+            halfSpans: [0.02, 0.03, 0.04]
+        ) else {
+            return nil
+        }
+
+        return measureDistance(
+            from: left,
+            to: right,
+            depthMap: depthMap,
+            imageSize: imageSize,
+            confidence: confidence,
+            cameraIntrinsics: cameraIntrinsics,
+            cameraResolution: cameraResolution,
+            measurementType: .chestCircumference,
+            clothingType: clothingType
+        )
+    }
+
+    /// 허리둘레 측정 (실제로는 허리 너비)
+    private func measureWaistWidth(
+        featurePoints: ClothingFeaturePoints,
+        depthMap: CVPixelBuffer,
+        imageSize: CGSize,
+        cameraIntrinsics: simd_float3x3?,
+        cameraResolution: CGSize?,
+        clothingType: ClothingType
+    ) -> AutoMeasurementResult? {
+        // 허리 위치에서 너비 찾기 (하의는 상단 10% 근처가 허리)
+        guard let (left, right, confidence) = featurePoints.robustHorizontalSpan(
+            at: featurePoints.waistY,
+            halfSpans: [0.02, 0.03, 0.04]
+        ) else {
+            return nil
+        }
+
+        return measureDistance(
+            from: left,
+            to: right,
+            depthMap: depthMap,
+            imageSize: imageSize,
+            confidence: confidence,
+            cameraIntrinsics: cameraIntrinsics,
+            cameraResolution: cameraResolution,
+            measurementType: .waistCircumference,
+            clothingType: clothingType
+        )
+    }
+
+    /// 엉덩이둘레 측정 (실제로는 엉덩이 너비)
+    private func measureHipWidth(
+        featurePoints: ClothingFeaturePoints,
+        depthMap: CVPixelBuffer,
+        imageSize: CGSize,
+        cameraIntrinsics: simd_float3x3?,
+        cameraResolution: CGSize?,
+        clothingType: ClothingType
+    ) -> AutoMeasurementResult? {
+        // 엉덩이 위치에서 최대 너비 찾기
+        guard let (left, right, confidence) = featurePoints.robustHorizontalSpan(
+            at: featurePoints.hipY,
+            halfSpans: [0.02, 0.03, 0.04]
+        ) else {
+            return nil
+        }
+
+        return measureDistance(
+            from: left,
+            to: right,
+            depthMap: depthMap,
+            imageSize: imageSize,
+            confidence: confidence,
+            cameraIntrinsics: cameraIntrinsics,
+            cameraResolution: cameraResolution,
+            measurementType: .hipCircumference,
+            clothingType: clothingType
+        )
+    }
+
+    /// 총길이 측정
+    private func measureTotalLength(
+        featurePoints: ClothingFeaturePoints,
+        depthMap: CVPixelBuffer,
+        imageSize: CGSize,
+        cameraIntrinsics: simd_float3x3?,
+        cameraResolution: CGSize?,
+        clothingType: ClothingType
+    ) -> AutoMeasurementResult? {
+        return measureDistance(
+            from: featurePoints.topPoint,
+            to: featurePoints.bottomPoint,
+            depthMap: depthMap,
+            imageSize: imageSize,
+            confidence: 0.9, // 상하 끝점은 신뢰도 높음
+            cameraIntrinsics: cameraIntrinsics,
+            cameraResolution: cameraResolution,
+            measurementType: .totalLength,
+            clothingType: clothingType
+        )
+    }
+
+    /// 두 정규화 좌표 간 거리 측정
+    private func measureDistance(
+        from normalizedPoint1: CGPoint,
+        to normalizedPoint2: CGPoint,
+        depthMap: CVPixelBuffer,
+        imageSize: CGSize,
+        confidence: Float,
+        cameraIntrinsics: simd_float3x3?,
+        cameraResolution: CGSize?,
+        measurementType: MeasurementType,
+        clothingType: ClothingType
+    ) -> AutoMeasurementResult? {
+        // 정규화 좌표 → 픽셀 좌표
+        let pixelPoint1 = CGPoint(
+            x: normalizedPoint1.x * imageSize.width,
+            y: (1.0 - normalizedPoint1.y) * imageSize.height  // Y축 반전 (Vision 좌표계 → UIKit 좌표계)
+        )
+        let pixelPoint2 = CGPoint(
+            x: normalizedPoint2.x * imageSize.width,
+            y: (1.0 - normalizedPoint2.y) * imageSize.height
+        )
+
+        // PhotoMeasurementCalculator 활용 (교정 계수 포함)
+        guard let result = PhotoMeasurementCalculator.calculateDistance(
+            from: pixelPoint1,
+            to: pixelPoint2,
+            depthMap: depthMap,
+            imageSize: imageSize,
+            cameraIntrinsics: cameraIntrinsics,
+            cameraResolution: cameraResolution,
+            measurementType: measurementType,
+            clothingType: clothingType
+        ) else {
+            return nil
+        }
+
+        return AutoMeasurementResult(
+            distance: result.distance,
+            confidence: Double(confidence) * result.confidence,
+            point1: pixelPoint1,
+            point2: pixelPoint2
+        )
+    }
+}
+
+// MARK: - Auto Measurement Result
+
+/// 자동 측정 결과
+struct AutoMeasurementResult {
+    /// 측정 거리 (센티미터)
+    let distance: Double
+
+    /// 측정 신뢰도 (0.0 ~ 1.0)
+    let confidence: Double
+
+    /// 시작 포인트 (픽셀 좌표)
+    let point1: CGPoint
+
+    /// 끝 포인트 (픽셀 좌표)
+    let point2: CGPoint
 }
 
 // MARK: - Auto Measurement Error

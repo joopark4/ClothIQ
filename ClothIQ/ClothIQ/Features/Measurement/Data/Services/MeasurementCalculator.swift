@@ -323,13 +323,21 @@ struct MeasurementCalculator {
 
         // 하의 측정 항목
         case .waistCircumference:
-            return (50.0, 150.0)  // 허리둘레
+            return (30.0, 150.0)  // 허리둘레 (반으로 접은 상태 고려)
+        case .hipCircumference:
+            return (60.0, 160.0)  // 엉덩이둘레
         case .rise:
             return (20.0, 40.0)  // 밑위
         case .hem:
             return (30.0, 60.0)  // 밑단
         case .thighCircumference:
             return (40.0, 80.0)  // 허벅지둘레
+
+        // 기타 측정 항목
+        case .neckCircumference:
+            return (30.0, 50.0)  // 목둘레
+        case .cuffCircumference:
+            return (15.0, 30.0)  // 소매둘레
         }
     }
 
@@ -402,55 +410,31 @@ struct MeasurementCalculator {
 
     // MARK: - Advanced Circumference Calculation
 
-    /// 개선된 둘레 계산 알고리즘
+    /// 개선된 둘레 계산 알고리즘 (사진 측정용)
     ///
-    /// 전면 측정값과 깊이 정보를 활용하여 실제 둘레를 추정합니다.
+    /// 평평하게 펼쳐진 의류 사진에서 측정한 단면 너비를 그대로 반환합니다.
+    /// 사진에서는 의류의 한쪽 면만 보이므로, 측정값이 곧 단면 너비입니다.
     ///
     /// - Parameters:
-    ///   - frontWidth: 전면에서 측정한 너비 (cm)
-    ///   - depth: 객체의 깊이 (m)
+    ///   - frontWidth: 전면에서 측정한 너비 (cm) - 단면의 한쪽 끝에서 다른 끝까지
+    ///   - depth: 객체의 깊이 (m) - 사진 측정에서는 사용하지 않음
     ///   - type: 측정 타입
-    /// - Returns: 추정된 둘레 (cm)
+    /// - Returns: 단면 너비 (cm)
+    ///
+    /// ## 계산 방식
+    /// 사진에서 평평하게 펼쳐진 의류를 촬영한 경우:
+    /// - 측정값 = 단면 너비 (의류의 한쪽 절반)
+    /// - **전체 둘레가 필요한 경우 사용자가 × 2 해야 함**
+    ///
+    /// 예: 허리둘레 단면이 40cm로 측정 → 표시: 40cm (전체 허리둘레는 80cm)
     static func calculateCircumferenceFromFront(
         frontWidth: Double,
         depth: Float,
         type: MeasurementType
     ) -> Double {
-        // 타원 둘레 근사 공식 사용
-        // C ≈ π * (a + b) * (1 + (3h)/(10 + sqrt(4 - 3h)))
-        // 여기서 h = ((a-b)^2)/((a+b)^2), a는 장축 반지름, b는 단축 반지름
-
-        let a = frontWidth / 2.0  // 전면 너비의 절반
-        let depthCm = Double(depth) * 100.0
-
-        // 측정 타입별로 깊이 대 너비 비율 조정
-        let depthRatio: Double
-        switch type {
-        case .chestCircumference:
-            // 가슴둘레: 타원형에 가까움
-            depthRatio = 0.65  // 깊이가 너비의 약 65%
-        case .waistCircumference:
-            // 허리둘레: 더 납작한 타원
-            depthRatio = 0.55  // 깊이가 너비의 약 55%
-        case .thighCircumference:
-            // 허벅지둘레: 원에 가까움
-            depthRatio = 0.85  // 깊이가 너비의 약 85%
-        case .armCircumference:
-            // 팔둘레: 거의 원형
-            depthRatio = 0.90  // 깊이가 너비의 약 90%
-        default:
-            // 기본값
-            depthRatio = 0.70
-        }
-
-        // 실제 깊이가 측정된 경우 사용, 아니면 비율로 추정
-        let b = depthCm > 0 ? min(depthCm * depthRatio, a) : a * depthRatio
-
-        // Ramanujan의 타원 둘레 근사 공식
-        let h = pow((a - b), 2) / pow((a + b), 2)
-        let circumference = Double.pi * (a + b) * (1 + (3 * h) / (10 + sqrt(4 - 3 * h)))
-
-        return circumference
+        // 사진 측정: 단면 너비를 그대로 반환
+        // 사용자가 전체 둘레가 필요하면 × 2 계산
+        return frontWidth
     }
 
     /// 깊이 기반 보정 계수 계산

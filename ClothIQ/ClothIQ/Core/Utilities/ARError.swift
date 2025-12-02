@@ -64,6 +64,12 @@ enum ARError: LocalizedError {
     /// 측정 거리가 너무 멀음
     case tooFar(maximumDistance: Double)
 
+    /// 유효하지 않은 샘플링 세션
+    case invalidSamplingSession
+
+    /// 수집된 샘플이 부족함
+    case insufficientSamples
+
     // MARK: - Environment Errors
 
     /// 조명이 불충분함
@@ -122,6 +128,12 @@ enum ARError: LocalizedError {
         case .tooFar(let distance):
             return "너무 멀음 (최대: \(String(format: "%.1f", distance))cm)"
 
+        case .invalidSamplingSession:
+            return "유효하지 않은 샘플링 세션"
+
+        case .insufficientSamples:
+            return "수집된 샘플 부족"
+
         // Environment
         case .insufficientLighting:
             return "조명 부족"
@@ -174,6 +186,12 @@ enum ARError: LocalizedError {
 
         case .tooFar:
             return "의류가 카메라에서 너무 멉니다."
+
+        case .invalidSamplingSession:
+            return "샘플링 세션이 유효하지 않거나 이미 완료되었습니다."
+
+        case .insufficientSamples:
+            return "정확한 측정을 위한 샘플이 충분하지 않습니다."
 
         case .insufficientLighting:
             return "측정을 위한 조명이 부족합니다."
@@ -230,6 +248,12 @@ enum ARError: LocalizedError {
 
         case .tooFar:
             return "카메라를 의류에 더 가까이 이동해주세요."
+
+        case .invalidSamplingSession:
+            return "새로운 측정을 시작해주세요."
+
+        case .insufficientSamples:
+            return "측정을 다시 시도하고 카메라를 안정적으로 유지해주세요."
 
         case .insufficientLighting:
             return "밝은 곳에서 측정하거나 조명을 켜주세요."

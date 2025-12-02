@@ -95,13 +95,18 @@ build_project() {
 
     local device_id="${DEVICE_ID:-$(auto_detect_device)}"
 
+    # 실제 디바이스로 빌드
+    log_info "디바이스 ID: $device_id"
+
     xcodebuild \
         -project "$PROJECT_PATH" \
         -scheme "$SCHEME" \
-        -destination "id=$device_id" \
+        -sdk iphoneos \
         -configuration "${CONFIGURATION:-Debug}" \
+        -derivedDataPath "$DERIVED_DATA_PATH" \
         ${ALLOW_PROVISIONING_UPDATES:+-allowProvisioningUpdates} \
-        clean build | grep -E "(BUILD SUCCEEDED|BUILD FAILED|error:|warning:)" | tail -20
+        DEVELOPMENT_TEAM="${DEVELOPMENT_TEAM:-}" \
+        clean build 2>&1 | grep -E "(BUILD SUCCEEDED|BUILD FAILED|error:|warning:)" | tail -30
 
     if [ ${PIPESTATUS[0]} -eq 0 ]; then
         log_success "빌드 성공!"

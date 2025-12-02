@@ -49,9 +49,9 @@ struct ClothingClassificationResult {
 ///   - 소매가 짧은 경우 반팔, 긴 경우 긴팔로 추가 구분 (향후 Vision 활용)
 ///
 /// - **하의 (Bottoms)**
-///   - 반바지: 0.8 ~ 1.2 (정사각형에 가까운 형태)
-///   - 긴바지: 1.5 ~ 2.5 (세로로 긴 형태)
-///   - 치마: 1.2 ~ 1.8 (중간 길이)
+///   - 반바지: 0.8 ~ 1.6 (정사각형 ~ 약간 세로로 긴 형태)
+///   - 긴바지: 1.8 ~ 2.5 (세로로 긴 형태)
+///   - 치마: 1.6 ~ 1.8 (중간 길이)
 ///
 /// ## 사용 예시
 /// ```swift
@@ -109,21 +109,21 @@ final class VisionClothingClassifier {
     private func classifyByAspectRatio(_ aspectRatio: CGFloat) -> (ClothingType, Double) {
         // 분류 로직
         switch aspectRatio {
-        // 반바지: 0.8 ~ 1.2 (정사각형에 가까운 형태)
-        case 0.8...1.2:
+        // 반바지: 0.8 ~ 1.6 (정사각형 ~ 약간 세로로 긴 형태)
+        case 0.8...1.6:
             let confidence = calculateConfidence(
                 aspectRatio: aspectRatio,
-                idealRatio: 1.0,
-                tolerance: 0.2
+                idealRatio: 1.2,
+                tolerance: 0.4
             )
             return (.shorts, confidence)
 
-        // 치마: 1.2 ~ 1.8 (중간 길이)
-        case 1.2...1.8:
+        // 치마: 1.6 ~ 1.8 (중간 길이)
+        case 1.6...1.8:
             let confidence = calculateConfidence(
                 aspectRatio: aspectRatio,
-                idealRatio: 1.5,
-                tolerance: 0.3
+                idealRatio: 1.7,
+                tolerance: 0.1
             )
             return (.skirt, confidence)
 

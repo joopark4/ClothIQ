@@ -57,6 +57,8 @@ struct PhotoMeasurementCalculator {
     ///   - point2: 끝 지점 (이미지 픽셀 좌표)
     ///   - depthMap: Depth map (CVPixelBuffer)
     ///   - imageSize: 이미지 크기
+    ///   - measurementType: 측정 타입 (교정 계수 적용용, 선택)
+    ///   - clothingType: 의류 타입 (교정 계수 적용용, 선택)
     /// - Returns: 측정 결과, 실패 시 nil
     static func calculateDistance(
         from point1: CGPoint,
@@ -64,7 +66,9 @@ struct PhotoMeasurementCalculator {
         depthMap: CVPixelBuffer,
         imageSize: CGSize,
         cameraIntrinsics: simd_float3x3?,
-        cameraResolution: CGSize?
+        cameraResolution: CGSize?,
+        measurementType: MeasurementType? = nil,
+        clothingType: ClothingType? = nil
     ) -> MeasurementResult? {
 
         // 1. 두 지점의 depth 값 추출
@@ -154,12 +158,34 @@ struct PhotoMeasurementCalculator {
         let distanceProjected = simd_distance(projected1, projected2)
 
         // 평면 투영 거리 사용 (더 정확함)
-        let distanceCM = Double(distanceProjected * 100.0)  // 미터 → 센티미터
+        var distanceCM = Double(distanceProjected * 100.0)  // 미터 → 센티미터
 
-        // Z축 차이가 클 경우 경고
-        let zDiff = abs(pos1.z - pos2.z)
+        // Z축 차이가 클 경우 경고 (향후 구현 예정)
+        _ = abs(pos1.z - pos2.z)
 
-        // 6. 신뢰도 계산
+        // 6. 교정 계수 적용 (선택적) - 사진 측정 방식
+        if let measurementType = measurementType,
+           let clothingType = clothingType {
+            let correctedValue = MeasurementSettings.shared.applyCorrectionFactor(
+                type: measurementType,
+                clothingType: clothingType,
+                value: distanceCM,
+                method: .photo  // 사진 측정용 교정 계수 사용
+            )
+
+            if abs(correctedValue - distanceCM) > 0.01 {
+                print("📏 [Calibration] 교정 계수 적용")
+                print("  - 측정 타입: \(measurementType.displayName)")
+                print("  - 의류 타입: \(clothingType.displayName)")
+                print("  - 원본 값: \(String(format: "%.2f", distanceCM))cm")
+                print("  - 교정 후: \(String(format: "%.2f", correctedValue))cm")
+                print("  - 보정: \(String(format: "%.2f", correctedValue - distanceCM))cm (\(String(format: "%.1f", (correctedValue / distanceCM - 1.0) * 100.0))%)")
+            }
+
+            distanceCM = correctedValue
+        }
+
+        // 7. 신뢰도 계산
         let confidence = calculateConfidence(depth1: depth1, depth2: depth2)
 
         return MeasurementResult(

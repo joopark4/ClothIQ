@@ -32,7 +32,7 @@ enum Constants {
         static let maximumDistance: Float = 2.0
 
         /// 최소 신뢰도 임계값
-        static let minimumConfidence: Float = 0.7
+        static let minimumConfidence: Float = 0.4
     }
 
     // MARK: - File System

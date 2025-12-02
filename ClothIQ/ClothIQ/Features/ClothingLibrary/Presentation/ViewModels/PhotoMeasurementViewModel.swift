@@ -15,20 +15,11 @@ import SwiftData
 import CoreVideo
 import Combine
 import simd
+import Vision
 
 /// 사진 기반 측정 ViewModel
 @MainActor
 final class PhotoMeasurementViewModel: ObservableObject {
-
-    struct MeasurementAnchor: Identifiable, Equatable {
-        let id: UUID
-        var position: CGPoint
-
-        init(id: UUID = UUID(), position: CGPoint) {
-            self.id = id
-            self.position = position
-        }
-    }
 
     // MARK: - Published Properties
 
@@ -47,8 +38,8 @@ final class PhotoMeasurementViewModel: ObservableObject {
     /// 현재 드래그 중인 포인트
     @Published var activeAnchorID: UUID?
 
-    /// 앵커 편집 중 여부
-    @Published var isEditingAnchors: Bool = false
+    /// 앵커 편집 중 여부 (기본값 true: 측정 포인트 활성화)
+    @Published var isEditingAnchors: Bool = true
 
     /// 선택된 측정 타입
     @Published var selectedMeasurementType: MeasurementType?
@@ -62,6 +53,30 @@ final class PhotoMeasurementViewModel: ObservableObject {
     /// 성공 메시지
     @Published var successMessage: String?
 
+    /// 감지된 키포인트들
+    @Published var detectedKeypoints: [MeasurementKeypoint] = []
+
+    /// 키포인트 시각화 활성화
+    @Published var showKeypoints: Bool = false
+
+    /// 자동 측정 모드 활성화
+    @Published var isAutoMeasurementMode: Bool = false
+
+    /// ML 모드 활성화
+    @Published var isMLModeEnabled: Bool = false
+
+    /// ML 감지 진행 중
+    @Published var isMLProcessing: Bool = false
+
+    /// ML 모델 신뢰도
+    @Published var mlConfidence: Float = 0.0
+
+    /// 사용자가 앵커를 수정했는지 추적
+    @Published var hasUserModifiedAnchors: Bool = false
+
+    /// 학습 데이터 수집 활성화
+    @Published var isCollectingTrainingData: Bool = true
+
     // MARK: - Dependencies
 
     let item: ClothingItemModel
@@ -73,13 +88,26 @@ final class PhotoMeasurementViewModel: ObservableObject {
     private let cameraIntrinsics: simd_float3x3?
     private let cameraResolution: CGSize?
 
+    // MARK: - Computed Properties
+
+    /// 앵커 좌표 계산에 사용되는 실제 이미지 크기
+    /// (저장/로드 시 사용하는 imageSize와 동일해야 함)
+    var effectiveImageSize: CGSize {
+        processedImageSize ?? image.size
+    }
+
     // MARK: - Initialization
 
     init(item: ClothingItemModel, modelContext: ModelContext) {
         self.item = item
         self.modelContext = modelContext
 
-        let resolvedImage = item.loadImage() ?? UIImage()
+        // 이미지 로드 및 orientation 정규화
+        // 중요: JPEG orientation 메타데이터가 있으면 loadImage()가 회전된 이미지를 반환할 수 있으므로
+        // 반드시 normalizedOrientation()을 호출하여 물리적으로 회전시킵니다.
+        let loadedImage = item.loadImage() ?? UIImage()
+        let resolvedImage = loadedImage.normalizedOrientation()
+
         let resolvedOriginalSize = item.originalImageSize
         let resolvedProcessedSize = item.processedImageSize ?? resolvedImage.size
         let resolvedCropRect = item.cropRect
@@ -92,6 +120,12 @@ final class PhotoMeasurementViewModel: ObservableObject {
         self.cropRect = resolvedCropRect
         self.cameraIntrinsics = resolvedIntrinsics
         self.cameraResolution = resolvedCameraResolution
+
+        print("🖼️ [PhotoMeasurementViewModel] 이미지 정규화 완료:")
+        print("   - 로드된 이미지 크기: \(loadedImage.size) (orientation: \(loadedImage.imageOrientation.rawValue))")
+        print("   - 정규화된 이미지 크기: \(resolvedImage.size) (orientation: \(resolvedImage.imageOrientation.rawValue))")
+        print("   - processedImageSize: \(resolvedProcessedSize)")
+        print("   - cropRect: \(String(describing: resolvedCropRect))")
 
         // Depth map 로드
         let loadedDepthMap: CVPixelBuffer?
@@ -180,7 +214,11 @@ final class PhotoMeasurementViewModel: ObservableObject {
             print("🔢 [PhotoMeasurement] anchorsVersion 증가 (초기화): \(anchorsVersion)")
         }
 
-        let anchor = MeasurementAnchor(position: clamped)
+        let measurementType = selectedMeasurementType ?? .totalLength
+        let anchor = MeasurementAnchor(
+            position: clamped,
+            measurementType: measurementType
+        )
         measurementAnchors.append(anchor)
         activeAnchorID = anchor.id
         anchorsVersion += 1  // 버전 증가
@@ -216,43 +254,30 @@ final class PhotoMeasurementViewModel: ObservableObject {
         print("  - cameraIntrinsics: \(cameraIntrinsics != nil ? "있음" : "없음")")
         print("  - cameraResolution: \(cameraResolution?.debugDescription ?? "없음")")
 
+        // 교정 파라미터 준비
+        let measurementType = selectedMeasurementType
+        let clothingType = ClothingType(rawValue: item.type ?? "")
+
+        print("  - measurementType: \(measurementType?.displayName ?? "없음")")
+        print("  - clothingType: \(clothingType?.displayName ?? "없음")")
+
         guard let result = PhotoMeasurementCalculator.calculateDistance(
             from: point1,
             to: point2,
             depthMap: depthMap,
             imageSize: imageSize,
             cameraIntrinsics: cameraIntrinsics,
-            cameraResolution: cameraResolution
+            cameraResolution: cameraResolution,
+            measurementType: measurementType,
+            clothingType: clothingType
         ) else {
             print("❌ [calculateDistance] 거리 계산 실패")
             showError("거리 계산에 실패했습니다")
             return
         }
 
-        // 교정 계수 적용
-        let originalDistance = result.distance
-        let correctedDistance: Double
-
-        if let measurementType = selectedMeasurementType,
-           let clothingType = ClothingType(rawValue: item.type ?? "") {
-            correctedDistance = MeasurementSettings.shared.applyCorrectionFactor(
-                type: measurementType,
-                clothingType: clothingType,
-                value: originalDistance
-            )
-
-            if MeasurementSettings.shared.useCalibration && correctedDistance != originalDistance {
-                print("🔧 [calculateDistance] 교정 적용")
-                print("  - 원본 측정값: \(String(format: "%.1f", originalDistance))cm")
-                print("  - 보정 후 측정값: \(String(format: "%.1f", correctedDistance))cm")
-                print("  - 보정 계수: \(String(format: "%.4f", correctedDistance / originalDistance))")
-            } else {
-                print("ℹ️ [calculateDistance] 교정 미적용 (useCalibration: \(MeasurementSettings.shared.useCalibration))")
-            }
-        } else {
-            correctedDistance = originalDistance
-            print("ℹ️ [calculateDistance] 교정 계수 없음")
-        }
+        // PhotoMeasurementCalculator 내부에서 이미 교정 적용됨
+        let correctedDistance = result.distance
 
         // 보정된 거리로 결과 업데이트
         let correctedResult = PhotoMeasurementCalculator.MeasurementResult(
@@ -321,6 +346,11 @@ final class PhotoMeasurementViewModel: ObservableObject {
         // 업데이트 시간 갱신
         item.updatedAt = Date()
 
+        // 학습 데이터 수집 (활성화되어 있고 사용자가 수정한 경우)
+        if isCollectingTrainingData && (hasUserModifiedAnchors || detectedKeypoints.count > 0) {
+            collectTrainingData()
+        }
+
         // 저장
         do {
             try modelContext.save()
@@ -358,35 +388,72 @@ final class PhotoMeasurementViewModel: ObservableObject {
         }
 
         let imageSize = processedImageSize ?? image.size
-        print("  - imageSize: \(imageSize)")
+        print("  🔍🔍🔍 [loadAnchors] 이미지 크기 정보:")
+        print("    - processedImageSize: \(processedImageSize?.debugDescription ?? "nil")")
+        print("    - image.size: \(image.size)")
+        print("    - 선택된 imageSize: \(imageSize)")
+
+        // ⚠️ 크기 불일치 경고!
+        if let savedSize = processedImageSize {
+            let widthDiff = abs(savedSize.width - image.size.width)
+            let heightDiff = abs(savedSize.height - image.size.height)
+            if widthDiff > 1.0 || heightDiff > 1.0 {
+                print("    ⚠️⚠️⚠️ 크기 불일치 감지!")
+                print("    - 저장된 크기: \(savedSize)")
+                print("    - 로드된 크기: \(image.size)")
+                print("    - 차이: width=\(widthDiff), height=\(heightDiff)")
+                print("    - 좌표 변환 오류 발생 가능!")
+            }
+        } else {
+            print("    ⚠️ processedImageSize가 저장되지 않음! image.size 사용")
+        }
 
         guard imageSize.width > 0, imageSize.height > 0 else {
-            print("  - 이미지 크기가 0")
+            print("  ❌ 이미지 크기가 0")
             return
         }
 
         if let start = existing.startPoint, let end = existing.endPoint {
-            print("  - 저장된 정규화 좌표:")
-            print("    - start: \(start)")
-            print("    - end: \(end)")
+            print("  📍 [loadAnchors] 저장된 정규화 좌표 (크롭 이미지 기준):")
+            print("    - start (정규화): \(start)")
+            print("    - end (정규화): \(end)")
+            print("    - 측정 타입: \(type.displayName)")
 
-            // 정규화된 좌표 → 픽셀 좌표 변환
-            // 저장 시 Y축이 반전되었으므로 (1.0 - y), 로드 시 다시 반전 필요
+            // 정규화된 좌표 (0-1) → 픽셀 좌표 변환
+            // 저장 시: Vision 좌표계 (bottom-left origin, Y=0이 하단)
+            // 로드 시: SwiftUI 좌표계 (top-left origin, Y=0이 상단)
+            // ⚠️ Y축 좌표 변환 필수: Vision → SwiftUI
+
             let startPosition = CGPoint(
                 x: start.x * imageSize.width,
-                y: (1.0 - start.y) * imageSize.height  // Y축 반전 복원
+                y: (1.0 - start.y) * imageSize.height  // ⚠️ Y축 flip (Vision → SwiftUI)
             )
             let endPosition = CGPoint(
                 x: end.x * imageSize.width,
-                y: (1.0 - end.y) * imageSize.height  // Y축 반전 복원
+                y: (1.0 - end.y) * imageSize.height  // ⚠️ Y축 flip (Vision → SwiftUI)
             )
 
-            print("  - 복원된 픽셀 좌표:")
+            print("  ✅ [loadAnchors] 복원된 픽셀 좌표 (SwiftUI - top-left origin):")
             print("    - startPosition: \(startPosition)")
             print("    - endPosition: \(endPosition)")
+            print("    - 거리 (픽셀): \(hypot(endPosition.x - startPosition.x, endPosition.y - startPosition.y))")
 
-            let startAnchor = MeasurementAnchor(position: startPosition)
-            let endAnchor = MeasurementAnchor(position: endPosition)
+            // 좌표 검증
+            let isValid = startPosition.x >= 0 && startPosition.x <= imageSize.width &&
+                         startPosition.y >= 0 && startPosition.y <= imageSize.height &&
+                         endPosition.x >= 0 && endPosition.x <= imageSize.width &&
+                         endPosition.y >= 0 && endPosition.y <= imageSize.height
+            print("  - 좌표 유효성: \(isValid ? "✅ 유효" : "❌ 범위 벗어남")")
+
+            let measurementType = selectedMeasurementType ?? .totalLength
+            let startAnchor = MeasurementAnchor(
+                position: startPosition,
+                measurementType: measurementType
+            )
+            let endAnchor = MeasurementAnchor(
+                position: endPosition,
+                measurementType: measurementType
+            )
             measurementAnchors = [startAnchor, endAnchor]
             activeAnchorID = endAnchor.id
             isEditingAnchors = false
@@ -418,6 +485,9 @@ final class PhotoMeasurementViewModel: ObservableObject {
 
         measurementAnchors[index].position = clamped
         activeAnchorID = id
+
+        // 사용자가 앵커를 수정했음을 추적
+        hasUserModifiedAnchors = true
 
         if shouldRecalculate {
             calculateDistance()
@@ -468,13 +538,12 @@ final class PhotoMeasurementViewModel: ObservableObject {
             return CGPoint(x: 0.5, y: 0.5)
         }
 
-        // SwiftUI 좌표계 (top-left origin) → Vision 좌표계 (bottom-left origin) 변환
+        // SwiftUI 픽셀 좌표 → 정규화된 SwiftUI 좌표 (0-1 범위)
         // SwiftUI: y=0이 상단, y=height가 하단
-        // Vision: y=0이 하단, y=1이 상단
-        // 따라서 Y축 반전 필요: 1.0 - (y / height)
+        // 정규화: 단순히 이미지 크기로 나눔 (Y축 반전 없음)
         return CGPoint(
             x: clamp(point.x / size.width, min: 0, max: 1),
-            y: clamp(1.0 - (point.y / size.height), min: 0, max: 1)
+            y: clamp(point.y / size.height, min: 0, max: 1)
         )
     }
 
@@ -562,5 +631,371 @@ final class PhotoMeasurementViewModel: ObservableObject {
 
     func existingMeasurementValue(for type: MeasurementType) -> Double? {
         item.measurements.first(where: { $0.type == type.rawValue })?.value
+    }
+
+    // MARK: - Keypoint Detection
+
+    /// 키포인트 자동 감지 (ML 모드 지원)
+    func detectKeypoints() {
+        print("🎯 [PhotoMeasurement] 키포인트 자동 감지 시작 (ML 모드: \(isMLModeEnabled))")
+
+        guard let depthMap = depthMap else {
+            errorMessage = "Depth map이 없어 키포인트 감지가 불가능합니다"
+            return
+        }
+
+        let clothingTypeString = item.type
+        guard let clothingType = ClothingType(rawValue: clothingTypeString) else {
+            errorMessage = "의류 타입을 확인할 수 없습니다"
+            return
+        }
+
+        // 이미지를 CVPixelBuffer로 변환
+        guard let pixelBuffer = image.pixelBuffer() else {
+            errorMessage = "이미지 변환 실패"
+            return
+        }
+
+        Task {
+            do {
+                var keypoints: [MeasurementKeypoint] = []
+
+                if isMLModeEnabled {
+                    // ML 모드: VisionMLService 사용
+                    await MainActor.run {
+                        isMLProcessing = true
+                    }
+
+                    let mlService = VisionMLService.shared
+
+                    // 윤곽선 감지 (하이브리드 모드용)
+                    let measurementService = AutoMeasurementService()
+                    let contour = try? await measurementService.detectClothingContour(
+                        from: pixelBuffer,
+                        depthMap: depthMap
+                    )
+
+                    // 하이브리드 키포인트 감지 (ML + 휴리스틱)
+                    keypoints = try await mlService.detectKeypointsHybrid(
+                        from: image,
+                        contour: contour,
+                        clothingType: clothingType
+                    )
+
+                    // ML 신뢰도 계산
+                    let avgConfidence = keypoints.isEmpty ? 0.0 :
+                        keypoints.reduce(Float(0)) { $0 + $1.confidence } / Float(keypoints.count)
+
+                    await MainActor.run {
+                        self.mlConfidence = avgConfidence
+                        isMLProcessing = false
+                    }
+
+                } else {
+                    // 기존 휴리스틱 모드
+                    let measurementService = AutoMeasurementService()
+
+                    // 윤곽선 감지
+                    guard let contour = try await measurementService.detectClothingContour(
+                        from: pixelBuffer,
+                        depthMap: depthMap
+                    ) else {
+                        await MainActor.run {
+                            errorMessage = "의류 윤곽선을 감지할 수 없습니다"
+                        }
+                        return
+                    }
+
+                    // 특징점 추출
+                    let featurePoints = measurementService.extractFeaturePoints(
+                        from: contour,
+                        clothingType: clothingType
+                    )
+
+                    // 키포인트 감지
+                    let keypointDetector = ClothingKeypointDetector()
+                    keypoints = keypointDetector.detectKeypoints(
+                        from: contour,
+                        clothingType: clothingType,
+                        featurePoints: featurePoints
+                    )
+                }
+
+                await MainActor.run {
+                    self.detectedKeypoints = keypoints
+                    self.showKeypoints = true
+                    self.successMessage = "\(keypoints.count)개의 키포인트를 감지했습니다 (ML: \(isMLModeEnabled ? "ON" : "OFF"))"
+                    print("✅ [PhotoMeasurement] 키포인트 감지 완료: \(keypoints.count)개")
+
+                    // 키포인트를 앵커로 변환 (자동 측정 모드인 경우)
+                    if isAutoMeasurementMode {
+                        convertKeypointsToAnchors(keypoints, clothingType: clothingType)
+                    }
+
+                    // 학습 데이터 수집 (사용자가 수정하지 않은 자동 감지 결과)
+                    if isMLModeEnabled {
+                        collectTrainingData()
+                    }
+                }
+            } catch {
+                await MainActor.run {
+                    errorMessage = "키포인트 감지 실패: \(error.localizedDescription)"
+                    isMLProcessing = false
+                }
+            }
+        }
+    }
+
+    /// 키포인트를 측정 앵커로 변환
+    private func convertKeypointsToAnchors(_ keypoints: [MeasurementKeypoint], clothingType: ClothingType) {
+        print("🔄 [PhotoMeasurement] 키포인트를 측정 앵커로 변환")
+
+        // 키포인트 쌍을 측정 라인으로 변환
+        let keypointDetector = ClothingKeypointDetector()
+        let measurementLines = keypointDetector.generateMeasurementLines(
+            from: keypoints,
+            clothingType: clothingType
+        )
+
+        // 측정 앵커 초기화
+        measurementAnchors.removeAll()
+
+        // 각 측정 라인을 앵커 쌍으로 추가
+        for line in measurementLines {
+            let startAnchor = MeasurementAnchor(
+                position: CGPoint(
+                    x: line.start.x * effectiveImageSize.width,
+                    y: line.start.y * effectiveImageSize.height
+                ),
+                measurementType: line.type
+            )
+            let endAnchor = MeasurementAnchor(
+                position: CGPoint(
+                    x: line.end.x * effectiveImageSize.width,
+                    y: line.end.y * effectiveImageSize.height
+                ),
+                measurementType: line.type
+            )
+
+            measurementAnchors.append(startAnchor)
+            measurementAnchors.append(endAnchor)
+
+            // 해당 측정 타입 선택
+            selectedMeasurementType = line.type
+
+            // 측정 수행 (depthMap이 있는 경우)
+            if depthMap != nil {
+                calculateDistance()
+            }
+
+            // 첫 번째 측정만 처리 (단일 측정 모드)
+            break
+        }
+
+        anchorsVersion += 1
+        print("✅ [PhotoMeasurement] 앵커 변환 완료: \(measurementAnchors.count)개 앵커")
+    }
+
+    /// 키포인트 표시 토글
+    func toggleKeypointDisplay() {
+        showKeypoints.toggle()
+        if showKeypoints && detectedKeypoints.isEmpty {
+            detectKeypoints()
+        }
+    }
+
+    /// 자동 측정 모드 토글
+    func toggleAutoMeasurementMode() {
+        isAutoMeasurementMode.toggle()
+        if isAutoMeasurementMode {
+            detectKeypoints()
+        }
+    }
+
+    /// ML 모드 토글
+    func toggleMLMode() {
+        isMLModeEnabled.toggle()
+        successMessage = "ML 모드: \(isMLModeEnabled ? "활성화" : "비활성화")"
+
+        if isMLModeEnabled && showKeypoints {
+            // ML 모드 활성화 시 키포인트 재감지
+            detectKeypoints()
+        }
+    }
+
+    /// 학습 데이터 수집
+    private func collectTrainingData() {
+        let clothingTypeString = item.type
+        guard let clothingType = ClothingType(rawValue: clothingTypeString) else {
+            return
+        }
+
+        // 사용자 수정 여부 결정
+        let isUserCorrected = hasUserModifiedAnchors
+
+        // 키포인트 결정: 사용자가 수정한 경우 앵커를 키포인트로 변환
+        var keypointsToCollect = detectedKeypoints
+        if isUserCorrected && !measurementAnchors.isEmpty {
+            let convertedKeypoints = convertAnchorsToKeypoints()
+            if !convertedKeypoints.isEmpty {
+                keypointsToCollect = convertedKeypoints
+            }
+        }
+
+        // 학습 데이터 수집기 호출
+        MLTrainingDataCollector.shared.collectTrainingData(
+            image: image,
+            keypoints: keypointsToCollect,
+            clothingType: clothingType,
+            isUserCorrected: isUserCorrected
+        )
+
+        print("📊 [PhotoMeasurement] 학습 데이터 수집 완료 (사용자 수정: \(isUserCorrected))")
+    }
+
+    /// 사용자가 앵커를 수정했을 때 호출
+    func onUserModifiedAnchors() {
+        // 사용자 수정 데이터를 학습 데이터로 수집
+        if isMLModeEnabled && !measurementAnchors.isEmpty {
+            // 앵커를 키포인트로 변환
+            let modifiedKeypoints = convertAnchorsToKeypoints()
+            if !modifiedKeypoints.isEmpty {
+                detectedKeypoints = modifiedKeypoints
+                hasUserModifiedAnchors = true
+                collectTrainingData()
+            }
+        }
+    }
+
+    /// 앵커를 키포인트로 변환 (학습용)
+    private func convertAnchorsToKeypoints() -> [MeasurementKeypoint] {
+        guard let measurementType = selectedMeasurementType,
+              measurementAnchors.count >= 2 else {
+            return []
+        }
+
+        var keypoints: [MeasurementKeypoint] = []
+
+        // 측정 타입에 따라 키포인트 타입 결정
+        switch measurementType {
+        case .shoulderWidth:
+            if measurementAnchors.count >= 2 {
+                keypoints.append(MeasurementKeypoint(
+                    type: .leftShoulder,
+                    position: CGPoint(
+                        x: measurementAnchors[0].position.x / effectiveImageSize.width,
+                        y: measurementAnchors[0].position.y / effectiveImageSize.height
+                    ),
+                    confidence: 1.0  // 사용자 수정이므로 신뢰도 최대
+                ))
+                keypoints.append(MeasurementKeypoint(
+                    type: .rightShoulder,
+                    position: CGPoint(
+                        x: measurementAnchors[1].position.x / effectiveImageSize.width,
+                        y: measurementAnchors[1].position.y / effectiveImageSize.height
+                    ),
+                    confidence: 1.0
+                ))
+            }
+        case .chestCircumference:
+            if measurementAnchors.count >= 2 {
+                keypoints.append(MeasurementKeypoint(
+                    type: .chestLeft,
+                    position: CGPoint(
+                        x: measurementAnchors[0].position.x / effectiveImageSize.width,
+                        y: measurementAnchors[0].position.y / effectiveImageSize.height
+                    ),
+                    confidence: 1.0
+                ))
+                keypoints.append(MeasurementKeypoint(
+                    type: .chestRight,
+                    position: CGPoint(
+                        x: measurementAnchors[1].position.x / effectiveImageSize.width,
+                        y: measurementAnchors[1].position.y / effectiveImageSize.height
+                    ),
+                    confidence: 1.0
+                ))
+            }
+        case .totalLength:
+            if measurementAnchors.count >= 2 {
+                keypoints.append(MeasurementKeypoint(
+                    type: .neckline,
+                    position: CGPoint(
+                        x: measurementAnchors[0].position.x / effectiveImageSize.width,
+                        y: measurementAnchors[0].position.y / effectiveImageSize.height
+                    ),
+                    confidence: 1.0
+                ))
+                keypoints.append(MeasurementKeypoint(
+                    type: .hemCenter,
+                    position: CGPoint(
+                        x: measurementAnchors[1].position.x / effectiveImageSize.width,
+                        y: measurementAnchors[1].position.y / effectiveImageSize.height
+                    ),
+                    confidence: 1.0
+                ))
+            }
+        default:
+            break
+        }
+
+        return keypoints
+    }
+
+    /// 학습 데이터 통계 조회
+    func getTrainingStatistics() -> TrainingDataStatistics {
+        return MLTrainingDataCollector.shared.getTrainingDataStatistics()
+    }
+}
+
+// MARK: - UIImage Extension
+
+extension UIImage {
+    /// UIImage를 CVPixelBuffer로 변환
+    func pixelBuffer() -> CVPixelBuffer? {
+        let width = Int(self.size.width)
+        let height = Int(self.size.height)
+
+        let attrs = [kCVPixelBufferCGImageCompatibilityKey: kCFBooleanTrue,
+                     kCVPixelBufferCGBitmapContextCompatibilityKey: kCFBooleanTrue] as CFDictionary
+
+        var pixelBuffer: CVPixelBuffer?
+        let status = CVPixelBufferCreate(kCFAllocatorDefault,
+                                          width,
+                                          height,
+                                          kCVPixelFormatType_32BGRA,
+                                          attrs,
+                                          &pixelBuffer)
+
+        guard status == kCVReturnSuccess, let buffer = pixelBuffer else {
+            return nil
+        }
+
+        CVPixelBufferLockBaseAddress(buffer, CVPixelBufferLockFlags(rawValue: 0))
+        defer {
+            CVPixelBufferUnlockBaseAddress(buffer, CVPixelBufferLockFlags(rawValue: 0))
+        }
+
+        let pixelData = CVPixelBufferGetBaseAddress(buffer)
+
+        let rgbColorSpace = CGColorSpaceCreateDeviceRGB()
+        guard let context = CGContext(data: pixelData,
+                                       width: width,
+                                       height: height,
+                                       bitsPerComponent: 8,
+                                       bytesPerRow: CVPixelBufferGetBytesPerRow(buffer),
+                                       space: rgbColorSpace,
+                                       bitmapInfo: CGImageAlphaInfo.noneSkipFirst.rawValue) else {
+            return nil
+        }
+
+        context.translateBy(x: 0, y: CGFloat(height))
+        context.scaleBy(x: 1.0, y: -1.0)
+
+        UIGraphicsPushContext(context)
+        self.draw(in: CGRect(x: 0, y: 0, width: width, height: height))
+        UIGraphicsPopContext()
+
+        return buffer
     }
 }

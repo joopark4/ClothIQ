@@ -17,8 +17,9 @@ struct ZoomableImageView: View {
     // MARK: - Properties
 
     let image: UIImage
+    let imageSize: CGSize  // 앵커 좌표 계산에 사용할 이미지 크기
     let rotation: Double
-    @Binding var measurementAnchors: [PhotoMeasurementViewModel.MeasurementAnchor]
+    @Binding var measurementAnchors: [MeasurementAnchor]
     @Binding var isEditingAnchors: Bool
     var activeAnchorID: UUID?
     let onTap: (CGPoint) -> Void
@@ -59,7 +60,7 @@ struct ZoomableImageView: View {
                 MeasurementAnchorsOverlay(
                     anchors: $measurementAnchors,
                     isEditingAnchors: $isEditingAnchors,
-                    imageSize: CGSize(width: image.size.width, height: image.size.height),
+                    imageSize: imageSize,  // 전달받은 effectiveImageSize 사용
                     scale: 1.0,  // 확대 비활성화
                     offset: .zero,  // 이동 비활성화
                     padding: imagePadding,  // 이미지 여백
@@ -70,7 +71,7 @@ struct ZoomableImageView: View {
                     onSelect: onAnchorSelected
                 )
                 .id(measurementAnchors.count)  // 앵커 개수 변경 시 뷰 강제 재생성
-                .allowsHitTesting(!measurementAnchors.isEmpty)  // anchors가 있을 때만 터치 활성화
+                // .allowsHitTesting(!measurementAnchors.isEmpty)  // 항상 렌더링되도록 주석 처리
                 .onAppear {
                     print("🎨 [MeasurementAnchorsOverlay] 오버레이 최초 표시 - 앵커 개수: \(measurementAnchors.count)")
                 }
@@ -228,7 +229,7 @@ struct ZoomableImageView: View {
         )
     }
 
-    private func anchor(at location: CGPoint, in viewSize: CGSize) -> PhotoMeasurementViewModel.MeasurementAnchor? {
+    private func anchor(at location: CGPoint, in viewSize: CGSize) -> MeasurementAnchor? {
         guard !measurementAnchors.isEmpty else { return nil }
         for anchor in measurementAnchors {
             let viewPoint = convertImagePointToView(anchor.position, in: viewSize)
@@ -244,7 +245,7 @@ struct ZoomableImageView: View {
 // MARK: - Measurement Points Overlay
 
 struct MeasurementAnchorsOverlay: View {
-    @Binding var anchors: [PhotoMeasurementViewModel.MeasurementAnchor]
+    @Binding var anchors: [MeasurementAnchor]
     @Binding var isEditingAnchors: Bool
     let imageSize: CGSize
     let scale: CGFloat
@@ -378,7 +379,7 @@ struct MeasurementAnchorsOverlay: View {
         }
     }
 
-    private func anchorLabel(for anchor: PhotoMeasurementViewModel.MeasurementAnchor) -> String {
+    private func anchorLabel(for anchor: MeasurementAnchor) -> String {
         guard let index = anchors.firstIndex(where: { $0.id == anchor.id }) else { return "" }
         return "\(index + 1)"
     }
@@ -473,17 +474,22 @@ extension View {
 // MARK: - Preview
 
 #Preview {
-    @Previewable @State var anchors: [PhotoMeasurementViewModel.MeasurementAnchor] = []
+    @Previewable @State var anchors: [MeasurementAnchor] = []
     @Previewable @State var isEditing = false
+    let previewImage = UIImage(systemName: "photo")!
 
     ZoomableImageView(
-        image: UIImage(systemName: "photo")!,
+        image: previewImage,
+        imageSize: previewImage.size,
         rotation: 0,
         measurementAnchors: $anchors,
         isEditingAnchors: $isEditing,
         activeAnchorID: nil,
         onTap: { point in
-            let anchor = PhotoMeasurementViewModel.MeasurementAnchor(position: point)
+            let anchor = MeasurementAnchor(
+                position: point,
+                measurementType: .totalLength
+            )
             anchors.append(anchor)
             if anchors.count > 2 {
                 anchors.removeFirst()

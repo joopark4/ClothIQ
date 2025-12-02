@@ -292,6 +292,28 @@ extension ClothingType {
             return "figure.stand"
         case .skirt:
             return "figure.dress.line.vertical.figure"
+        case .shirt:
+            return "tshirt"
+        case .polo:
+            return "tshirt"
+        case .hoodie:
+            return "tshirt.fill"
+        case .vest:
+            return "tshirt"
+        case .cardigan:
+            return "tshirt.fill"
+        case .jacket:
+            return "tshirt.fill"
+        case .coat:
+            return "tshirt.fill"
+        case .dress:
+            return "figure.dress.line.vertical.figure"
+        case .jumpsuit:
+            return "figure.dress.line.vertical.figure"
+        case .jeans:
+            return "figure.stand"
+        case .leggings:
+            return "figure.stand"
         }
     }
 }

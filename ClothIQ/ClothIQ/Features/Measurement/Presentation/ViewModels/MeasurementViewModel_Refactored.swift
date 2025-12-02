@@ -95,6 +95,23 @@ final class MeasurementViewModelRefactored: ObservableObject {
     /// 저장된 의류 아이템 (상세보기 화면 이동용)
     @Published var savedClothingItem: ClothingItemModel?
 
+    // MARK: - Multi-Sampling State
+
+    /// 현재 진행 중인 샘플링 세션 ID
+    @Published var currentSamplingID: String?
+
+    /// 샘플링 진행률 (0.0 ~ 1.0)
+    @Published var samplingProgress: Float = 0.0
+
+    /// 샘플링 중 여부
+    @Published var isSampling: Bool = false
+
+    /// 현재 수집된 샘플 개수
+    @Published var currentSampleCount: Int = 0
+
+    /// 목표 샘플 개수
+    let targetSampleCount: Int = 15
+
     // MARK: - Internal Properties (for Extensions)
 
     let measurementService: ARMeasurementServiceProtocol
@@ -115,6 +132,8 @@ final class MeasurementViewModelRefactored: ObservableObject {
 
     /// 캡처된 depth map (사진 측정에 사용)
     var capturedDepthMap: CVPixelBuffer?
+    /// 캡처된 원본 픽셀 버퍼 (윤곽선 분석용)
+    var capturedPixelBuffer: CVPixelBuffer?
     /// 원본 이미지 크기 (크롭 전)
     var capturedOriginalImageSize: CGSize?
     /// 크롭 영역 (원본 이미지 좌표계)
@@ -125,6 +144,8 @@ final class MeasurementViewModelRefactored: ObservableObject {
     var capturedCameraIntrinsics: simd_float3x3?
     /// 캡처 시점 카메라 이미지 해상도
     var capturedCameraResolution: CGSize?
+    /// 현재 ARFrame (자동 측정용, 측정 완료 후 즉시 해제)
+    var currentARFrame: ARFrame?
 
     // MARK: - Initialization
 
@@ -148,6 +169,8 @@ final class MeasurementViewModelRefactored: ObservableObject {
         Task { @MainActor in
             UIDevice.current.endGeneratingDeviceOrientationNotifications()
         }
+        // Note: measurementService는 ViewModel과 함께 해제되므로
+        // samplingSessions도 자동으로 정리됩니다.
     }
 
     // MARK: - AR Session Management

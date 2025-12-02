@@ -85,7 +85,15 @@ struct ImageCaptureUtility {
             if let windowScene = UIApplication.shared.connectedScenes
                 .compactMap({ $0 as? UIWindowScene })
                 .first {
-                switch windowScene.interfaceOrientation {
+                // iOS 26.0+: effectiveGeometry.interfaceOrientation 사용
+                let orientation: UIInterfaceOrientation
+                if #available(iOS 26.0, *) {
+                    orientation = windowScene.effectiveGeometry.interfaceOrientation
+                } else {
+                    orientation = windowScene.interfaceOrientation
+                }
+
+                switch orientation {
                 case .portrait:
                     return .right
                 case .portraitUpsideDown:

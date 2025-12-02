@@ -111,8 +111,129 @@ extension MeasurementViewModelRefactored {
                     // Photos 앱에 최종 이미지 저장
                     self.saveToPhotosApp(processedImage)
 
-                    // 의류 타입 선택 Sheet 표시
-                    self.showingTypeSelection = true
+                    // ===== 🎯 NEW: 자동 타입 인식 및 측정 수행 =====
+                    print("🔍 [AutoFlow] 자동 타입 인식 및 측정 시작")
+                    print("  - capturedPixelBuffer: \(self.capturedPixelBuffer != nil)")
+                    print("  - capturedDepthMap: \(self.capturedDepthMap != nil)")
+                    print("  - capturedOriginalImageSize: \(self.capturedOriginalImageSize != nil)")
+
+                    if self.capturedPixelBuffer == nil {
+                        print("❌ [AutoFlow] 실패: capturedPixelBuffer가 nil입니다!")
+                    }
+                    if self.capturedDepthMap == nil {
+                        print("❌ [AutoFlow] 실패: capturedDepthMap이 nil입니다!")
+                    }
+                    if self.capturedOriginalImageSize == nil {
+                        print("❌ [AutoFlow] 실패: capturedOriginalImageSize가 nil입니다!")
+                    }
+
+                    if let pixelBuffer = self.capturedPixelBuffer,
+                       let depthMap = self.capturedDepthMap,
+                       let imageSize = self.capturedOriginalImageSize {
+
+                        // ===== AutoSize02.md: ARFrame 즉시 복사하여 보관 =====
+                        // 배경 제거 처리 중에도 `currentARFrame`은 계속 업데이트되므로
+                        // 지금 이 시점의 ARFrame을 즉시 복사해서 별도 상수에 저장
+                        let savedARFrame = await self.getCapturedFrame()
+                        print("🔍 [AutoFlow] ARFrame 즉시 저장 - frame: \(savedARFrame != nil)")
+
+                        Task {
+                            do {
+                                // 1. 윤곽선 감지
+                                guard let contour = try await self.autoMeasurementService.detectClothingContour(
+                                    from: pixelBuffer,
+                                    depthMap: depthMap
+                                ) else {
+                                    print("⚠️ [AutoFlow] 윤곽선 감지 실패 - 타입 선택 화면 표시")
+                                    await MainActor.run {
+                                        self.showingTypeSelection = true
+                                    }
+                                    return
+                                }
+                                print("✅ [AutoFlow] 윤곽선 분석 완료!")
+
+                                // 2. 의류 타입 자동 인식
+                                let features = ClothingFeatureAnalyzer().extractFeatures(from: contour)
+                                let recognizedType = ClothingFeatureAnalyzer().detectClothingCategory(from: features)
+                                print("🎯 [AutoFlow] 인식된 의류 타입: \(recognizedType.displayName)")
+
+                                // 3. 특징점 추출
+                                let featurePoints = self.autoMeasurementService.extractFeaturePoints(
+                                    from: contour,
+                                    clothingType: recognizedType
+                                )
+
+                                // 4. 측정 포인트 감지
+                                let candidates = self.autoMeasurementService.detectMeasurementPoints(
+                                    featurePoints: featurePoints,
+                                    contour: contour,
+                                    clothingType: recognizedType
+                                )
+
+                                print("📍 [AutoFlow] 측정 후보 포인트: \(candidates.count)개")
+
+                                if !candidates.isEmpty {
+                                    // 5. 2D → 3D 변환 및 측정 (저장된 ARFrame 사용)
+                                    print("🔍 [AutoFlow] 저장된 ARFrame 사용 중...")
+                                    if let frame = savedARFrame {
+                                        print("✅ [AutoFlow] ARFrame 있음 - 측정 시작")
+                                        let measurements = try await self.processCandidates(candidates, frame: frame, clothingType: recognizedType)
+
+                                        await MainActor.run {
+                                            self.autoMeasurementResults = measurements
+
+                                            // 측정값 저장
+                                            for measurement in measurements {
+                                                self.session.setMeasurement(measurement.value, for: measurement.type)
+                                            }
+
+                                            // 인식된 타입 설정
+                                            self.session.clothingType = recognizedType
+
+                                            print("✅ [AutoFlow] 자동 측정 완료: \(measurements.count)개")
+                                            for measurement in measurements {
+                                                print("  - \(measurement.type.displayName): \(String(format: "%.1f", measurement.value))cm (startPoint: \(measurement.startPoint), endPoint: \(measurement.endPoint))")
+                                            }
+                                        }
+                                    } else {
+                                        print("❌ [AutoFlow] ARFrame 없음 - 측정 실패")
+                                        print("  - currentARFrame: \(await MainActor.run { self.currentARFrame != nil })")
+                                        // ARFrame이 없어도 타입은 설정하고 저장
+                                        await MainActor.run {
+                                            self.autoMeasurementResults = []
+                                            self.session.clothingType = recognizedType
+                                        }
+                                    }
+                                } else {
+                                    await MainActor.run {
+                                        self.autoMeasurementResults = []
+                                        self.session.clothingType = recognizedType
+                                    }
+                                    print("⚠️ [AutoFlow] 측정 후보 포인트 없음")
+                                }
+
+                                // 6. 즉시 저장 (타입 선택 화면 스킵)
+                                await MainActor.run {
+                                    self.saveWithClothingType(recognizedType)
+                                    self.showSuccess("촬영 완료! \(recognizedType.displayName) 저장됨")
+                                    print("💾 [AutoFlow] 저장 완료: \(recognizedType.displayName)")
+
+                                    // ARFrame 해제 (메모리 누수 방지)
+                                    self.currentARFrame = nil
+                                }
+
+                            } catch {
+                                print("❌ [AutoFlow] 자동 측정 실패: \(error.localizedDescription)")
+                                // 실패 시 타입 선택 화면 표시
+                                await MainActor.run {
+                                    self.showingTypeSelection = true
+                                }
+                            }
+                        }
+                    } else {
+                        print("❌ [AutoFlow] 필수 데이터 부족 - 타입 선택 화면 표시")
+                        self.showingTypeSelection = true
+                    }
 
                 case .failure(let error):
                     self.capturedOriginalImageSize = nil
@@ -126,6 +247,13 @@ extension MeasurementViewModelRefactored {
                 // 캡처 플래그 리셋
                 self.captureRequested = false
             }
+        }
+    }
+
+    /// ARFrame을 가져오는 헬퍼 메서드
+    private func getCapturedFrame() async -> ARFrame? {
+        return await MainActor.run {
+            return self.currentARFrame
         }
     }
 
@@ -161,7 +289,8 @@ extension MeasurementViewModelRefactored {
 
                     // 1. 윤곽선 감지
                     guard let contour = try await autoMeasurementService.detectClothingContour(
-                        from: frame
+                        from: frame.capturedImage,
+                        depthMap: frame.sceneDepth?.depthMap
                     ) else {
                         await MainActor.run {
                             // 자동 측정 실패해도 저장은 진행
@@ -171,8 +300,8 @@ extension MeasurementViewModelRefactored {
                         return
                     }
 
-                    // 2. 특징점 추출
-                    let featurePoints = autoMeasurementService.extractFeaturePoints(from: contour)
+                    // 2. 특징점 추출 (템플릿 기반)
+                    let featurePoints = autoMeasurementService.extractFeaturePoints(from: contour, clothingType: type)
 
                     // 3. 측정 포인트 감지
                     let candidates = autoMeasurementService.detectMeasurementPoints(
@@ -183,7 +312,7 @@ extension MeasurementViewModelRefactored {
 
                     if !candidates.isEmpty {
                         // 4. 2D → 3D 변환 및 측정
-                        let measurements = try await processCandidates(candidates, frame: frame)
+                        let measurements = try await processCandidates(candidates, frame: frame, clothingType: type)
 
                         // 5. 측정값 저장
                         await MainActor.run {

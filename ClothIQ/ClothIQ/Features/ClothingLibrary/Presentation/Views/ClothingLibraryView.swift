@@ -29,6 +29,7 @@ struct ClothingLibraryView: View {
     @State private var showingMeasurement = false
     @State private var showingDeleteAllAlert = false
     @State private var isDeleting = false
+    @State private var showingSettings = false
 
     var body: some View {
         Group {
@@ -42,8 +43,12 @@ struct ClothingLibraryView: View {
         }
         .fullScreenCover(isPresented: $showingMeasurement) {
             NavigationStack {
-                MeasurementView(clothingType: nil)
+                // 테스트용 기본 타입: 반바지
+                MeasurementView(clothingType: .shorts)
             }
+        }
+        .sheet(isPresented: $showingSettings) {
+            SettingsView()
         }
     }
 
@@ -64,6 +69,14 @@ struct ClothingLibraryView: View {
             .navigationTitle("내 옷장")
             .searchable(text: $searchText, prompt: "의류 검색")
             .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button(action: {
+                        showingSettings = true
+                    }) {
+                        Image(systemName: "gearshape")
+                    }
+                }
+
                 ToolbarItem(placement: .navigationBarTrailing) {
                     HStack(spacing: 16) {
                         // 전체 삭제 버튼
@@ -105,6 +118,14 @@ struct ClothingLibraryView: View {
                 .navigationTitle("내 옷장")
                 .navigationSplitViewColumnWidth(min: 320, ideal: 400, max: 500)
                 .toolbar {
+                    ToolbarItem(placement: .navigationBarLeading) {
+                        Button(action: {
+                            showingSettings = true
+                        }) {
+                            Image(systemName: "gearshape")
+                        }
+                    }
+
                     ToolbarItem(placement: .navigationBarTrailing) {
                         Button(action: { showingMeasurement = true }) {
                             Image(systemName: "plus.circle.fill")
@@ -495,5 +516,4 @@ struct ClothingItemRow: View {
     ClothingLibraryView()
         .modelContainer(for: [ClothingItemModel.self])
         .environment(\.horizontalSizeClass, .regular)
-        .previewDevice(PreviewDevice(rawValue: "iPad Pro (12.9-inch)"))
 }

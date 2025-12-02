@@ -35,53 +35,94 @@ extension ObjectCaptureService {
     /// - Note: 배경은 밝은 그레이(RGB 245)로 처리됩니다.
     ///
     func removeBackground(from image: UIImage, depthMap: CVPixelBuffer?) throws -> UIImage? {
+        print("🎨 [BackgroundRemoval] ===== 배경 제거 파이프라인 시작 =====")
+        let startTime = Date()
+
         // 이미 정규화된 이미지가 전달됨 (processImage에서 정규화)
         guard let cgImage = image.cgImage else {
+            print("❌ [BackgroundRemoval] 이미지 변환 실패")
             throw ObjectCaptureError.invalidImage
         }
 
+        print("📊 [BackgroundRemoval] 이미지 크기: \(cgImage.width)x\(cgImage.height)")
+        print("📊 [BackgroundRemoval] Depth map 있음: \(depthMap != nil)")
 
         // 마스크 생성 우선순위
         let maskBuffer: CVPixelBuffer?
+        var maskMethod = ""
 
         // 1. Vision 단독 (최우선) - iOS의 강력한 전경 분리 기능
+        print("🔍 [BackgroundRemoval] 1단계: Vision Framework 전경 마스크 생성 시도...")
         if let visionMask = detectForegroundMask(cgImage: cgImage) {
+            print("✅ [BackgroundRemoval] Vision 마스크 생성 성공!")
+
+            // 마스크 품질 평가
+            let coverage = calculateWhitePixelRatio(in: visionMask, threshold: Constants.maskThreshold)
+            print("📊 [BackgroundRemoval] Vision 마스크 커버리지: \(String(format: "%.1f", coverage * 100))%")
 
             // Vision 마스크를 그대로 사용 (Depth 결합 비활성화)
             // 이유: Depth와 AND 연산 시 마스크가 축소되어 객체가 제거되는 문제 발생
             maskBuffer = visionMask
+            maskMethod = "Vision Framework"
 
             // Depth 정보는 로깅만 수행
             if let depth = depthMap {
+                print("📊 [BackgroundRemoval] Depth map 정보: \(CVPixelBufferGetWidth(depth))x\(CVPixelBufferGetHeight(depth))")
                 _ = createDepthMask(from: depth, imageSize: CGSize(width: cgImage.width, height: cgImage.height))
             }
         }
         // 2. LiDAR 기반 (폴백1)
         else if let depth = depthMap {
+            print("⚠️ [BackgroundRemoval] Vision 마스크 실패 → Depth 기반 폴백 사용")
             let depthMask = createDepthMask(from: depth, imageSize: CGSize(width: cgImage.width, height: cgImage.height))
             maskBuffer = convertCIImageToPixelBuffer(depthMask)
+            maskMethod = "Depth Map (Fallback 1)"
+
+            if let mask = maskBuffer {
+                let coverage = calculateWhitePixelRatio(in: mask, threshold: Constants.maskThreshold)
+                print("📊 [BackgroundRemoval] Depth 마스크 커버리지: \(String(format: "%.1f", coverage * 100))%")
+            }
         }
         // 3. Saliency Detection (폴백2)
         else {
+            print("⚠️ [BackgroundRemoval] Vision + Depth 실패 → Saliency Detection 시도")
             if let saliency = detectSaliency(cgImage: cgImage) {
+                print("✅ [BackgroundRemoval] Saliency Detection 성공")
                 maskBuffer = saliency
+                maskMethod = "Saliency Detection (Fallback 2)"
+
+                let coverage = calculateWhitePixelRatio(in: saliency, threshold: Constants.maskThreshold)
+                print("📊 [BackgroundRemoval] Saliency 마스크 커버리지: \(String(format: "%.1f", coverage * 100))%")
             }
             // 4. 중앙 영역 (최종 폴백)
             else {
+                print("⚠️ [BackgroundRemoval] 모든 감지 실패 → 중앙 80% 영역 사용 (최종 폴백)")
                 let centerMask = createCenterMask(for: cgImage)
                 maskBuffer = convertCIImageToPixelBuffer(centerMask)
+                maskMethod = "Center Crop 80% (Final Fallback)"
             }
         }
 
         guard let finalMask = maskBuffer else {
+            print("❌ [BackgroundRemoval] 마스크 생성 완전 실패")
             return nil
         }
 
+        print("🎯 [BackgroundRemoval] 사용된 마스크 방법: \(maskMethod)")
 
         // 마스크를 사용하여 배경을 밝은 그레이로 변경
-        let result = applyMask(to: image, mask: finalMask)
+        print("🖌️ [BackgroundRemoval] 마스크 적용 중...")
+        guard let backgroundRemovedImage = applyMask(to: image, mask: finalMask) else {
+            print("❌ [BackgroundRemoval] 마스크 적용 실패")
+            print("🎨 [BackgroundRemoval] ===== 배경 제거 파이프라인 종료 =====\n")
+            return nil
+        }
 
-        return result
+        let processingTime = Date().timeIntervalSince(startTime)
+        print("✅ [BackgroundRemoval] 배경 제거 완료! (소요 시간: \(String(format: "%.2f", processingTime))초)")
+        print("🎨 [BackgroundRemoval] ===== 배경 제거 파이프라인 종료 =====\n")
+
+        return backgroundRemovedImage
     }
 
     /// Saliency Detection 수행 (헬퍼 메서드)
@@ -113,19 +154,34 @@ extension ObjectCaptureService {
     /// generateScaledMaskForImage를 사용하여 고해상도 마스크 생성
     /// 마스크 후처리를 통해 품질 개선
     func detectForegroundMask(cgImage: CGImage) -> CVPixelBuffer? {
+        print("   🔍 [Vision] VNGenerateForegroundInstanceMaskRequest 시작...")
+
         // 이미지는 이미 정규화되어 있으므로 orientation은 .up
         let handler = VNImageRequestHandler(cgImage: cgImage, orientation: CGImagePropertyOrientation(.up), options: [:])
         let semaphore = DispatchSemaphore(value: 0)
         var foregroundMask: CVPixelBuffer?
+        var visionError: Error?
 
         let maskRequest = VNGenerateForegroundInstanceMaskRequest { request, error in
             defer { semaphore.signal() }
 
-            guard error == nil,
-                  let results = request.results as? [VNInstanceMaskObservation],
-                  let firstResult = results.first else {
+            if let error = error {
+                visionError = error
+                print("   ❌ [Vision] Vision Framework 에러: \(error.localizedDescription)")
                 return
             }
+
+            guard let results = request.results as? [VNInstanceMaskObservation] else {
+                print("   ❌ [Vision] 결과를 VNInstanceMaskObservation으로 변환 실패")
+                return
+            }
+
+            guard let firstResult = results.first else {
+                print("   ❌ [Vision] 감지된 객체 없음 (results.first == nil)")
+                return
+            }
+
+            print("   ✅ [Vision] 객체 감지 성공! (인스턴스 수: \(firstResult.allInstances.count))")
 
             // 고해상도 마스크 생성 (generateScaledMaskForImage 사용)
             do {
@@ -135,28 +191,52 @@ extension ObjectCaptureService {
                 )
 
                 // 마스크 통계 출력
-                _ = CVPixelBufferGetWidth(scaledMask)
-                _ = CVPixelBufferGetHeight(scaledMask)
+                let maskWidth = CVPixelBufferGetWidth(scaledMask)
+                let maskHeight = CVPixelBufferGetHeight(scaledMask)
+                print("   📊 [Vision] 마스크 크기: \(maskWidth)x\(maskHeight)")
 
                 // 마스크 품질 분석
-                _ = self.calculateWhitePixelRatio(in: scaledMask, threshold: Constants.maskThreshold)
+                let coverage = self.calculateWhitePixelRatio(in: scaledMask, threshold: Constants.maskThreshold)
+                print("   📊 [Vision] 마스크 커버리지: \(String(format: "%.1f", coverage * 100))%")
 
                 foregroundMask = scaledMask
+                print("   ✅ [Vision] 고해상도 마스크 생성 성공")
 
             } catch {
+                print("   ⚠️ [Vision] 고해상도 마스크 생성 실패: \(error.localizedDescription)")
+                print("   🔄 [Vision] 저해상도 마스크로 폴백")
                 // 폴백: 저해상도 마스크 사용
                 foregroundMask = firstResult.instanceMask
             }
         }
 
-        try? handler.perform([maskRequest])
-        _ = semaphore.wait(timeout: .now() + 5.0)  // Vision mask는 시간이 더 걸림
+        do {
+            try handler.perform([maskRequest])
+        } catch {
+            print("   ❌ [Vision] Vision 요청 실행 실패: \(error.localizedDescription)")
+            return nil
+        }
+
+        let waitResult = semaphore.wait(timeout: .now() + 5.0)  // Vision mask는 시간이 더 걸림
+        if waitResult == .timedOut {
+            print("   ⏱️ [Vision] 타임아웃 (5초 초과)")
+            return nil
+        }
+
+        if let error = visionError {
+            print("   ❌ [Vision] Vision 처리 중 에러 발생: \(error.localizedDescription)")
+            return nil
+        }
 
         // 마스크 후처리: Morphological 연산으로 품질 개선
         if let mask = foregroundMask {
-            return refineMaskQuality(mask)
+            print("   🔧 [Vision] 마스크 품질 개선 (Morphological 연산) 시작...")
+            let refinedMask = refineMaskQuality(mask)
+            print("   ✅ [Vision] 마스크 품질 개선 완료")
+            return refinedMask
         }
 
+        print("   ❌ [Vision] 최종 마스크 생성 실패")
         return foregroundMask
     }
 

@@ -92,6 +92,40 @@ protocol ARMeasurementServiceProtocol {
         points: [MeasurementPoint],
         environmentScore: Float
     ) -> Float
+
+    // MARK: - Multi-Sampling (Enhanced Measurement)
+
+    /// 포인트 샘플링을 시작합니다 (다중 프레임 수집).
+    ///
+    /// - Parameter screenPoint: 화면 좌표
+    /// - Returns: 샘플링 세션 ID
+    func startPointSampling(at screenPoint: CGPoint) -> String
+
+    /// AR 프레임에서 샘플을 수집하고 진행률을 반환합니다.
+    ///
+    /// - Parameters:
+    ///   - samplingID: 샘플링 세션 ID
+    ///   - frame: AR 프레임
+    /// - Returns: 진행률 (0.0 ~ 1.0), 완료되면 nil
+    /// - Throws: ARError (깊이 데이터 부족 등)
+    func collectSample(
+        for samplingID: String,
+        from frame: ARFrame
+    ) throws -> Float?
+
+    /// 샘플링을 완료하고 정제된 측정 포인트를 반환합니다.
+    ///
+    /// - Parameter samplingID: 샘플링 세션 ID
+    /// - Returns: 정제된 측정 포인트 (칼만 필터 + 다중 샘플링 적용)
+    /// - Throws: ARError (샘플 부족 등)
+    func finalizeSampledPoint(
+        for samplingID: String
+    ) throws -> MeasurementPoint
+
+    /// 진행 중인 샘플링을 취소합니다.
+    ///
+    /// - Parameter samplingID: 샘플링 세션 ID
+    func cancelSampling(for samplingID: String)
 }
 
 // MARK: - Default Implementations

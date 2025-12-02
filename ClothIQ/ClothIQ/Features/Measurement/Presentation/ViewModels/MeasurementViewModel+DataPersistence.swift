@@ -100,15 +100,20 @@ extension MeasurementViewModelRefactored {
 
         // 측정값이 있다면 추가 (자동 측정이 성공한 경우)
         for (type, value) in session.measurements {
-            // autoMeasurementResults에서 해당 타입의 좌표 찾기
+            // autoMeasurementResults에서 해당 타입의 좌표 및 신뢰도 찾기
             let resultWithCoords = autoMeasurementResults.first { $0.type == type }
-            let startPoint = convertToProcessedNormalizedPoint(resultWithCoords?.startPoint)
-            let endPoint = convertToProcessedNormalizedPoint(resultWithCoords?.endPoint)
+            // 이미 크롭 이미지 기준 정규화 좌표이므로 그대로 사용
+            let startPoint = resultWithCoords?.startPoint
+            let endPoint = resultWithCoords?.endPoint
+
+            // 개별 측정의 신뢰도 사용 (없으면 전체 신뢰도 사용)
+            let confidence = Double(resultWithCoords?.confidence ?? overallConfidence)
+
             let measurement = MeasurementModel(
                 type: type.rawValue,
                 value: value,
                 unit: "cm",
-                confidence: Double(overallConfidence),
+                confidence: confidence,
                 startPointX: startPoint.map { Double($0.x) },
                 startPointY: startPoint.map { Double($0.y) },
                 endPointX: endPoint.map { Double($0.x) },
@@ -218,13 +223,18 @@ extension MeasurementViewModelRefactored {
         // 측정값들을 MeasurementModel로 변환
         for (type, value) in session.measurements {
             let resultWithCoords = autoMeasurementResults.first { $0.type == type }
-            let startPoint = convertToProcessedNormalizedPoint(resultWithCoords?.startPoint)
-            let endPoint = convertToProcessedNormalizedPoint(resultWithCoords?.endPoint)
+            // 이미 크롭 이미지 기준 정규화 좌표이므로 그대로 사용
+            let startPoint = resultWithCoords?.startPoint
+            let endPoint = resultWithCoords?.endPoint
+
+            // 개별 측정의 신뢰도 사용 (없으면 전체 신뢰도 사용)
+            let confidence = Double(resultWithCoords?.confidence ?? overallConfidence)
+
             let measurement = MeasurementModel(
                 type: type.rawValue,
                 value: value,
                 unit: "cm",
-                confidence: Double(overallConfidence),
+                confidence: confidence,
                 startPointX: startPoint.map { Double($0.x) },
                 startPointY: startPoint.map { Double($0.y) },
                 endPointX: endPoint.map { Double($0.x) },
@@ -293,7 +303,8 @@ extension MeasurementViewModelRefactored {
             do {
                 // 1. 윤곽선 감지
                 guard let contour = try await autoMeasurementService.detectClothingContour(
-                    from: frame
+                    from: frame.capturedImage,
+                    depthMap: frame.sceneDepth?.depthMap
                 ) else {
                     await MainActor.run {
                         showError("의류 윤곽선을 감지할 수 없습니다. 의류를 평평하게 펼쳐주세요.")
@@ -302,8 +313,8 @@ extension MeasurementViewModelRefactored {
                     return
                 }
 
-                // 2. 특징점 추출
-                let featurePoints = autoMeasurementService.extractFeaturePoints(from: contour)
+                // 2. 특징점 추출 (템플릿 기반)
+                let featurePoints = autoMeasurementService.extractFeaturePoints(from: contour, clothingType: clothingType)
 
                 // 3. 측정 포인트 감지
                 let candidates = autoMeasurementService.detectMeasurementPoints(
@@ -321,7 +332,7 @@ extension MeasurementViewModelRefactored {
                 }
 
                 // 4. 2D → 3D 변환 및 측정
-                let measurements = try await processCandidates(candidates, frame: frame)
+                let measurements = try await processCandidates(candidates, frame: frame, clothingType: clothingType)
 
                 // 5. 결과 저장
                 await MainActor.run {
@@ -354,41 +365,180 @@ extension MeasurementViewModelRefactored {
     /// 측정 포인트 후보들을 처리하여 실제 측정값 계산
     func processCandidates(
         _ candidates: [MeasurementPointCandidate],
-        frame: ARFrame
+        frame: ARFrame,
+        clothingType: ClothingType
     ) async throws -> [MeasurementResult] {
         var measurements: [MeasurementResult] = []
+
+        print("🔍 [processCandidates] 시작 - 총 후보: \(candidates.count)개")
 
         // 측정 타입별로 그룹화
         let grouped = Dictionary(grouping: candidates, by: { $0.type })
 
+        print("📊 [processCandidates] 타입별 후보 개수:")
+        for (type, group) in grouped {
+            print("  - \(type.displayName): \(group.count)개")
+        }
+
         for (type, group) in grouped {
             guard group.count >= 2 else {
+                print("⏭️ [processCandidates] \(type.displayName) 스킵 (후보 부족: \(group.count)개 < 2개)")
                 continue
             }
+
+            print("✅ [processCandidates] \(type.displayName) 처리 시작 (\(group.count)개 후보)")
 
             // 각 후보를 3D 포인트로 변환
             var points3D: [MeasurementPoint] = []
 
-            for candidate in group {
-                // 정규화된 좌표를 뷰포트 좌표로 변환
-                // AR 카메라의 실제 이미지 해상도 사용 (중요!)
-                let imageResolution = frame.camera.imageResolution
-                let viewportSize = CGSize(width: imageResolution.width, height: imageResolution.height)
+            for (index, candidate) in group.enumerated() {
+                // ===== 좌표 변환: 크롭된 이미지 정규화 좌표 → AR 원본 이미지 좌표 =====
 
-                // Y 좌표 반전 제거 - ARKit은 이미지 좌표계 사용
-                let screenX = candidate.screenPosition.x * viewportSize.width
-                let screenY = candidate.screenPosition.y * viewportSize.height
-                let screenPoint = CGPoint(x: screenX, y: screenY)
+                // 1. 정규화 좌표 → 크롭된 이미지 픽셀 좌표
+                guard let processedSize = await MainActor.run(body: { self.capturedProcessedImageSize }) else {
+                    print("    ❌ 크롭 이미지 크기 정보 없음")
+                    continue
+                }
 
-                if let point = try? measurementService.extractMeasurementPoint(
-                    at: screenPoint,
-                    from: frame
-                ) {
-                    points3D.append(point)
+                let croppedX = candidate.screenPosition.x * processedSize.width
+                let croppedY = candidate.screenPosition.y * processedSize.height
+
+                // 2. 크롭된 이미지 픽셀 좌표 → 원본 AR 이미지 좌표
+                guard let cropRect = await MainActor.run(body: { self.capturedCropRect }) else {
+                    print("    ❌ Crop rect 정보 없음")
+                    continue
+                }
+
+                let originalX = cropRect.origin.x + croppedX
+                let originalY = cropRect.origin.y + croppedY
+
+                // 원본 AR 이미지 픽셀 좌표
+                let pixelPoint = CGPoint(x: originalX, y: originalY)
+
+                // extractDepth는 정규화된 좌표(0~1)를 기대하므로, 이미지 해상도로 나누어 정규화
+                // 중요: capturedOriginalImageSize는 normalizedOrientation() 후의 크기이므로
+                // 회전된 이미지 (1440×1920) 기준으로 정규화해야 합니다.
+                guard let originalImageSize = capturedOriginalImageSize else {
+                    print("    ❌ capturedOriginalImageSize 없음")
+                    continue
+                }
+
+                let normalizedScreenPoint = CGPoint(
+                    x: originalX / originalImageSize.width,
+                    y: originalY / originalImageSize.height
+                )
+
+                print("  [후보 \(index+1)] 좌표 변환:")
+                print("    - 정규화: \(candidate.screenPosition)")
+                print("    - 크롭 이미지(\(processedSize)): (\(croppedX), \(croppedY))")
+                print("    - CropRect: \(cropRect)")
+                print("    - 원본 AR 픽셀: \(pixelPoint)")
+                print("    - 정규화된 좌표: \(normalizedScreenPoint)")
+                print("    - 원본 이미지 크기 (회전 후): \(originalImageSize)")
+                print("    - AR 카메라 해상도 (회전 전): \(frame.camera.imageResolution)")
+
+                // ===== 3D 변환 에러 상세 로깅 =====
+                do {
+                    if let point = try measurementService.extractMeasurementPoint(
+                        at: normalizedScreenPoint,
+                        from: frame
+                    ) {
+                        points3D.append(point)
+                        print("    ✅ 3D 변환 성공 - worldPos: \(point.worldPosition)")
+                    } else {
+                        print("    ❌ 3D 변환 실패 - nil 반환")
+                    }
+                } catch {
+                    print("    ❌ 3D 변환 실패 - 에러: \(error)")
+                    print("    ❌ 에러 상세: \(error.localizedDescription)")
                 }
             }
 
+            print("📍 [processCandidates] \(type.displayName) 3D 변환 결과: \(points3D.count)/\(group.count)")
+
+            // ===== Depth map fallback: LiDAR 측정 실패 시 depth map 직접 사용 =====
             guard points3D.count >= 2 else {
+                print("⚠️ [processCandidates] LiDAR 측정 실패 → Depth map 기반 측정 시도")
+
+                // Depth map 및 필요한 정보 추출
+                guard let depthMap = await MainActor.run(body: { self.capturedDepthMap }),
+                      let imageSize = await MainActor.run(body: { self.capturedOriginalImageSize }),
+                      group.count >= 2 else {
+                    print("⏭️ [processCandidates] \(type.displayName) 스킵 (depth map 없음 또는 후보 부족)")
+                    continue
+                }
+
+                let intrinsics = frame.camera.intrinsics
+                let resolution = frame.camera.imageResolution
+
+                // 첫 두 포인트로 거리 측정
+                let candidate1 = group[0]
+                let candidate2 = group[1]
+
+                // 정규화 좌표 → 픽셀 좌표
+                let point1 = CGPoint(
+                    x: candidate1.screenPosition.x * imageSize.width,
+                    y: candidate1.screenPosition.y * imageSize.height
+                )
+                let point2 = CGPoint(
+                    x: candidate2.screenPosition.x * imageSize.width,
+                    y: candidate2.screenPosition.y * imageSize.height
+                )
+
+                print("  📐 [DepthMapFallback] 측정 시도:")
+                print("    - Point 1: \(point1)")
+                print("    - Point 2: \(point2)")
+                print("    - Image size: \(imageSize)")
+
+                // PhotoMeasurementCalculator로 거리 계산 (교정 계수 포함)
+                if let result = PhotoMeasurementCalculator.calculateDistance(
+                    from: point1,
+                    to: point2,
+                    depthMap: depthMap,
+                    imageSize: imageSize,
+                    cameraIntrinsics: intrinsics,
+                    cameraResolution: resolution,
+                    measurementType: type,
+                    clothingType: clothingType
+                ) {
+                    print("  ✅ [DepthMapFallback] 측정 성공!")
+                    print("    - 거리: \(result.distance) cm")
+                    print("    - 신뢰도: \(result.confidence)")
+
+                    // 픽셀 좌표 → 정규화 좌표 (0~1) 변환
+                    // SwiftUI 좌표계(top-left origin) → Vision 좌표계(bottom-left origin)
+                    var normalizedStart = CGPoint(
+                        x: point1.x / imageSize.width,
+                        y: 1.0 - (point1.y / imageSize.height)  // Y축 반전
+                    )
+                    var normalizedEnd = CGPoint(
+                        x: point2.x / imageSize.width,
+                        y: 1.0 - (point2.y / imageSize.height)  // Y축 반전
+                    )
+
+                    // 방향 정규화: Vision 좌표계에서 Y가 큰 값(상단) → 작은 값(하단) 순서로 정렬
+                    if normalizedStart.y < normalizedEnd.y {
+                        swap(&normalizedStart, &normalizedEnd)
+                        print("    - [방향 정규화] start/end 순서를 교체하여 상단→하단 방향으로 정렬")
+                    }
+
+                    print("    - 정규화 좌표 저장: start=\(normalizedStart), end=\(normalizedEnd)")
+
+                    // MeasurementResult 생성
+                    let measurement = MeasurementResult(
+                        type: type,
+                        value: result.distance,
+                        confidence: Float(result.confidence),
+                        startPoint: normalizedStart,
+                        endPoint: normalizedEnd
+                    )
+                    measurements.append(measurement)
+                    continue
+                } else {
+                    print("  ❌ [DepthMapFallback] 측정 실패 (depth 값 없음)")
+                }
+
+                print("⏭️ [processCandidates] \(type.displayName) 스킵 (모든 측정 방법 실패)")
                 continue
             }
 
@@ -429,12 +579,16 @@ extension MeasurementViewModelRefactored {
                     finalValue = directValue
                 }
 
+                // 정규화된 좌표 저장 (크롭된 이미지 기준, 0~1 범위)
+                let startPoint = group.count > 0 ? group[0].screenPosition : nil
+                let endPoint = group.count > 1 ? group[1].screenPosition : nil
+
                 measurements.append(MeasurementResult(
                     type: type,
                     value: finalValue,
                     confidence: avgConfidence,
-                    startPoint: nil,
-                    endPoint: nil
+                    startPoint: startPoint,
+                    endPoint: endPoint
                 ))
                 continue
             }
@@ -495,7 +649,8 @@ extension MeasurementViewModelRefactored {
                 continue
             }
 
-            // 정규화된 좌표 저장 (원본 후보 좌표는 이미 0~1로 정규화됨)
+            // 정규화된 좌표 저장 (크롭된 이미지 기준, 0~1 범위)
+            // PhotoMeasurementView에서 processedImageSize 또는 image.size로 역정규화
             let startPoint = group.count > 0 ? group[0].screenPosition : nil
             let endPoint = group.count > 1 ? group[1].screenPosition : nil
 
@@ -512,36 +667,6 @@ extension MeasurementViewModelRefactored {
         return measurements
     }
 
-    func convertToProcessedNormalizedPoint(_ point: CGPoint?) -> CGPoint? {
-        guard let point = point else { return nil }
-        guard
-            let originalSize = capturedOriginalImageSize,
-            let cropRect = capturedCropRect,
-            cropRect.width > 0,
-            cropRect.height > 0
-        else {
-            return point
-        }
-
-        let pixel = CGPoint(
-            x: point.x * originalSize.width,
-            y: point.y * originalSize.height
-        )
-
-        let adjusted = CGPoint(
-            x: (pixel.x - cropRect.origin.x) / cropRect.width,
-            y: (pixel.y - cropRect.origin.y) / cropRect.height
-        )
-
-        return CGPoint(
-            x: clampNormalized(adjusted.x),
-            y: clampNormalized(adjusted.y)
-        )
-    }
-
-    func clampNormalized(_ value: CGFloat) -> CGFloat {
-        return max(0, min(1, value))
-    }
 
     func encodeIntrinsicsMatrix(_ matrix: simd_float3x3) -> Data {
         var mutableMatrix = matrix

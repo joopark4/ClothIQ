@@ -35,8 +35,12 @@ struct ClothingDetailView: View {
     @State private var showingTypeEditor = false
 
     // 측정 라인 표시 관련
-    @State private var showMeasurementLines = false
+    @State private var showMeasurementLines = true  // 기본값을 true로 변경 (측정값 자동 표시)
     @State private var selectedMeasurement: MeasurementModel?
+
+    // 디버그 도구
+    @State private var imageTapCount = 0
+    @State private var showingDebugDiagnostics = false
 
     var body: some View {
         Group {
@@ -182,6 +186,25 @@ struct ClothingDetailView: View {
                         }
                         .clipShape(RoundedRectangle(cornerRadius: 16))
                         .shadow(color: .black.opacity(0.1), radius: 8, x: 0, y: 4)
+                        .overlay(alignment: .topLeading) {
+                            // 🔍 진단 버튼 (이미지 3번 탭)
+                            Button {
+                                imageTapCount += 1
+                                if imageTapCount >= 3 {
+                                    printDiagnostics()
+                                    imageTapCount = 0
+                                    showingDebugDiagnostics = true
+                                }
+                            } label: {
+                                Image(systemName: imageTapCount >= 1 ? "stethoscope.circle.fill" : "stethoscope.circle")
+                                    .foregroundStyle(imageTapCount >= 1 ? .orange : .secondary)
+                                    .frame(width: 36, height: 36)
+                                    .background(.ultraThinMaterial)
+                                    .clipShape(Circle())
+                            }
+                            .padding(12)
+                            .opacity(imageTapCount >= 1 ? 1 : 0.5)
+                        }
                         .overlay(alignment: .topTrailing) {
                             // 측정 라인 토글 버튼
                             Button {
@@ -334,6 +357,29 @@ struct ClothingDetailView: View {
                     .font(.headline)
 
                 Spacer()
+
+                // 측정값이 있을 때만 표시 상태 및 토글 버튼 표시
+                if !item.measurements.isEmpty {
+                    // 측정값 표시 상태 표시
+                    Button {
+                        withAnimation(.spring(response: 0.3)) {
+                            showMeasurementLines.toggle()
+                        }
+                    } label: {
+                        HStack(spacing: 4) {
+                            Image(systemName: showMeasurementLines ? "eye.fill" : "eye.slash.fill")
+                                .font(.caption)
+                            Text(showMeasurementLines ? "표시됨" : "숨김")
+                                .font(.caption)
+                        }
+                        .foregroundColor(showMeasurementLines ? .blue : .secondary)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
+                        .background(showMeasurementLines ? Color.blue.opacity(0.1) : Color.gray.opacity(0.1))
+                        .clipShape(Capsule())
+                    }
+                    .buttonStyle(.plain)
+                }
 
                 Text("\(item.completedMeasurements)/\(item.totalRequiredMeasurements)")
                     .font(.subheadline)
@@ -490,13 +536,89 @@ struct ClothingDetailView: View {
             shareText += "\n\n측정값:\n"
             for measurement in item.measurements {
                 if let type = MeasurementType(rawValue: measurement.type) {
-                    shareText += "\(type.displayName): \(measurement.formattedValue())\n"
+                    shareText += "\(type.displayName): \(measurement.formattedCalibratedValue())\n"
                 }
             }
         }
 
         // UIActivityViewController 표시
         // TODO: 실제 공유 구현
+    }
+
+    /// 🔍 진단 도구: 이미지 및 측정 데이터 분석
+    private func printDiagnostics() {
+        print("\n" + String(repeating: "=", count: 80))
+        print("🔍 ClothIQ 진단 도구 - 이미지 및 측정 데이터 분석")
+        print(String(repeating: "=", count: 80))
+
+        // 1. 이미지 정보
+        if let image = item.loadImage() {
+            let imageSize = image.size
+            let aspectRatio = imageSize.height / imageSize.width
+
+            print("\n📷 이미지 정보:")
+            print("  - 이미지 크기: \(imageSize.width) × \(imageSize.height)")
+            print("  - 종횡비: \(String(format: "%.3f", aspectRatio)) (높이/너비)")
+            print("  - 이미지 경로: \(item.imagePath ?? "없음")")
+
+            if let originalSize = item.originalImageSize {
+                print("  - 원본 크기: \(originalSize.width) × \(originalSize.height)")
+            }
+            if let processedSize = item.processedImageSize {
+                print("  - 처리된 크기: \(processedSize.width) × \(processedSize.height)")
+            }
+
+            // 2. 의류 분류 재실행
+            let classifier = VisionClothingClassifier()
+            let result = classifier.classify(image: image)
+
+            print("\n🏷️ 의류 분류:")
+            print("  - 현재 분류: \(item.clothingType?.displayName ?? "없음") (\(item.type))")
+            print("  - 재분류 결과: \(result.type.displayName) (\(result.type.rawValue))")
+            print("  - 분류 신뢰도: \(String(format: "%.1f%%", result.confidence * 100))")
+            print("  - 분류 방법: \(result.method)")
+
+            if result.type.rawValue != item.type {
+                print("  ⚠️ 불일치! 현재 '\(item.type)'로 저장되어 있지만, 재분류 시 '\(result.type.rawValue)'로 분류됨")
+            }
+        } else {
+            print("\n❌ 이미지를 로드할 수 없습니다")
+        }
+
+        // 3. 측정값 정보
+        print("\n📏 측정값 (\(item.measurements.count)개):")
+        if item.measurements.isEmpty {
+            print("  - 측정값 없음")
+        } else {
+            for (index, measurement) in item.measurements.enumerated() {
+                let measurementType = MeasurementType(rawValue: measurement.type)
+                print("\n  [\(index + 1)] \(measurementType?.displayName ?? measurement.type)")
+                print("     - 값: \(String(format: "%.2f", measurement.value)) \(measurement.unit)")
+                print("     - 신뢰도: \(String(format: "%.1f%%", measurement.confidence * 100))")
+                print("     - 측정 시간: \(measurement.measuredAt)")
+
+                if let startX = measurement.startPointX,
+                   let startY = measurement.startPointY,
+                   let endX = measurement.endPointX,
+                   let endY = measurement.endPointY {
+                    print("     - 시작점: (\(String(format: "%.4f", startX)), \(String(format: "%.4f", startY)))")
+                    print("     - 끝점: (\(String(format: "%.4f", endX)), \(String(format: "%.4f", endY)))")
+                } else {
+                    print("     ⚠️ 좌표 정보 없음")
+                }
+            }
+        }
+
+        // 4. 요약
+        let progress = item.totalRequiredMeasurements > 0
+            ? Double(item.completedMeasurements) / Double(item.totalRequiredMeasurements)
+            : 0.0
+        print("\n📊 요약:")
+        print("  - 총 측정 항목: \(item.totalRequiredMeasurements)개")
+        print("  - 완료된 측정: \(item.completedMeasurements)개")
+        print("  - 진행률: \(String(format: "%.1f%%", progress * 100))")
+
+        print(String(repeating: "=", count: 80) + "\n")
     }
 }
 
@@ -528,7 +650,7 @@ struct MeasurementRow: View {
                     .foregroundColor(isSelected ? measurementColor : .primary)
 
                 HStack(spacing: 4) {
-                    Text(measurement.formattedValue())
+                    Text(measurement.formattedCalibratedValue())
                         .font(.title3)
                         .fontWeight(.semibold)
                         .foregroundColor(isSelected ? measurementColor : .blue)

@@ -78,11 +78,88 @@ struct ClothingFeaturePoints {
         // 중심 X좌표 계산
         self.centerX = (leftmostPoint.x + rightmostPoint.x) / 2.0
 
-        // 주요 측정 위치 Y좌표 계산
+        // 주요 측정 위치 Y좌표 계산 (기본 고정 비율)
         let totalHeight = abs(topPoint.y - bottomPoint.y)
         self.chestY = topPoint.y - totalHeight * 0.3  // 상단에서 30% 아래
         self.waistY = topPoint.y - totalHeight * 0.5  // 중앙
         self.hipY = topPoint.y - totalHeight * 0.7    // 상단에서 70% 아래
+    }
+
+    // MARK: - Template-based Initialization
+
+    /// 템플릿을 적용하여 측정 위치를 계산합니다.
+    ///
+    /// - Parameters:
+    ///   - topPoint: 최상단 지점
+    ///   - bottomPoint: 최하단 지점
+    ///   - leftmostPoint: 최좌측 지점
+    ///   - rightmostPoint: 최우측 지점
+    ///   - allPoints: 전체 윤곽선 포인트
+    ///   - template: 적용할 의류 템플릿
+    init(
+        topPoint: CGPoint,
+        bottomPoint: CGPoint,
+        leftmostPoint: CGPoint,
+        rightmostPoint: CGPoint,
+        allPoints: [CGPoint],
+        template: ClothingTemplate
+    ) {
+        self.topPoint = topPoint
+        self.bottomPoint = bottomPoint
+        self.leftmostPoint = leftmostPoint
+        self.rightmostPoint = rightmostPoint
+        self.allPoints = allPoints
+
+        // 중심 X좌표 계산
+        self.centerX = (leftmostPoint.x + rightmostPoint.x) / 2.0
+
+        // 템플릿 기반 측정 위치 Y좌표 계산
+        let totalHeight = abs(topPoint.y - bottomPoint.y)
+        self.chestY = topPoint.y - totalHeight * template.chestOffset
+        self.waistY = topPoint.y - totalHeight * template.waistOffset
+        self.hipY = topPoint.y - totalHeight * template.hipOffset
+    }
+
+    /// 종횡비와 의류 타입을 기반으로 최적 템플릿을 적용하여 생성합니다.
+    ///
+    /// - Parameters:
+    ///   - topPoint: 최상단 지점
+    ///   - bottomPoint: 최하단 지점
+    ///   - leftmostPoint: 최좌측 지점
+    ///   - rightmostPoint: 최우측 지점
+    ///   - allPoints: 전체 윤곽선 포인트
+    ///   - clothingType: 의류 타입
+    /// - Returns: 템플릿이 적용된 ClothingFeaturePoints 인스턴스
+    static func withTemplate(
+        topPoint: CGPoint,
+        bottomPoint: CGPoint,
+        leftmostPoint: CGPoint,
+        rightmostPoint: CGPoint,
+        allPoints: [CGPoint],
+        clothingType: ClothingType
+    ) -> ClothingFeaturePoints {
+        // 종횡비 계산
+        let width = abs(rightmostPoint.x - leftmostPoint.x)
+        let height = abs(topPoint.y - bottomPoint.y)
+        let aspectRatio = width > 0 ? height / width : 0
+
+        // 최적 템플릿 선택
+        let template = ClothingTemplate.selectTemplate(
+            for: aspectRatio,
+            type: clothingType
+        )
+
+        print("📐 [ClothingFeaturePoints] 템플릿 적용: \(template.variant), aspectRatio=\(String(format: "%.2f", aspectRatio))")
+
+        // 템플릿 적용하여 생성
+        return ClothingFeaturePoints(
+            topPoint: topPoint,
+            bottomPoint: bottomPoint,
+            leftmostPoint: leftmostPoint,
+            rightmostPoint: rightmostPoint,
+            allPoints: allPoints,
+            template: template
+        )
     }
 }
 
@@ -414,6 +491,74 @@ extension ClothingFeaturePoints {
         let confidence = calculateSpanConfidence(at: centerY, halfSpans: halfSpans)
 
         return (left: avgLeft, right: avgRight, confidence: confidence)
+    }
+
+    // MARK: - Symmetry Validation
+
+    /// 특정 Y좌표에서 좌우 포인트의 대칭성을 검증합니다.
+    ///
+    /// - Parameters:
+    ///   - leftPoint: 좌측 포인트
+    ///   - rightPoint: 우측 포인트
+    ///   - centerX: 중심 X좌표 (기본값: self.centerX)
+    ///   - yTolerance: Y좌표 허용 오차 (기본값: 0.02, 즉 2%)
+    /// - Returns: 대칭 여부
+    func isSymmetric(
+        leftPoint: CGPoint,
+        rightPoint: CGPoint,
+        centerX: CGFloat? = nil,
+        yTolerance: CGFloat = 0.02
+    ) -> Bool {
+        let center = centerX ?? self.centerX
+
+        // 1. Y좌표 대칭성 확인 (높이가 비슷한지)
+        let yDifference = abs(leftPoint.y - rightPoint.y)
+        guard yDifference <= yTolerance else {
+            return false
+        }
+
+        // 2. X좌표 대칭성 확인 (중심으로부터 거리가 비슷한지)
+        let leftDistance = abs(leftPoint.x - center)
+        let rightDistance = abs(rightPoint.x - center)
+        let xSymmetryRatio = min(leftDistance, rightDistance) / max(leftDistance, rightDistance)
+
+        // 80% 이상 대칭이면 OK
+        return xSymmetryRatio >= 0.8
+    }
+
+    /// 측정 포인트 쌍의 신뢰도를 계산합니다 (대칭성 포함).
+    ///
+    /// - Parameters:
+    ///   - leftPoint: 좌측 포인트
+    ///   - rightPoint: 우측 포인트
+    /// - Returns: 신뢰도 점수 (0.0 ~ 1.0)
+    func calculateSymmetryConfidence(
+        leftPoint: CGPoint,
+        rightPoint: CGPoint
+    ) -> Float {
+        // 1. Y좌표 대칭성 점수
+        let yDifference = abs(leftPoint.y - rightPoint.y)
+        let ySymmetryScore = max(0.0, 1.0 - Float(yDifference / 0.05))  // 5% 이내면 만점
+
+        // 2. X좌표 대칭성 점수
+        let leftDistance = abs(leftPoint.x - centerX)
+        let rightDistance = abs(rightPoint.x - centerX)
+        let xSymmetryRatio = min(leftDistance, rightDistance) / max(max(leftDistance, rightDistance), 0.001)
+        let xSymmetryScore = Float(xSymmetryRatio)
+
+        // 3. 포인트 존재 여부 확인 (윤곽선 상에 있는지)
+        let existenceScore: Float
+        if allPoints.contains(where: { abs($0.x - leftPoint.x) < 0.01 && abs($0.y - leftPoint.y) < 0.01 }) &&
+           allPoints.contains(where: { abs($0.x - rightPoint.x) < 0.01 && abs($0.y - rightPoint.y) < 0.01 }) {
+            existenceScore = 1.0
+        } else {
+            existenceScore = 0.5  // 보간된 포인트
+        }
+
+        // 최종 신뢰도 계산
+        let finalConfidence = (ySymmetryScore * 0.4) + (xSymmetryScore * 0.4) + (existenceScore * 0.2)
+
+        return max(0.0, min(1.0, finalConfidence))
     }
 }
 

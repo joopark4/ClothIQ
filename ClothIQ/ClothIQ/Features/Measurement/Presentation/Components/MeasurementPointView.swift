@@ -20,6 +20,8 @@ struct MeasurementPointView: View {
     let point: MeasurementPoint
     let index: Int
     let isSelected: Bool
+    let viewSize: CGSize  // GeometryReader로 전달받을 뷰 크기
+    let imageResolution: CGSize  // ARFrame의 imageResolution
 
     var body: some View {
         ZStack {
@@ -38,8 +40,16 @@ struct MeasurementPointView: View {
                 .font(isSelected ? .caption.bold() : .caption2)
                 .foregroundColor(.white)
         }
-        .position(point.screenPosition)
+        .position(scaledPosition)
         .animation(.spring(response: 0.3), value: isSelected)
+    }
+
+    // screenPosition은 imageResolution 기준이므로, 실제 뷰 크기로 변환
+    private var scaledPosition: CGPoint {
+        CGPoint(
+            x: point.screenPosition.x * viewSize.width / imageResolution.width,
+            y: point.screenPosition.y * viewSize.height / imageResolution.height
+        )
     }
 
     // MARK: - Helpers
@@ -65,13 +75,15 @@ struct MeasurementLineView: View {
     let startPoint: MeasurementPoint
     let endPoint: MeasurementPoint
     let distance: Double  // 센티미터
+    let viewSize: CGSize
+    let imageResolution: CGSize
 
     var body: some View {
         ZStack {
             // 연결선
             Path { path in
-                path.move(to: startPoint.screenPosition)
-                path.addLine(to: endPoint.screenPosition)
+                path.move(to: scaledStartPosition)
+                path.addLine(to: scaledEndPosition)
             }
             .stroke(Color.blue, style: StrokeStyle(lineWidth: 2, dash: [5, 3]))
 
@@ -88,10 +100,24 @@ struct MeasurementLineView: View {
         }
     }
 
+    private var scaledStartPosition: CGPoint {
+        CGPoint(
+            x: startPoint.screenPosition.x * viewSize.width / imageResolution.width,
+            y: startPoint.screenPosition.y * viewSize.height / imageResolution.height
+        )
+    }
+
+    private var scaledEndPosition: CGPoint {
+        CGPoint(
+            x: endPoint.screenPosition.x * viewSize.width / imageResolution.width,
+            y: endPoint.screenPosition.y * viewSize.height / imageResolution.height
+        )
+    }
+
     private var midPoint: CGPoint {
         CGPoint(
-            x: (startPoint.screenPosition.x + endPoint.screenPosition.x) / 2,
-            y: (startPoint.screenPosition.y + endPoint.screenPosition.y) / 2
+            x: (scaledStartPosition.x + scaledEndPosition.x) / 2,
+            y: (scaledStartPosition.y + scaledEndPosition.y) / 2
         )
     }
 }
@@ -105,32 +131,42 @@ struct MeasurementLineView: View {
 struct MeasurementOverlayView: View {
     let points: [MeasurementPoint]
     let selectedIndex: Int?
+    let imageResolution: CGSize?  // ARFrame의 imageResolution
 
     var body: some View {
-        ZStack {
-            // 연결선 (포인트가 2개 이상일 때)
-            if points.count >= 2 {
-                ForEach(0..<points.count - 1, id: \.self) { index in
-                    let start = points[index]
-                    let end = points[index + 1]
-                    let distance = start.distanceInCentimeters(to: end)
+        GeometryReader { geometry in
+            ZStack {
+                if let resolution = imageResolution {
+                    // 연결선 (포인트가 2개 이상일 때)
+                    if points.count >= 2 {
+                        ForEach(0..<points.count - 1, id: \.self) { index in
+                            let start = points[index]
+                            let end = points[index + 1]
+                            let distance = start.distanceInCentimeters(to: end)
 
-                    MeasurementLineView(
-                        startPoint: start,
-                        endPoint: end,
-                        distance: distance
-                    )
+                            MeasurementLineView(
+                                startPoint: start,
+                                endPoint: end,
+                                distance: distance,
+                                viewSize: geometry.size,
+                                imageResolution: resolution
+                            )
+                        }
+                    }
+
+                    // 측정 포인트들
+                    ForEach(Array(points.enumerated()), id: \.element.id) { index, point in
+                        MeasurementPointView(
+                            point: point,
+                            index: index,
+                            isSelected: selectedIndex == index,
+                            viewSize: geometry.size,
+                            imageResolution: resolution
+                        )
+                    }
                 }
             }
-
-            // 측정 포인트들
-            ForEach(Array(points.enumerated()), id: \.element.id) { index, point in
-                MeasurementPointView(
-                    point: point,
-                    index: index,
-                    isSelected: selectedIndex == index
-                )
-            }
+            .frame(width: geometry.size.width, height: geometry.size.height)
         }
     }
 }
@@ -140,14 +176,20 @@ struct MeasurementOverlayView: View {
 #Preview("Single Point") {
     let point = MeasurementPoint(
         worldPosition: SIMD3<Float>(0, 0, -1),
-        screenPosition: CGPoint(x: 200, y: 300),
+        screenPosition: CGPoint(x: 960, y: 720),  // imageResolution 기준 좌표
         depth: 1.0,
         confidence: 0.95
     )
 
     return ZStack {
         Color.black.ignoresSafeArea()
-        MeasurementPointView(point: point, index: 0, isSelected: true)
+        MeasurementPointView(
+            point: point,
+            index: 0,
+            isSelected: true,
+            viewSize: CGSize(width: 1024, height: 768),
+            imageResolution: CGSize(width: 1920, height: 1440)
+        )
     }
 }
 
@@ -155,19 +197,19 @@ struct MeasurementOverlayView: View {
     let points = [
         MeasurementPoint(
             worldPosition: SIMD3<Float>(0, 0, -1),
-            screenPosition: CGPoint(x: 100, y: 200),
+            screenPosition: CGPoint(x: 600, y: 400),  // imageResolution 기준
             depth: 1.0,
             confidence: 0.95
         ),
         MeasurementPoint(
             worldPosition: SIMD3<Float>(0.5, 0, -1),
-            screenPosition: CGPoint(x: 300, y: 200),
+            screenPosition: CGPoint(x: 1200, y: 400),
             depth: 1.0,
             confidence: 0.88
         ),
         MeasurementPoint(
             worldPosition: SIMD3<Float>(0.5, 0.3, -1),
-            screenPosition: CGPoint(x: 300, y: 400),
+            screenPosition: CGPoint(x: 1200, y: 900),
             depth: 1.0,
             confidence: 0.75
         )
@@ -175,6 +217,10 @@ struct MeasurementOverlayView: View {
 
     ZStack {
         Color.black.ignoresSafeArea()
-        MeasurementOverlayView(points: points, selectedIndex: 1)
+        MeasurementOverlayView(
+            points: points,
+            selectedIndex: 1,
+            imageResolution: CGSize(width: 1920, height: 1440)
+        )
     }
 }

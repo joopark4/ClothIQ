@@ -22,7 +22,14 @@ struct PhotoMeasurementView: View {
     @StateObject private var viewModel: PhotoMeasurementViewModel
     @State private var showingSaveConfirmation = false
     @State private var showingDepthMapWarning = false
+    @State private var showingTrainingStats = false  // 학습 데이터 통계 표시
     @State private var refreshID = UUID()  // 뷰 강제 업데이트용
+
+    // 실시간 피드백을 위한 State
+    @State private var draggingAnchor: MeasurementAnchor?
+    @State private var dragPosition: CGPoint?
+    @State private var snapPoints: [CGPoint] = []
+    @State private var hapticFeedback = UIImpactFeedbackGenerator(style: .light)
 
     // MARK: - Initialization
 
@@ -42,6 +49,41 @@ struct PhotoMeasurementView: View {
                 if !viewModel.hasDepthMap {
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
                         showingDepthMapWarning = true
+                    }
+                } else {
+                    // Depth map이 있으면 첫 번째 측정 항목 자동 선택
+                    print("📱 [PhotoMeasurementView] onAppear - Depth map 있음, 자동 선택 시작")
+                    print("  - item.measurements.count: \(viewModel.item.measurements.count)")
+                    print("  - selectedMeasurementType: \(viewModel.selectedMeasurementType?.displayName ?? "nil")")
+
+                    if viewModel.selectedMeasurementType == nil {
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                            // 기존 측정값이 있으면 첫 번째 측정값 선택
+                            if let firstMeasurement = viewModel.item.measurements.first,
+                               let measurementType = MeasurementType(rawValue: firstMeasurement.type) {
+                                print("✅ [PhotoMeasurementView] 기존 측정값 자동 선택: \(measurementType.displayName)")
+                                print("  - startPoint: \(firstMeasurement.startPoint?.debugDescription ?? "nil")")
+                                print("  - endPoint: \(firstMeasurement.endPoint?.debugDescription ?? "nil")")
+
+                                viewModel.selectedMeasurementType = measurementType
+                                viewModel.loadAnchors(for: measurementType)
+
+                                // 앵커 로드 후 확인
+                                print("  - measurementAnchors.count after loadAnchors: \(viewModel.measurementAnchors.count)")
+                                refreshID = UUID()
+                            }
+                            // 측정값이 없으면 첫 번째 필수 측정 항목 선택
+                            else if let clothingType = viewModel.item.clothingType,
+                                    let firstRequiredType = clothingType.requiredMeasurements.first {
+                                print("✅ [PhotoMeasurementView] 새 측정 항목 자동 선택: \(firstRequiredType.displayName)")
+                                viewModel.selectedMeasurementType = firstRequiredType
+                                // 새로운 측정이므로 앵커는 빈 상태
+                                viewModel.resetPoints()
+                                refreshID = UUID()
+                            } else {
+                                print("⚠️ [PhotoMeasurementView] 자동 선택 실패 - 측정값도 없고 의류 타입도 없음")
+                            }
+                        }
                     }
                 }
             }
@@ -88,6 +130,7 @@ struct PhotoMeasurementView: View {
             // 이미지 뷰 (터치 수신)
             ZoomableImageView(
                 image: viewModel.image,
+                imageSize: viewModel.effectiveImageSize,  // 정확한 이미지 크기 전달
                 rotation: viewModel.rotationDegrees,
                 measurementAnchors: Binding(
                     get: { viewModel.measurementAnchors },
@@ -104,13 +147,36 @@ struct PhotoMeasurementView: View {
                 onAnchorDragBegan: { id in
                     viewModel.isEditingAnchors = true
                     viewModel.activeAnchorID = id
+                    // 드래그 시작 시 햅틱 피드백 준비
+                    hapticFeedback.prepare()
+                    // 드래그 앵커 설정
+                    if let anchor = viewModel.measurementAnchors.first(where: { $0.id == id }) {
+                        draggingAnchor = anchor
+                        dragPosition = anchor.position
+                        // 스냅 포인트 계산
+                        updateSnapPoints()
+                    }
                 },
                 onAnchorDragChanged: { id, position in
                     viewModel.updateAnchorPosition(id: id, to: position, shouldRecalculate: true)
+                    // 실시간 피드백을 위한 드래그 상태 업데이트
+                    if let anchor = viewModel.measurementAnchors.first(where: { $0.id == id }) {
+                        draggingAnchor = anchor
+                        dragPosition = position
+
+                        // 스냅 포인트 근처에서 햅틱 피드백
+                        checkForSnapAndProvideFeedback(position: position)
+                    }
                 },
                 onAnchorDragEnded: { id, position in
                     viewModel.updateAnchorPosition(id: id, to: position, shouldRecalculate: true)
                     viewModel.isEditingAnchors = false
+                    // ML 학습 데이터 수집 (사용자 수정)
+                    viewModel.onUserModifiedAnchors()
+
+                    // 드래그 종료 시 상태 초기화
+                    draggingAnchor = nil
+                    dragPosition = nil
                 },
                 onAnchorSelected: { id in
                     viewModel.activeAnchorID = id
@@ -123,6 +189,38 @@ struct PhotoMeasurementView: View {
                 DispatchQueue.main.async {
                     refreshID = UUID()
                     print("🔄 [PhotoMeasurementView] refreshID 업데이트됨: \(refreshID)")
+                }
+            }
+            .overlay {
+                // 키포인트 오버레이 (키포인트 표시가 켜져있을 때만)
+                if viewModel.showKeypoints && !viewModel.detectedKeypoints.isEmpty {
+                    GeometryReader { geometry in
+                        KeypointOverlayView(
+                            keypoints: viewModel.detectedKeypoints,
+                            imageSize: viewModel.effectiveImageSize,
+                            displaySize: geometry.size
+                        )
+                        .allowsHitTesting(false)  // 터치 통과
+                    }
+                }
+            }
+            .overlay {
+                // 실시간 피드백 오버레이 (드래그 중일 때만)
+                if draggingAnchor != nil {
+                    RealTimeFeedbackOverlay(
+                        draggingAnchor: draggingAnchor,
+                        dragPosition: dragPosition,
+                        allAnchors: viewModel.measurementAnchors,
+                        imageSize: viewModel.effectiveImageSize,
+                        clothingType: viewModel.item.clothingType ?? .shortSleeve,
+                        snapPoints: snapPoints,
+                        onHapticFeedback: { style in
+                            let generator = UIImpactFeedbackGenerator(style: style)
+                            generator.impactOccurred()
+                        }
+                    )
+                    .allowsHitTesting(false)  // 터치 통과
+                    .animation(.easeInOut(duration: 0.1), value: dragPosition)
                 }
             }
             .overlay(alignment: .top) {
@@ -223,6 +321,69 @@ struct PhotoMeasurementView: View {
                 .padding(.vertical, 8)
                 .background(Color.black.opacity(0.6))
                 .clipShape(Capsule())
+            }
+
+            Spacer()
+
+            // 키포인트 감지 버튼 그룹
+            if viewModel.hasDepthMap {
+                HStack(spacing: 8) {
+                    // 키포인트 표시 토글
+                    Button {
+                        viewModel.toggleKeypointDisplay()
+                    } label: {
+                        HStack(spacing: 4) {
+                            Image(systemName: viewModel.showKeypoints ? "eye.fill" : "eye.slash.fill")
+                            Text("키포인트")
+                        }
+                        .foregroundStyle(.white)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 8)
+                        .background(viewModel.showKeypoints ? Color.green.opacity(0.8) : Color.black.opacity(0.6))
+                        .clipShape(Capsule())
+                    }
+
+                    // 자동 측정 모드 토글
+                    Button {
+                        viewModel.toggleAutoMeasurementMode()
+                    } label: {
+                        HStack(spacing: 4) {
+                            Image(systemName: viewModel.isAutoMeasurementMode ? "wand.and.stars" : "wand.and.stars.inverse")
+                            Text("자동")
+                        }
+                        .foregroundStyle(.white)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 8)
+                        .background(viewModel.isAutoMeasurementMode ? Color.purple.opacity(0.8) : Color.black.opacity(0.6))
+                        .clipShape(Capsule())
+                    }
+
+                    // ML 모드 토글
+                    Button {
+                        viewModel.toggleMLMode()
+                    } label: {
+                        HStack(spacing: 4) {
+                            if viewModel.isMLProcessing {
+                                ProgressView()
+                                    .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                                    .scaleEffect(0.7)
+                            } else {
+                                Image(systemName: viewModel.isMLModeEnabled ? "brain" : "brain.head.profile")
+                            }
+                            Text("ML")
+                            if viewModel.mlConfidence > 0 {
+                                Text("\(Int(viewModel.mlConfidence * 100))%")
+                                    .font(.caption)
+                            }
+                        }
+                        .foregroundStyle(.white)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 8)
+                        .background(viewModel.isMLModeEnabled ? Color.orange.opacity(0.8) : Color.black.opacity(0.6))
+                        .clipShape(Capsule())
+                    }
+                    .disabled(viewModel.isMLProcessing)
+                }
             }
 
             Spacer()
@@ -343,9 +504,30 @@ struct PhotoMeasurementView: View {
                             .clipShape(Capsule())
                     }
                 }
+
+                // ML 학습 데이터 통계 버튼 (ML 모드일 때만)
+                if viewModel.isMLModeEnabled {
+                    Button {
+                        showingTrainingStats = true
+                    } label: {
+                        HStack(spacing: 4) {
+                            Image(systemName: "chart.bar.fill")
+                            Text("학습 데이터")
+                        }
+                        .font(.caption)
+                        .foregroundStyle(.white)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 6)
+                        .background(Color.indigo.opacity(0.8))
+                        .clipShape(Capsule())
+                    }
+                }
             }
             .padding()
             .background(Color(.systemBackground))
+            .sheet(isPresented: $showingTrainingStats) {
+                TrainingStatsView(statistics: viewModel.getTrainingStatistics())
+            }
         }
     }
 
@@ -356,6 +538,91 @@ struct PhotoMeasurementView: View {
             showingSaveConfirmation = true
         } else {
             dismiss()
+        }
+    }
+
+    // MARK: - Helper Methods
+
+    /// 스냅 포인트 업데이트
+    private func updateSnapPoints() {
+        // 키포인트가 있으면 그것들을 스냅 포인트로 사용
+        if !viewModel.detectedKeypoints.isEmpty {
+            snapPoints = viewModel.detectedKeypoints.map { keypoint in
+                // 정규화된 좌표를 픽셀 좌표로 변환
+                CGPoint(
+                    x: keypoint.position.x * viewModel.effectiveImageSize.width,
+                    y: keypoint.position.y * viewModel.effectiveImageSize.height
+                )
+            }
+        } else {
+            // 키포인트가 없으면 기본 가이드 위치 사용
+            let imageWidth = viewModel.effectiveImageSize.width
+            let imageHeight = viewModel.effectiveImageSize.height
+
+            snapPoints = [
+                // 상단 중앙
+                CGPoint(x: imageWidth / 2, y: imageHeight * 0.1),
+                // 좌우 어깨 예상 위치
+                CGPoint(x: imageWidth * 0.3, y: imageHeight * 0.15),
+                CGPoint(x: imageWidth * 0.7, y: imageHeight * 0.15),
+                // 좌우 가슴 예상 위치
+                CGPoint(x: imageWidth * 0.2, y: imageHeight * 0.35),
+                CGPoint(x: imageWidth * 0.8, y: imageHeight * 0.35),
+                // 좌우 허리 예상 위치
+                CGPoint(x: imageWidth * 0.25, y: imageHeight * 0.5),
+                CGPoint(x: imageWidth * 0.75, y: imageHeight * 0.5),
+                // 하단 중앙
+                CGPoint(x: imageWidth / 2, y: imageHeight * 0.9)
+            ]
+        }
+    }
+
+    /// 가장 가까운 스냅 포인트 찾기
+    private func findNearestSnapPoint(to position: CGPoint) -> CGPoint? {
+        let snapThreshold: CGFloat = 30.0  // 30픽셀 이내
+
+        return snapPoints.min { point1, point2 in
+            distance(from: position, to: point1) < distance(from: position, to: point2)
+        }.flatMap { nearestPoint in
+            distance(from: position, to: nearestPoint) <= snapThreshold ? nearestPoint : nil
+        }
+    }
+
+    /// 두 포인트 간 거리 계산
+    private func distance(from: CGPoint, to: CGPoint) -> CGFloat {
+        let dx = from.x - to.x
+        let dy = from.y - to.y
+        return sqrt(dx * dx + dy * dy)
+    }
+
+    /// 스냅 포인트 근처에서 햅틱 피드백 제공
+    private func checkForSnapAndProvideFeedback(position: CGPoint) {
+        if let nearestSnap = findNearestSnapPoint(to: position) {
+            let dist = distance(from: position, to: nearestSnap)
+
+            // 거리에 따른 단계적 햅틱 피드백
+            if dist < 10 {
+                // 매우 가까움 - 강한 피드백 (이미 스냅됨)
+                hapticFeedback = UIImpactFeedbackGenerator(style: .medium)
+                hapticFeedback.impactOccurred()
+
+                // 자동 스냅 적용
+                if let draggingAnchor = draggingAnchor {
+                    viewModel.updateAnchorPosition(
+                        id: draggingAnchor.id,
+                        to: nearestSnap,
+                        shouldRecalculate: true
+                    )
+                }
+            } else if dist < 20 {
+                // 가까움 - 중간 피드백
+                hapticFeedback = UIImpactFeedbackGenerator(style: .light)
+                hapticFeedback.impactOccurred()
+            } else if dist < 30 {
+                // 근처 - 약한 피드백
+                hapticFeedback = UIImpactFeedbackGenerator(style: .soft)
+                hapticFeedback.impactOccurred()
+            }
         }
     }
 }

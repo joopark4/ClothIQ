@@ -186,6 +186,40 @@ extension MeasurementModel {
         let displayValue = convertedValue(to: displayUnit)
         return String(format: "%.1f %@", displayValue, displayUnit.symbol)
     }
+
+    /// 교정된 측정값 반환
+    ///
+    /// 의류 타입과 측정 타입에 따라 교정 계수를 적용한 값을 반환합니다.
+    /// 교정 계수가 없는 경우 원본 값을 반환합니다.
+    ///
+    /// - Returns: 교정된 측정값 (센티미터)
+    func calibratedValue() -> Double {
+        guard let measurementType = measurementType,
+              let clothingType = clothingItem?.clothingType else {
+            return value
+        }
+
+        return measurementType.calibrate(value, for: clothingType)
+    }
+
+    /// 지정된 단위로 교정된 측정값 변환
+    ///
+    /// - Parameter targetUnit: 변환할 단위
+    /// - Returns: 교정 및 변환된 측정값
+    func convertedCalibratedValue(to targetUnit: MeasurementUnit) -> Double {
+        let calibrated = calibratedValue()
+        return targetUnit.fromCentimeters(calibrated)
+    }
+
+    /// 포맷된 교정 측정값 문자열
+    ///
+    /// - Parameter targetUnit: 표시할 단위 (nil이면 기본 단위 사용)
+    /// - Returns: 포맷된 문자열 (예: "40.0 cm")
+    func formattedCalibratedValue(unit targetUnit: MeasurementUnit? = nil) -> String {
+        let displayUnit = targetUnit ?? (measurementUnit ?? .centimeter)
+        let displayValue = convertedCalibratedValue(to: displayUnit)
+        return String(format: "%.1f %@", displayValue, displayUnit.symbol)
+    }
 }
 
 /// 측정 신뢰도 레벨

@@ -53,8 +53,8 @@ struct ARViewContainer: UIViewRepresentable {
     /// 스크린샷 캡처 요청 (외부에서 트리거)
     @Binding var captureRequested: Bool
 
-    /// 캡처된 이미지 콜백 (이미지, depth map, 카메라)
-    var onImageCaptured: ((UIImage, CVPixelBuffer?, ARCamera?) -> Void)?
+    /// 캡처된 이미지 콜백 (이미지, depth map, 카메라, 원본 픽셀 버퍼)
+    var onImageCaptured: ((UIImage, CVPixelBuffer?, ARCamera?, CVPixelBuffer?) -> Void)?
 
     // MARK: - UIViewRepresentable
 
@@ -101,17 +101,18 @@ struct ARViewContainer: UIViewRepresentable {
                     self.captureRequested = false  // 즉시 플래그 리셋 (중복 캡처 방지)
 
                     if let image = ImageCaptureUtility.captureARFrame(from: uiView) {
-                        // 현재 AR 프레임의 depth map도 함께 전달
+                        // 현재 AR 프레임의 depth map과 원본 픽셀 버퍼 전달
                         let currentFrame = uiView.session.currentFrame
                         let depthMap = currentFrame?.smoothedSceneDepth?.depthMap
                             ?? currentFrame?.sceneDepth?.depthMap
+                        let originalPixelBuffer = currentFrame?.capturedImage
 
                         // Depth map이 없으면 경고 로그 출력 (디버깅용)
                         if depthMap == nil {
                             print("⚠️ [ClothIQ] Depth map not available during capture. Photo measurement may not work.")
                         }
 
-                        self.onImageCaptured?(image, depthMap, currentFrame?.camera)
+                        self.onImageCaptured?(image, depthMap, currentFrame?.camera, originalPixelBuffer)
                     } else {
                     }
                     // 캡처 완료 후 플래그 리셋
@@ -198,9 +199,20 @@ struct ARViewContainer: UIViewRepresentable {
             // 카메라 포커스 설정
             setFocus(at: location, in: arView)
 
-            // 필요한 경우 onTap 콜백 호출 (현재는 포커스만 설정)
-            // guard let currentFrame = arView.session.currentFrame else { return }
-            // onTap?(location, currentFrame)
+            // onTap 콜백 호출 (다중 샘플링 시작)
+            guard let currentFrame = arView.session.currentFrame else { return }
+
+            // 화면 좌표를 camera.imageResolution 기준으로 변환
+            // ARView의 크기와 imageResolution이 다를 수 있으므로 스케일링 필요
+            let imageResolution = currentFrame.camera.imageResolution
+            let viewSize = arView.bounds.size
+
+            let scaledLocation = CGPoint(
+                x: location.x * imageResolution.width / viewSize.width,
+                y: location.y * imageResolution.height / viewSize.height
+            )
+
+            onTap?(scaledLocation, currentFrame)
         }
 
         /// 탭한 위치에 카메라 포커스 설정
@@ -392,7 +404,7 @@ extension ARView {
         onDepthUpdate: { depthData in
         },
         captureRequested: .constant(false),
-        onImageCaptured: { image, depthMap, camera in
+        onImageCaptured: { image, depthMap, camera, pixelBuffer in
         }
     )
 }

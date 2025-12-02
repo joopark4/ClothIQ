@@ -4,227 +4,74 @@
 
 LiDAR 센서를 활용하여 의류의 각 부위별 사이즈를 정확하게 측정하는 iOS 네이티브 애플리케이션입니다. ARKit과 Vision Framework를 활용하여 3D 깊이 정보 기반의 실측 데이터를 제공하며, 촬영한 의류 이미지와 측정값을 로컬에 저장하여 관리합니다.
 
-## 현재 구현 상태 (2025년 11월 6일 업데이트)
+## 현재 구현 상태
 
-### Phase 1: MVP - 100% 완료 ✅ 🎉
+> **상세한 개발 진행 상황은 [PROGRESS.md](./ClothIQ/PROGRESS.md) 파일을 참조하세요.**
 
-**✅ 완료된 기능 (19/19)**
+### 진행률 요약
 
-1. **LiDAR 기반 측정 시스템**
-   - ARKit Scene Depth API 통합 완료
-   - 카메라 intrinsics 기반 정확한 3D 좌표 변환
-   - 측정 정확도: ±0.5~2cm 오차 범위
-   - 측정 신뢰도 평가 시스템 구현
+| Phase | 상태 | 진행률 |
+|-------|------|--------|
+| **Phase 1: MVP** | ✅ 완료 | 100% (18/18) |
+| **Phase 2: 고도화** | 🚧 진행 중 | 10% |
 
-2. **이미지 처리 파이프라인**
-   - Vision Framework 기반 배경 제거 완료
-   - Post-Capture 워크플로우 구현 (5단계)
-   - Morphological 연산을 통한 마스크 품질 개선
-   - 1:1 정사각형 크롭 자동 처리
+### 주요 완료 기능
 
-3. **실시간 객체 감지**
-   - ForegroundSegmentationService 구현
-   - 사각형/윤곽 기반 전경 분리
-   - 실시간 객체 포커싱 **가이드**
+- ✅ LiDAR 기반 정밀 측정 (±0.5~2cm)
+- ✅ Vision Framework 배경 제거
+- ✅ SwiftData 데이터 관리
+- ✅ iPhone/iPad 적응형 UI
+- ✅ 사진 측정 교정 시스템 (91.3% 개선)
+- ✅ 다중 샘플링 + 칼만 필터
+- ✅ 측정 방식 분리 (AR/Photo)
 
-4. **AR 카메라 시스템**
-   - AR 세션 관리 및 추적 상태 모니터링
-   - LiDAR 깊이 데이터 실시간 처리
-   - 카메라 포커스 및 노출 자동 조절
-   - 환경 평가 및 측정 조건 피드백
+### 프로젝트 통계
 
-5. **데이터 관리**
-   - SwiftData 모델 완성 (ClothingItemModel, MeasurementModel, TagModel)
-   - 이미지 파일 시스템 관리 구현
-   - Photos 앱 연동 완료 (PhotoLibraryService)
+- **빌드 상태**: ✅ 성공
+- **최소 iOS 버전**: 17.0+
+- **지원 디바이스**: LiDAR 탑재 기기
 
-6. **UI/UX 구현**
-   - SwiftUI 기반 측정 화면
-   - AR 카메라 뷰 및 측정 포인트 시각화
-   - 측정 가이드 오버레이
-   - 깊이 데이터 시각화
-   - AR 초기화 가이드
+---
 
-7. **아키텍처**
-   - Clean Architecture + MVVM 패턴 적용
-   - 프로토콜 기반 의존성 주입
-   - 서비스 레이어 분리 (ARMeasurementService, DepthDataProcessor, ObjectCaptureService 등)
+## 구현된 주요 컴포넌트
 
-8. **의류 타입별 측정 UI**
-   - MeasurementTypeSelectionView 구현 및 통합 완료
-   - 5가지 의류 타입 지원 (반팔, 긴팔, 반바지, 긴바지, 치마)
-   - 타입별 필수/선택 측정 항목 자동 설정
-
-9. **SwiftData 통합**
-   - 측정 데이터 자동 저장
-   - ModelContext를 통한 데이터 영속성
-   - 이미지 파일 시스템 연동
-
-10. **의류 라이브러리 화면**
-    - ClothingLibraryView 구현 완료
-    - ClothingListView, ClothingDetailView 구현
-    - iPhone/iPad 적응형 UI (NavigationStack vs NavigationSplitView)
-
-11. **측정 → 저장 → 목록 플로우**
-    - 완전한 엔드투엔드 플로우 구현
-    - 배경 제거된 이미지 저장
-    - 측정값 SwiftData 저장
-    - 라이브러리에서 바로 확인 가능
-
-12. **iPhone/iPad 최적화 UI**
-    - Size Class 기반 적응형 레이아웃
-    - AdaptiveSheet 모디파이어 구현
-    - iPad: 2열 레이아웃, Popover 사용
-    - iPhone: 단일 컬럼, Sheet 사용
-
-13. **간소화된 촬영 플로우** (2025.10.30 추가)
-    - 카메라 화면 바로 진입 (중간 단계 제거)
-    - 촬영 후 의류 타입 선택 방식으로 변경
-    - 촬영 즉시 자동 저장 (측정 완료 불필요)
-    - UI 간소화 (촬영 버튼과 포커스 가이드만 표시)
-
-14. **네비게이션 문제 해결** (2025.10.30 저녁)
-    - ClothingItemModel에 Hashable 프로토콜 추가
-    - NavigationLink 탭 이벤트 정상화
-    - ClothingItemCard 컴포넌트 분리
-    - 코드 구조 개선 및 재사용성 향상
-
-15. **사진 측정 정확도 개선** (2025.11.03)
-    - 평면 투영(Planar Projection) 방식 도입
-    - 3D 유클리드 거리 → 평면상의 2D 거리 계산으로 변경
-    - 의류가 평평하게 놓인 표면 기준 정확한 측정
-    - Z축 차이 10cm 이상 시 경고 시스템
-    - PhotoMeasurementCalculator 개선
-
-16. **카메라 정렬 가이드 시스템** (2025.11.03)
-    - 수평계 방식의 실시간 정렬 가이드 구현
-    - 원형 레벨 인디케이터로 카메라 틸트 각도 시각화
-    - 촬영 거리 실시간 표시 (권장: 40-60cm)
-    - 상태별 색상 피드백 (빨강 → 노랑 → 녹색)
-    - 최적 정렬 도달 시 햅틱 진동
-    - ARKit 평면 감지 및 카메라 각도 자동 계산
-    - CameraAlignmentGuide 컴포넌트 추가
-
-17. **사진 측정 UI 렌더링 문제 해결** (2025.11.06)
-    - PhotoMeasurementView의 @State → @StateObject 리팩토링
-    - ObservableObject의 @Published 변경 감지 문제 해결
-    - 측정 포인트, 연결선, 거리 값 UI 정상 표시
-    - StateObject 초기화 패턴 개선 (지연 초기화 → init 초기화)
-    - 강제 언래핑 제거 (viewModel! → viewModel)
-    - SwiftUI 속성 래퍼 선택 가이드 문서화
-
-18. **사진 측정 교정 시스템 구현** (2025.11.06)
-    - SwiftData 기반 CalibrationProfile 및 CalibrationFactor 모델 구현
-    - 의류 타입 + 측정 타입별 보정 계수 자동 계산
-    - 반바지 기준 교정 데이터 (10회 측정 평균)
-    - MeasurementSettings.shared를 통한 중앙 집중식 교정 관리
-    - 평균 오차율 91.3% 개선 (24.1% → 2.12%)
-    - 모든 측정 항목에서 ±2cm 이내 정확도 달성
-    - AppContainerView에서 앱 시작 시 자동 프로파일 초기화
-
-19. **재측정 시 앵커 위치 버그 수정** (2025.11.06)
-    - Y축 좌표 변환 불일치 문제 해결 (저장 시 Vision, 로드 시 SwiftUI 좌표계)
-    - PhotoMeasurementViewModel.loadAnchors() 메서드 수정
-    - 저장된 정규화 좌표를 올바르게 픽셀 좌표로 복원 (`1.0 - y` 변환 추가)
-    - 재측정 시 앵커와 라인이 정확한 위치에 표시
-    - 디버그 로깅 추가로 좌표 변환 과정 추적 가능
-
-### 구현된 주요 컴포넌트
-
-#### 서비스 레이어
-- `ARMeasurementService`: LiDAR 측정 포인트 추출 및 환경 평가
+### 서비스 레이어
+- `ARMeasurementService`: LiDAR 측정 포인트 추출 및 환경 평가 (다중 샘플링 통합)
 - `DepthDataProcessor`: 깊이 데이터 처리 및 3D 좌표 계산
 - `MeasurementCalculator`: 측정 알고리즘 및 검증
 - `ObjectCaptureService`: 배경 제거 및 Post-Capture 워크플로우
 - `ForegroundSegmentationService`: 실시간 전경 분리 및 객체 감지
 - `PhotoLibraryService`: Photos 앱 연동 및 권한 관리
 - `ImageFileManager`: 로컬 이미지 파일 관리
+- `MultiSamplingProcessor`: 15프레임 다중 샘플링 및 신뢰도 기반 평균화
+- `KalmanFilter`: 1D/3D/Adaptive 노이즈 필터링
+- `CameraCalibrator`: 카메라 각도/거리/렌즈 왜곡 보정
+- `ClothingKeypointDetector`: Vision Framework 기반 키포인트 자동 감지
+- `VisionMLService`: Core ML 모델 통합 및 하이브리드 감지
+- `MLTrainingDataCollector`: 학습 데이터 수집 및 내보내기
+- `AutoMeasurementService`: 자동 측정 및 검증
+- `EnhancedMeasurementService`: 고급 측정 기능 통합
 
-#### UI 컴포넌트
-- `MeasurementView`: 메인 측정 화면 (간소화됨)
-- `ARViewContainer`: AR 카메라 뷰 컨테이너
+### UI 컴포넌트
+- `MeasurementView`: 메인 측정 화면 (다중 샘플링 진행 표시 포함)
+- `ARViewContainer`: AR 카메라 뷰 컨테이너 (좌표 변환 통합)
 - `MeasurementOverlayView`: 측정 포인트 오버레이
-- `ObjectFocusGuide`: 실시간 객체 포커싱 가이드
-- `CameraAlignmentGuide`: 카메라 정렬 가이드 (수평계 방식) ⭐ 신규
-- `ARInitializationGuide`: AR 초기화 상태 안내
-- `DepthVisualizationView`: 깊이 데이터 시각화
-- `MeasurementGuideOverlay`: 측정 방법 안내
-- `ClothingTypeSelectionSheet`: 촬영 후 의류 타입 선택 모달
+- `MeasurementPointView`: 개별 측정 포인트 시각화
+- `MeasurementLineView`: 측정 라인 및 거리 표시
+- `CameraAlignmentGuide`: 카메라 정렬 가이드 (수평계 방식)
 - `ClothingLibraryView`: 의류 라이브러리 메인 화면
-- `ClothingListView`: 의류 목록 (썸네일 포함)
 - `ClothingDetailView`: 의류 상세 정보
-- `ClothingItemCard`: 의류 아이템 카드 컴포넌트
 - `PhotoMeasurementView`: 사진 기반 측정 화면
 - `ZoomableImageView`: 확대/드래그 가능 이미지 뷰
-- `MeasurementTypePickerView`: 측정 항목 선택 UI
+- `KeypointOverlayView`: 키포인트 감지 결과 시각화
+- `MLTrainingSettingsView`: ML 학습 설정 UI
+- `DataCollectionDebugView`: 데이터 수집 디버그 UI
 
-#### 유틸리티
+### 유틸리티
 - `DeviceCapability`: 디바이스 기능 확인 (LiDAR 지원 등)
 - `ImageCaptureUtility`: 이미지 캡처 및 최적화
 - `ARError`: AR 측정 관련 에러 타입
-
-### 기술적 성과
-
-1. **측정 정확도**
-   - LiDAR 기반 ±0.5~2cm 오차 범위 달성
-   - 카메라 intrinsics 기반 정확한 3D 좌표 변환
-   - **평면 투영 방식으로 정확도 향상** (2025.11.03)
-     - 3D 유클리드 거리 → 평면상 2D 거리 계산
-     - 의류가 놓인 평면 기준 정확한 측정
-     - Z축 차이 10cm 이상 시 경고
-   - **실시간 카메라 정렬 가이드** (2025.11.03)
-     - 최적 각도(±10도) 및 거리(40-60cm) 안내
-     - 수평계 방식 시각적 피드백
-     - 햅틱 진동으로 최적 상태 알림
-   - **사진 측정 교정 시스템** (2025.11.06)
-     - 평균 오차율 91.3% 개선 (24.1% → 2.12%)
-     - 모든 측정 항목에서 ±2cm 이내 정확도 달성
-     - 의류/측정 타입별 자동 보정 계수 적용
-     - SwiftData 기반 영속적 교정 프로파일 관리
-   - 환경 조건에 따른 신뢰도 평가 시스템
-
-2. **배경 제거 품질**
-   - Vision Framework + Morphological 연산 조합
-   - Closing 연산 (Dilation → Erosion)으로 마스크 품질 개선
-   - Depth map과 Vision mask 하이브리드 접근
-
-3. **성능 최적화**
-   - 프레임 레이트 제한 (30fps)
-   - autoreleasepool을 통한 메모리 관리
-   - 백그라운드 큐를 활용한 비동기 처리
-
-4. **사용자 경험**
-   - 실시간 객체 포커싱 피드백
-   - AR 추적 상태 시각화
-   - 측정 환경 조건 실시간 평가
-   - **간소화된 촬영 플로우** (카메라 바로 진입)
-   - **촬영 후 타입 선택** (사용자 편의성 향상)
-   - **즉시 자동 저장** (데이터 손실 방지)
-
-### 새로운 사용자 플로우 (2025.10.30)
-
-1. 앱 실행 → 의류 라이브러리
-2. 플로팅 버튼(+) 탭 → **즉시 카메라 화면**
-3. 촬영 버튼 탭 → 배경 자동 제거
-4. **의류 타입 선택 모달** → 6가지 선택 옵션
-5. **자동 저장** → SwiftData + Photos 앱
-6. 라이브러리 복귀 → 썸네일과 함께 표시
-
-### 프로젝트 통계
-- **파일 개수**: 55 Swift 파일
-- **코드 라인 수**: ~18,000 라인
-- **빌드 상태**: ✅ 성공
-- **최소 iOS 버전**: 17.0+
-- **지원 디바이스**: LiDAR 탑재 기기 (iPhone 12 Pro 이상, iPad Pro 2020 이상)
-
-### 📊 개발 진행 상황
-
-**상세한 개발 진행 상황과 최신 업데이트 내용은 [PROGRESS.md](./PROGRESS.md) 파일을 참조하세요.**
-
-- 최신 작업 내용
-- Phase별 완료 항목
-- 다음 작업 예정 사항
-- 기술적 이슈 및 해결 과정
+- `MeasurementSettings`: 런타임 측정 설정 관리 (교정 계수 포함)
 
 ---
 
@@ -1963,6 +1810,31 @@ git push origin main
 
 모든 프로젝트 관련 문서는 **[DOC/](./DOC/)** 폴더에 정리되어 있습니다.
 
+### ML 학습 데이터 수집 가이드 🆕
+- **[ML_DATA_COLLECTION_GUIDE.md](./DOC/ML_DATA_COLLECTION_GUIDE.md)** - ML 학습 데이터 수집 실무 가이드
+  - 빠른 시작 (5분)
+  - 상세 데이터 수집 절차
+  - 품질 관리 및 모범 사례
+  - 데이터 수집 시나리오 (빠른/고품질/특정 타입)
+  - 문제 해결 및 FAQ
+
+- **[ML_DATA_COLLECTION_QUICK_REFERENCE.md](./DOC/ML_DATA_COLLECTION_QUICK_REFERENCE.md)** - 빠른 참조 카드 (인쇄용)
+  - 체크리스트 형식
+  - 터미널 명령어 모음
+  - 일일 목표 트래커
+  - 품질 지표 빠른 참조
+
+- **[ML_DATA_COLLECTION_TEST_GUIDE.md](./DOC/ML_DATA_COLLECTION_TEST_GUIDE.md)** - 데이터 수집 테스트 가이드
+  - 테스트 시나리오
+  - 데이터 확인 방법
+  - 문제 해결
+  - 체크리스트
+
+- **[CORE_ML_INTEGRATION_GUIDE.md](./DOC/CORE_ML_INTEGRATION_GUIDE.md)** - Core ML 모델 통합 가이드
+  - Vision + Core ML 하이브리드 접근법
+  - 모델 학습 워크플로우
+  - 성능 최적화
+
 ### 개발 도구 문서
 - **[IOS_DEVICE_GUIDE.md](./DOC/IOS_DEVICE_GUIDE.md)** - iOS 디바이스 빌드 및 디버깅 완전 가이드
   - CLI 기반 자동화 도구 사용법
@@ -1987,7 +1859,15 @@ git push origin main
   - 다음 작업 예정 사항
   - 기술적 이슈 및 해결 과정
 
+- **[IMPLEMENTATION_SUMMARY_20251110.md](./IMPLEMENTATION_SUMMARY_20251110.md)** - ML 시스템 구현 완료 보고서 🆕
+  - 키포인트 자동 감지 시스템
+  - Core ML 통합 및 VisionMLService
+  - ML 학습 데이터 수집 시스템
+  - 실시간 피드백 UI
+  - 학습 워크플로우 스크립트
+  - 빌드 성공 및 테스트 준비 완료
+
 ---
 
-**마지막 업데이트**: 2025년 11월 6일
-**문서 버전**: 1.5.0
+**마지막 업데이트**: 2025년 12월 2일
+**문서 버전**: 1.6.0

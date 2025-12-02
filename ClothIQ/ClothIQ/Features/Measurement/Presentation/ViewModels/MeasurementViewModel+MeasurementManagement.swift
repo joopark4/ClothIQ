@@ -23,34 +23,123 @@ import Combine
 
 extension MeasurementViewModelRefactored {
     
-    /// 화면 탭 처리 - 측정 포인트 추가
+    /// 화면 탭 처리 - 다중 샘플링 시작
     ///
     /// - Parameters:
     ///   - location: 화면 좌표
     ///   - frame: AR 프레임
     func handleTap(at location: CGPoint, frame: ARFrame) {
+        // 이미 샘플링 중이면 무시
+        guard !isSampling else {
+            return
+        }
+
         // 평면 추정을 위한 ARFrame 정보 저장
         lastDepthMap = frame.smoothedSceneDepth?.depthMap ?? frame.sceneDepth?.depthMap
         lastCameraTransform = frame.camera.transform
         lastCameraIntrinsics = frame.camera.intrinsics
 
+        // 다중 샘플링 시작
+        startPointSampling(at: location)
+    }
+
+    /// 포인트 샘플링 시작
+    private func startPointSampling(at location: CGPoint) {
+        print("🎯 [ViewModel] 포인트 샘플링 시작 at \(location)")
+
+        // 샘플링 세션 시작
+        let samplingID = measurementService.startPointSampling(at: location)
+
+        // 상태 업데이트
+        currentSamplingID = samplingID
+        isSampling = true
+        samplingProgress = 0.0
+        currentSampleCount = 0
+
+        print("  - 샘플링 ID: \(samplingID)")
+        print("  - 목표 샘플 수: \(targetSampleCount)")
+    }
+
+    /// AR 프레임 업데이트 시 호출 - 샘플 수집
+    func handleARFrameUpdate(_ frame: ARFrame) {
+        // 환경 점수 업데이트
+        updateEnvironment(from: frame)
+
+        // 샘플링 중이면 샘플 수집
+        if isSampling, let samplingID = currentSamplingID {
+            collectSampleForCurrentSession(from: frame)
+        }
+    }
+
+    /// 현재 샘플링 세션에 샘플 수집
+    private func collectSampleForCurrentSession(from frame: ARFrame) {
+        guard let samplingID = currentSamplingID else { return }
+
         do {
-            // Service를 통해 측정 포인트 추출
-            guard let point = try measurementService.extractMeasurementPoint(
-                at: location,
-                from: frame
-            ) else {
-                showError("측정 포인트를 추가할 수 없습니다.")
-                return
+            // 샘플 수집
+            if let progress = try measurementService.collectSample(for: samplingID, from: frame) {
+                // 진행률 업데이트
+                samplingProgress = progress
+                currentSampleCount = Int(progress * Float(targetSampleCount))
+
+                print("📊 [ViewModel] 샘플 수집 진행: \(Int(progress * 100))% (\(currentSampleCount)/\(targetSampleCount))")
+            } else {
+                // nil 반환 = 샘플링 완료
+                finalizeSampledPoint()
             }
-
-            addMeasurementPoint(point)
-
         } catch let error as ARError {
+            // 샘플링 실패 - 취소하고 에러 표시
+            cancelSampling()
             handleARError(error)
         } catch {
-            showError("측정 중 오류가 발생했습니다: \(error.localizedDescription)")
+            cancelSampling()
+            showError("샘플 수집 중 오류: \(error.localizedDescription)")
         }
+    }
+
+    /// 샘플링 완료 및 포인트 추가
+    private func finalizeSampledPoint() {
+        guard let samplingID = currentSamplingID else { return }
+
+        do {
+            print("✅ [ViewModel] 샘플링 완료, 포인트 정제 중...")
+
+            // 정제된 포인트 받기
+            let refinedPoint = try measurementService.finalizeSampledPoint(for: samplingID)
+
+            // 측정 포인트 추가
+            addMeasurementPoint(refinedPoint)
+
+            // 샘플링 상태 초기화
+            resetSamplingState()
+
+            print("✅ [ViewModel] 정제된 포인트 추가 완료!")
+
+        } catch let error as ARError {
+            cancelSampling()
+            handleARError(error)
+        } catch {
+            cancelSampling()
+            showError("포인트 정제 중 오류: \(error.localizedDescription)")
+        }
+    }
+
+    /// 샘플링 취소
+    func cancelSampling() {
+        guard let samplingID = currentSamplingID else { return }
+
+        print("❌ [ViewModel] 샘플링 취소")
+
+        measurementService.cancelSampling(for: samplingID)
+        resetSamplingState()
+    }
+
+    /// 샘플링 상태 초기화
+    private func resetSamplingState() {
+        currentSamplingID = nil
+        isSampling = false
+        samplingProgress = 0.0
+        currentSampleCount = 0
     }
 
     /// 측정 포인트 추가
@@ -167,9 +256,32 @@ extension MeasurementViewModelRefactored {
                 confidence: totalConfidence
             )
 
-            // 측정값 검증
+            // ✅ 교정 계수 적용 (AR 실시간 측정 방식)
+            let calibratedDistance: Double
+            if let clothingType = session.clothingType {
+                calibratedDistance = MeasurementSettings.shared.applyCorrectionFactor(
+                    type: measurementType,
+                    clothingType: clothingType,
+                    value: filteredDistance,
+                    method: .ar  // AR 실시간 측정용 교정 계수 사용
+                )
+
+                // 교정 적용 로그
+                if abs(calibratedDistance - filteredDistance) > 0.01 {
+                    print("📏 [AR Calibration] 교정 계수 적용")
+                    print("  - 측정 타입: \(measurementType.displayName)")
+                    print("  - 의류 타입: \(clothingType.displayName)")
+                    print("  - 원본 값: \(String(format: "%.2f", filteredDistance))cm")
+                    print("  - 교정 후: \(String(format: "%.2f", calibratedDistance))cm")
+                    print("  - 보정: \(String(format: "%.2f", calibratedDistance - filteredDistance))cm (\(String(format: "%.1f", (calibratedDistance / filteredDistance - 1.0) * 100.0))%)")
+                }
+            } else {
+                calibratedDistance = filteredDistance
+            }
+
+            // 측정값 검증 (교정 후 값으로)
             let validation = MeasurementCalculator.validateMeasurement(
-                value: filteredDistance,
+                value: calibratedDistance,
                 type: measurementType
             )
 
@@ -185,11 +297,12 @@ extension MeasurementViewModelRefactored {
                 showSuccess("⚠️ \(warning)")
             }
 
-            session.setMeasurement(filteredDistance, for: measurementType)
+            // 교정된 값으로 저장
+            session.setMeasurement(calibratedDistance, for: measurementType)
 
             // 측정 품질 표시
             let qualityDesc = AngleCorrectionService.qualityDescription(for: avgAngle)
-            showSuccess("측정 완료: \(measurementType.displayName) = \(String(format: "%.1f", filteredDistance)) cm (품질: \(qualityDesc))")
+            showSuccess("측정 완료: \(measurementType.displayName) = \(String(format: "%.1f", calibratedDistance)) cm (품질: \(qualityDesc))")
         }
     }
 

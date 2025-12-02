@@ -61,7 +61,8 @@ struct DepthDataProcessor {
         let depth = rowData.assumingMemoryBound(to: Float32.self)[u]
 
         // 유효하지 않은 깊이 값 필터링
-        guard depth > 0 && depth.isFinite else {
+        // LiDAR_SIZE_Ref.md: LiDAR 센서 유효 범위 0.2-5m
+        guard depth.isFinite && depth >= 0.2 && depth <= 5.0 else {
             return nil
         }
 
@@ -106,8 +107,20 @@ struct DepthDataProcessor {
         let confidenceValue = rowData.assumingMemoryBound(to: UInt8.self)[u]
 
         // ARConfidenceLevel: 0 (low), 1 (medium), 2 (high)
-        // 0.0 ~ 1.0 범위로 정규화
-        return Float(confidenceValue) / 2.0
+        // LiDAR_SIZE_Ref.md: ARConfidenceLevel.high (2)만 사용하여 정확도 향상
+        let confidenceLevel = ARConfidenceLevel(rawValue: Int(confidenceValue)) ?? .low
+
+        // High 신뢰도만 1.0, 나머지는 패널티 적용
+        switch confidenceLevel {
+        case .high:
+            return 1.0  // 최고 신뢰도
+        case .medium:
+            return 0.5  // 중간 신뢰도 (사용 지양)
+        case .low:
+            return 0.2  // 낮은 신뢰도 (거의 사용 안 함)
+        @unknown default:
+            return 0.0
+        }
     }
 
     // MARK: - World Position Calculation
@@ -117,10 +130,10 @@ struct DepthDataProcessor {
     /// 카메라 intrinsics를 사용하여 정확한 3D 좌표를 계산합니다.
     ///
     /// - Parameters:
-    ///   - screenPoint: 화면 좌표 (픽셀 좌표)
+    ///   - screenPoint: 정규화된 화면 좌표 (0~1 범위)
     ///   - depth: 깊이 값 (미터)
     ///   - camera: AR 카메라
-    ///   - viewportSize: 뷰포트 크기
+    ///   - viewportSize: 뷰포트 크기 (사용되지 않음, 호환성 유지용)
     /// - Returns: 월드 좌표
     static func calculateWorldPosition(
         screenPoint: CGPoint,
@@ -130,16 +143,10 @@ struct DepthDataProcessor {
     ) -> SIMD3<Float> {
         // 카메라 내부 파라미터 (intrinsics)
         let intrinsics = camera.intrinsics
-        let imageResolution = camera.imageResolution
 
-        // 화면 좌표를 이미지 해상도 좌표계로 변환
-        let scaleX = imageResolution.width / viewportSize.width
-        let scaleY = imageResolution.height / viewportSize.height
-
-        let imagePoint = CGPoint(
-            x: screenPoint.x * scaleX,
-            y: screenPoint.y * scaleY
-        )
+        // screenPoint는 이미 camera.imageResolution 기준으로 스케일링되어 전달됨
+        // (ARViewContainer에서 변환됨)
+        let imagePoint = screenPoint
 
         // Camera intrinsics에서 파라미터 추출
         let fx = intrinsics[0, 0]  // focal length X

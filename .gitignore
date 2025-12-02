@@ -64,5 +64,8 @@ fastlane/test_output
 DerivedData/
 # Reference/
 
+# Test Results
+TestResults/
+
 # iOS Device Tools Config
 scripts/ios_device_config.sh

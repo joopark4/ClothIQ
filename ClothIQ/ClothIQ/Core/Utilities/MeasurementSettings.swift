@@ -79,9 +79,9 @@ final class MeasurementSettings: ObservableObject {
     /// 측정 포인트의 최소 신뢰도 값입니다.
     /// 이 값보다 낮은 신뢰도를 가진 측정 포인트는 무시됩니다.
     ///
-    /// - 기본값: 0.6
+    /// - 기본값: 0.4 (LiDAR medium confidence 수용)
     /// - 범위: 0.4 ~ 0.9
-    @Published var minConfidence: Float = 0.6 {
+    @Published var minConfidence: Float = 0.4 {
         didSet { saveToUserDefaults() }
     }
 
@@ -206,31 +206,45 @@ final class MeasurementSettings: ObservableObject {
     ///   - type: 측정 타입 (어깨너비, 허리둘레 등)
     ///   - clothingType: 의류 타입 (반팔, 긴바지 등)
     ///   - value: 원본 측정값 (cm)
+    ///   - method: 측정 방식 (ar 또는 photo, 기본값: photo)
     /// - Returns: 보정이 적용된 측정값 (cm). 보정 계수가 없으면 원본 값 반환
     ///
     /// ## Example
     /// ```swift
-    /// let correctedValue = MeasurementSettings.shared.applyCorrectionFactor(
+    /// // AR 실시간 측정
+    /// let correctedValueAR = MeasurementSettings.shared.applyCorrectionFactor(
     ///     type: .waistCircumference,
     ///     clothingType: .shorts,
-    ///     value: 76.5
+    ///     value: 47.19,
+    ///     method: .ar
     /// )
-    /// // correctedValue = 76.5 × 1.0196 = 78.0 (if calibration factor exists)
+    /// // correctedValueAR = 47.19 × 0.8476 = 40.0
+    ///
+    /// // 사진 기반 측정
+    /// let correctedValuePhoto = MeasurementSettings.shared.applyCorrectionFactor(
+    ///     type: .waistCircumference,
+    ///     clothingType: .shorts,
+    ///     value: 50.16,
+    ///     method: .photo
+    /// )
+    /// // correctedValuePhoto = 50.16 × 0.7974 = 40.0
     /// ```
     func applyCorrectionFactor(
         type: MeasurementType,
         clothingType: ClothingType,
-        value: Double
+        value: Double,
+        method: MeasurementMethod = .photo
     ) -> Double {
         guard useCalibration,
               let profile = activeProfile else {
             return value
         }
 
-        // 해당 타입의 보정 계수 찾기
+        // 해당 타입 + 측정 방식의 보정 계수 찾기
         if let factor = profile.calibrationFactors.first(where: {
             $0.measurementType == type.rawValue &&
-            $0.clothingType == clothingType.rawValue
+            $0.clothingType == clothingType.rawValue &&
+            $0.measurementMethod == method.rawValue
         }) {
             return value * factor.correctionFactor
         }
@@ -240,7 +254,7 @@ final class MeasurementSettings: ObservableObject {
 
     /// 기본값으로 리셋합니다.
     func resetToDefaults() {
-        minConfidence = 0.6
+        minConfidence = 0.4
         lowConfidenceWarning = 0.7
         veryLowConfidence = 0.4
         minDepthCoverage = 0.2
@@ -271,7 +285,7 @@ final class MeasurementSettings: ObservableObject {
         // 교정 프로파일 생성
         let profile = CalibrationProfile(
             name: "반바지 기준 (2025-11-06)",
-            minConfidence: 0.6,
+            minConfidence: 0.4,
             lowConfidenceWarning: 0.7,
             veryLowConfidence: 0.4,
             minDepthCoverage: 0.2,
@@ -282,10 +296,13 @@ final class MeasurementSettings: ObservableObject {
             planeErrorTolerance: 0.5
         )
 
-        // 허리둘레 보정 계수
-        let waistFactor = CalibrationFactor(
+        // === 사진 측정 보정 계수 (2025-11-06) ===
+
+        // 허리둘레 보정 계수 (Photo)
+        let waistFactorPhoto = CalibrationFactor(
             clothingType: ClothingType.shorts.rawValue,
             measurementType: MeasurementType.waistCircumference.rawValue,
+            measurementMethod: MeasurementMethod.photo.rawValue,
             actualValue: 40.0,  // 실측값
             measuredValue: 50.16,  // 평균 측정값
             sampleCount: 10,
@@ -293,10 +310,11 @@ final class MeasurementSettings: ObservableObject {
             stdDeviation: 1.17
         )
 
-        // 총길이 보정 계수
-        let lengthFactor = CalibrationFactor(
+        // 총길이 보정 계수 (Photo)
+        let lengthFactorPhoto = CalibrationFactor(
             clothingType: ClothingType.shorts.rawValue,
             measurementType: MeasurementType.totalLength.rawValue,
+            measurementMethod: MeasurementMethod.photo.rawValue,
             actualValue: 48.0,  // 실측값
             measuredValue: 37.70,  // 평균 측정값
             sampleCount: 10,
@@ -304,10 +322,11 @@ final class MeasurementSettings: ObservableObject {
             stdDeviation: 2.53
         )
 
-        // 밑위 보정 계수
-        let riseFactor = CalibrationFactor(
+        // 밑위 보정 계수 (Photo)
+        let riseFactorPhoto = CalibrationFactor(
             clothingType: ClothingType.shorts.rawValue,
             measurementType: MeasurementType.rise.rawValue,
+            measurementMethod: MeasurementMethod.photo.rawValue,
             actualValue: 30.0,  // 실측값
             measuredValue: 22.37,  // 평균 측정값
             sampleCount: 10,
@@ -315,8 +334,25 @@ final class MeasurementSettings: ObservableObject {
             stdDeviation: 0.80
         )
 
+        // === AR 실시간 측정 보정 계수 (2025-11-14) ===
+
+        // 허리둘레 보정 계수 (AR)
+        let waistFactorAR = CalibrationFactor(
+            clothingType: ClothingType.shorts.rawValue,
+            measurementType: MeasurementType.waistCircumference.rawValue,
+            measurementMethod: MeasurementMethod.ar.rawValue,
+            actualValue: 40.0,  // 실측값
+            measuredValue: 47.19,  // AR 측정값
+            sampleCount: 1,
+            averageMeasured: 47.19,
+            stdDeviation: nil
+        )
+
         // 보정 계수를 프로파일에 추가
-        profile.calibrationFactors = [waistFactor, lengthFactor, riseFactor]
+        profile.calibrationFactors = [
+            waistFactorPhoto, lengthFactorPhoto, riseFactorPhoto,  // 사진 측정
+            waistFactorAR  // AR 실시간 측정
+        ]
 
         // SwiftData에 저장
         modelContext.insert(profile)

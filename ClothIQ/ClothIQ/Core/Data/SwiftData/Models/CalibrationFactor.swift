@@ -17,6 +17,12 @@
 import Foundation
 import SwiftData
 
+/// 측정 방식
+enum MeasurementMethod: String, Codable {
+    case ar = "ar"           // AR 실시간 측정
+    case photo = "photo"     // 사진 기반 측정
+}
+
 /// 교정 계수 데이터 모델
 ///
 /// 특정 의류 타입과 측정 타입에 대한 보정 계수를 저장합니다.
@@ -61,6 +67,12 @@ final class CalibrationFactor {
     /// MeasurementType enum의 rawValue로 저장됩니다.
     /// 예: "waist_circumference", "shoulder_width" 등
     var measurementType: String
+
+    /// 측정 방식
+    ///
+    /// AR 실시간 측정("ar") 또는 사진 기반 측정("photo")
+    /// 기본값: "photo" (하위 호환성)
+    var measurementMethod: String
 
     /// 실측값 (cm)
     ///
@@ -116,6 +128,7 @@ final class CalibrationFactor {
     ///   - id: 고유 식별자 (기본값: 새로운 UUID)
     ///   - clothingType: 의류 타입 rawValue
     ///   - measurementType: 측정 타입 rawValue
+    ///   - measurementMethod: 측정 방식 ("ar" 또는 "photo", 기본값: "photo")
     ///   - actualValue: 실측값 (cm)
     ///   - measuredValue: 측정값 (cm)
     ///   - sampleCount: 측정 횟수 (기본값: 1)
@@ -129,6 +142,7 @@ final class CalibrationFactor {
         id: UUID = UUID(),
         clothingType: String,
         measurementType: String,
+        measurementMethod: String = MeasurementMethod.photo.rawValue,
         actualValue: Double,
         measuredValue: Double,
         sampleCount: Int = 1,
@@ -139,6 +153,7 @@ final class CalibrationFactor {
         self.id = id
         self.clothingType = clothingType
         self.measurementType = measurementType
+        self.measurementMethod = measurementMethod
         self.actualValue = actualValue
         self.measuredValue = measuredValue
         self.correctionFactor = actualValue / measuredValue

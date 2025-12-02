@@ -33,6 +33,7 @@ struct MeasurementView: View {
     @State private var lastMaskUpdateTime: Date = .distantPast
     @State private var lastEnvironmentUpdateTime: Date = .distantPast
     @State private var showingDetailView = false
+    @State private var showingMeasurementTypeSelector = false
 
     // AutoSize02.md: ARFrame은 자동 측정에만 짧게 사용하고 즉시 해제
     // 타입 선택 시점에만 일시적으로 보관
@@ -71,8 +72,10 @@ struct MeasurementView: View {
                 onSessionStarted: {
                     viewModel.startARSession()
                 },
-                // 탭 시 카메라 포커스 설정 (ARViewContainer 내부에서 처리)
-                onTap: nil,
+                // 탭 시 다중 샘플링 시작
+                onTap: { location, frame in
+                    viewModel.handleTap(at: location, frame: frame)
+                },
                 onFrameUpdate: { frame in
                     // ARFrame 메모리 누수 방지: autoreleasepool 사용
                     let _ = autoreleasepool {
@@ -80,6 +83,7 @@ struct MeasurementView: View {
                             // AutoSize02.md: ARFrame은 자동 측정용으로만 일시 보관
                             // 매 프레임마다 최신 프레임으로 교체 (이전 프레임은 자동 해제)
                             self.capturedFrameForMeasurement = frame
+                            viewModel.currentARFrame = frame
 
                             let now = Date()
 
@@ -87,6 +91,9 @@ struct MeasurementView: View {
                                 lastEnvironmentUpdateTime = now
                                 viewModel.updateEnvironment(from: frame)
                             }
+
+                            // 다중 샘플링 워크플로우: AR 프레임 업데이트 전달
+                            viewModel.handleARFrameUpdate(frame)
 
                             guard !isUpdatingMask,
                                   now.timeIntervalSince(lastMaskUpdateTime) >= maskUpdateInterval else {
@@ -133,7 +140,12 @@ struct MeasurementView: View {
                 },
                 onAnchorsUpdate: nil,  // 평면 정렬 가이드 제거 - 평면 추정은 백그라운드에서 자동 처리
                 captureRequested: $viewModel.captureRequested,
-                onImageCaptured: { image, depthMap, camera in
+                onImageCaptured: { image, depthMap, camera, pixelBuffer in
+                    // 윤곽선 분석을 위해 원본 픽셀 버퍼 저장
+                    viewModel.capturedPixelBuffer = pixelBuffer
+                    // 캡처 시점의 ARFrame을 ViewModel에 저장
+                    viewModel.currentARFrame = capturedFrameForMeasurement
+                    print("📸 [Capture] ARFrame 저장 완료 - frame: \(capturedFrameForMeasurement != nil)")
                     viewModel.handleCapturedImage(image, depthMap: depthMap, camera: camera)
                 }
             )
@@ -142,7 +154,8 @@ struct MeasurementView: View {
             // 측정 포인트 오버레이
             MeasurementOverlayView(
                 points: viewModel.measurementPoints,
-                selectedIndex: viewModel.selectedPointIndex
+                selectedIndex: viewModel.selectedPointIndex,
+                imageResolution: capturedFrameForMeasurement?.camera.imageResolution
             )
 
             // 객체 포커싱 가이드 (실시간 피드백)
@@ -161,6 +174,11 @@ struct MeasurementView: View {
                 message: viewModel.trackingStateMessage(viewModel.trackingState)
             )
 
+            // 다중 샘플링 진행 표시
+            if viewModel.isSampling {
+                samplingProgressOverlay
+            }
+
             // UI 컨트롤
             VStack {
                 // 상단 헤더
@@ -169,6 +187,12 @@ struct MeasurementView: View {
                     .padding(.top, 20)
 
                 Spacer()
+
+                // 측정 포인트 관리 버튼 (적용/취소)
+                if viewModel.measurementPoints.count > 0 {
+                    measurementControlButtons
+                        .padding(.bottom, 16)
+                }
 
                 // 하단 컨트롤
                 captureControlView
@@ -215,6 +239,36 @@ struct MeasurementView: View {
                     .navigationBarBackButtonHidden(false)
             }
         }
+        .sheet(isPresented: $showingMeasurementTypeSelector) {
+            MeasurementTypePickerSheet(
+                clothingType: viewModel.session.clothingType ?? .shortSleeve,
+                onSelect: { selectedType in
+                    applyMeasurement(type: selectedType)
+                }
+            )
+        }
+    }
+
+    // MARK: - Helper Methods
+
+    /// 측정 타입 선택 시트 표시
+    private func showMeasurementTypeSelector() {
+        showingMeasurementTypeSelector = true
+    }
+
+    /// 측정 적용 (교정 계수 자동 적용)
+    private func applyMeasurement(type: MeasurementType) {
+        // 측정 타입 설정
+        viewModel.currentMeasurementType = type
+
+        // 거리 계산 (교정 계수 자동 적용)
+        viewModel.calculateDistance()
+
+        // 포인트 초기화
+        viewModel.clearAllPoints()
+
+        // 시트 닫기
+        showingMeasurementTypeSelector = false
     }
 
     // MARK: - Header View
@@ -231,6 +285,64 @@ struct MeasurementView: View {
 
             Spacer()
         }
+    }
+
+    // MARK: - Measurement Control Buttons
+
+    /// 측정 포인트 관리 버튼 (적용/취소)
+    private var measurementControlButtons: some View {
+        HStack(spacing: 16) {
+            // 취소 버튼
+            Button(action: {
+                viewModel.clearAllPoints()
+                viewModel.showSuccess("측정 포인트가 초기화되었습니다")
+            }) {
+                HStack(spacing: 8) {
+                    Image(systemName: "xmark.circle.fill")
+                        .font(.system(size: 18))
+                    Text("취소")
+                        .font(.system(size: 16, weight: .semibold))
+                }
+                .foregroundColor(.white)
+                .padding(.horizontal, 24)
+                .padding(.vertical, 14)
+                .background(
+                    RoundedRectangle(cornerRadius: 25)
+                        .fill(Color.red.opacity(0.8))
+                )
+                .shadow(color: Color.red.opacity(0.3), radius: 8, y: 4)
+            }
+
+            // 적용 버튼 (2개 이상 포인트가 있을 때만)
+            if viewModel.measurementPoints.count >= 2 {
+                Button(action: {
+                    showMeasurementTypeSelector()
+                }) {
+                    HStack(spacing: 8) {
+                        Image(systemName: "checkmark.circle.fill")
+                            .font(.system(size: 18))
+                        Text("적용")
+                            .font(.system(size: 16, weight: .semibold))
+                    }
+                    .foregroundColor(.white)
+                    .padding(.horizontal, 24)
+                    .padding(.vertical, 14)
+                    .background(
+                        RoundedRectangle(cornerRadius: 25)
+                            .fill(
+                                LinearGradient(
+                                    colors: [Color.green, Color.green.opacity(0.8)],
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                )
+                            )
+                    )
+                    .shadow(color: Color.green.opacity(0.3), radius: 8, y: 4)
+                }
+            }
+        }
+        .transition(.scale.combined(with: .opacity))
+        .animation(.spring(response: 0.3), value: viewModel.measurementPoints.count)
     }
 
     // MARK: - Capture Controls
@@ -274,6 +386,84 @@ struct MeasurementView: View {
                 .transition(.opacity)
             }
         }
+    }
+
+    // MARK: - Sampling Progress Overlay
+
+    /// 다중 샘플링 진행 상태 표시 오버레이
+    private var samplingProgressOverlay: some View {
+        VStack {
+            Spacer()
+                .frame(height: 100)  // 상단 여백
+
+            VStack(spacing: 16) {
+                // 진행률 원형 표시
+                ZStack {
+                    // 배경 원
+                    Circle()
+                        .stroke(Color.white.opacity(0.2), lineWidth: 8)
+                        .frame(width: 100, height: 100)
+
+                    // 진행률 원
+                    Circle()
+                        .trim(from: 0, to: CGFloat(viewModel.samplingProgress))
+                        .stroke(
+                            LinearGradient(
+                                gradient: Gradient(colors: [Color.blue, Color.cyan]),
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            ),
+                            style: StrokeStyle(lineWidth: 8, lineCap: .round)
+                        )
+                        .frame(width: 100, height: 100)
+                        .rotationEffect(.degrees(-90))
+                        .animation(.spring(response: 0.3), value: viewModel.samplingProgress)
+
+                    // 중앙 샘플 카운트
+                    VStack(spacing: 4) {
+                        Text("\(viewModel.currentSampleCount)")
+                            .font(.system(size: 28, weight: .bold, design: .rounded))
+                            .foregroundColor(.white)
+
+                        Text("/\(viewModel.targetSampleCount)")
+                            .font(.system(size: 14, weight: .medium))
+                            .foregroundColor(.white.opacity(0.8))
+                    }
+                }
+
+                // 상태 메시지
+                Text("측정 포인트 샘플링 중...")
+                    .font(.system(size: 14, weight: .medium))
+                    .foregroundColor(.white)
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 8)
+                    .background(
+                        Capsule()
+                            .fill(Color.black.opacity(0.5))
+                    )
+
+                // 진행률 바 (작은 점들)
+                HStack(spacing: 4) {
+                    ForEach(0..<viewModel.targetSampleCount, id: \.self) { index in
+                        Circle()
+                            .fill(index < viewModel.currentSampleCount ? Color.cyan : Color.white.opacity(0.3))
+                            .frame(width: 6, height: 6)
+                            .scaleEffect(index == viewModel.currentSampleCount - 1 ? 1.3 : 1.0)
+                            .animation(.spring(response: 0.3), value: viewModel.currentSampleCount)
+                    }
+                }
+            }
+            .padding(24)
+            .background(
+                RoundedRectangle(cornerRadius: 20)
+                    .fill(Color.black.opacity(0.7))
+                    .shadow(color: Color.cyan.opacity(0.3), radius: 20, y: 10)
+            )
+            .transition(.scale.combined(with: .opacity))
+
+            Spacer()
+        }
+        .animation(.spring(response: 0.5), value: viewModel.isSampling)
     }
 
     // MARK: - Message Banners

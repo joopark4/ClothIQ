@@ -116,7 +116,7 @@ struct MeasurementLinesOverlay: View {
     /// 측정 레이블 그리기
     private func drawLabel(context: GraphicsContext, at point: CGPoint, measurement: MeasurementModel, color: Color, isSelected: Bool) {
         let displayName = measurement.measurementType?.displayName ?? measurement.type
-        let formattedValue = String(format: "%.1fcm", measurement.value)
+        let formattedValue = String(format: "%.1fcm", measurement.calibratedValue())
         let text = "\(displayName): \(formattedValue)"
 
         let fontSize: CGFloat = isSelected ? 14 : 12
@@ -345,7 +345,7 @@ struct MeasurementLabel: View {
 
     var body: some View {
         let displayName = measurement.measurementType?.displayName ?? measurement.type
-        let formattedValue = String(format: "%.1fcm", measurement.value)
+        let formattedValue = String(format: "%.1fcm", measurement.calibratedValue())
         let text = "\(displayName): \(formattedValue)"
 
         Text(text)

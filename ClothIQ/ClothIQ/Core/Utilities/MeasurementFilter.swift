@@ -73,10 +73,10 @@ final class MeasurementFilter {
             // Create filter if it doesn't exist
             if filters[id] == nil {
                 filters[id] = KalmanFilter(
-                    initialValue: value,
-                    initialUncertainty: 1.0,
-                    processNoise: 0.01
+                    processNoise: 0.01,
+                    measurementNoise: 0.1
                 )
+                filters[id]?.initialize(with: Float(value))
             }
 
             guard let filter = filters[id] else {
@@ -86,12 +86,9 @@ final class MeasurementFilter {
             // Predict step
             filter.predict()
 
-            // Convert confidence to measurement noise
-            // Higher confidence → Lower noise
-            let measurementNoise = convertConfidenceToNoise(confidence)
-
             // Update and return filtered value
-            return filter.update(measurement: value, measurementNoise: measurementNoise)
+            let filteredValue = filter.update(measurement: Float(value))
+            return Double(filteredValue)
         }
     }
 
@@ -121,7 +118,8 @@ final class MeasurementFilter {
     /// - Returns: Current filtered value, or nil if filter doesn't exist
     func currentValue(for id: String) -> Double? {
         return queue.sync {
-            return filters[id]?.estimate
+            guard let filter = filters[id] else { return nil }
+            return Double(filter.currentEstimate)
         }
     }
 
@@ -131,7 +129,8 @@ final class MeasurementFilter {
     /// - Returns: Standard deviation (cm), or nil if filter doesn't exist
     func uncertainty(for id: String) -> Double? {
         return queue.sync {
-            return filters[id]?.standardDeviation
+            guard let filter = filters[id] else { return nil }
+            return Double(filter.currentUncertainty)
         }
     }
 
@@ -195,7 +194,7 @@ extension MeasurementFilter {
             var stats: [String: (Double, Double)] = [:]
 
             for (id, filter) in filters {
-                stats[id] = (filter.estimate, filter.standardDeviation)
+                stats[id] = (Double(filter.currentEstimate), Double(filter.currentUncertainty))
             }
 
             return stats
