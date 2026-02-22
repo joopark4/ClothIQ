@@ -38,8 +38,7 @@ struct ClothingDetailView: View {
     @State private var showMeasurementLines = true  // 기본값을 true로 변경 (측정값 자동 표시)
     @State private var selectedMeasurement: MeasurementModel?
 
-    // 일괄 자동 측정
-    @State private var showingBatchAutoMeasurement = false
+    // (자동 측정 제거됨)
 
     // 디버그 도구
     @State private var imageTapCount = 0
@@ -113,9 +112,7 @@ struct ClothingDetailView: View {
         .sheet(isPresented: $showingTypeEditor) {
             ClothingTypeEditorView(item: item)
         }
-        .sheet(isPresented: $showingBatchAutoMeasurement) {
-            BatchAutoMeasurementView(item: item, modelContext: modelContext)
-        }
+        // (자동 측정 sheet 제거됨)
     }
 
     // MARK: - iPhone Layout
@@ -177,15 +174,17 @@ struct ClothingDetailView: View {
                 Button {
                     showingPhotoMeasurement = true
                 } label: {
-                    Image(uiImage: image)
+                    let normalizedImage = image.normalizedOrientation()
+                    Image(uiImage: normalizedImage)
                         .resizable()
                         .aspectRatio(contentMode: .fit)
                         .frame(maxHeight: 400)
                         .overlay {
                             // 측정 라인 오버레이
+                            // processedImageSize를 사용하여 좌표 정규화 기준과 일치시킴
                             MeasurementLinesOverlay(
                                 measurements: item.measurements,
-                                imageSize: image.size,
+                                imageSize: item.processedImageSize ?? normalizedImage.size,
                                 selectedMeasurement: $selectedMeasurement,
                                 showLines: showMeasurementLines
                             )
@@ -492,19 +491,6 @@ struct ClothingDetailView: View {
 
     private var actionButtons: some View {
         VStack(spacing: 12) {
-            // 자동 측정 버튼
-            Button {
-                showingBatchAutoMeasurement = true
-            } label: {
-                Label("자동 측정", systemImage: "wand.and.stars")
-                    .frame(maxWidth: .infinity)
-                    .padding()
-                    .background(item.depthMapPath != nil ? Color.orange : Color.gray)
-                    .foregroundColor(.white)
-                    .cornerRadius(12)
-            }
-            .disabled(item.depthMapPath == nil)
-
             HStack(spacing: 16) {
                 Button(action: {
                     showingMeasurement = true

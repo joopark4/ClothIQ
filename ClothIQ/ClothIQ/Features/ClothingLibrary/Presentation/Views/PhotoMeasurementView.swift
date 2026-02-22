@@ -22,7 +22,6 @@ struct PhotoMeasurementView: View {
     @StateObject private var viewModel: PhotoMeasurementViewModel
     @State private var showingSaveConfirmation = false
     @State private var showingDepthMapWarning = false
-    @State private var showingTrainingStats = false  // 학습 데이터 통계 표시
     @State private var refreshID = UUID()  // 뷰 강제 업데이트용
 
     // MARK: - Initialization
@@ -163,19 +162,6 @@ struct PhotoMeasurementView: View {
                     print("🔄 [PhotoMeasurementView] refreshID 업데이트됨: \(refreshID)")
                 }
             }
-            .overlay {
-                // 키포인트 오버레이 (키포인트 표시가 켜져있을 때만)
-                if viewModel.showKeypoints && !viewModel.detectedKeypoints.isEmpty {
-                    GeometryReader { geometry in
-                        KeypointOverlayView(
-                            keypoints: viewModel.detectedKeypoints,
-                            imageSize: viewModel.effectiveImageSize,
-                            displaySize: geometry.size
-                        )
-                        .allowsHitTesting(false)  // 터치 통과
-                    }
-                }
-            }
             .overlay(alignment: .top) {
                 // 상단 툴바 (오버레이)
                 topToolbar
@@ -277,67 +263,6 @@ struct PhotoMeasurementView: View {
             }
 
             Spacer()
-
-            // 키포인트 감지 버튼 그룹
-            if viewModel.hasDepthMap {
-                HStack(spacing: 8) {
-                    // 키포인트 표시 토글
-                    Button {
-                        viewModel.toggleKeypointDisplay()
-                    } label: {
-                        HStack(spacing: 4) {
-                            Image(systemName: viewModel.showKeypoints ? "eye.fill" : "eye.slash.fill")
-                            Text("키포인트")
-                        }
-                        .foregroundStyle(.white)
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 8)
-                        .background(viewModel.showKeypoints ? Color.green.opacity(0.8) : Color.black.opacity(0.6))
-                        .clipShape(Capsule())
-                    }
-
-                    // 자동 측정 모드 토글
-                    Button {
-                        viewModel.toggleAutoMeasurementMode()
-                    } label: {
-                        HStack(spacing: 4) {
-                            Image(systemName: viewModel.isAutoMeasurementMode ? "wand.and.stars" : "wand.and.stars.inverse")
-                            Text("자동")
-                        }
-                        .foregroundStyle(.white)
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 8)
-                        .background(viewModel.isAutoMeasurementMode ? Color.purple.opacity(0.8) : Color.black.opacity(0.6))
-                        .clipShape(Capsule())
-                    }
-
-                    // ML 모드 토글
-                    Button {
-                        viewModel.toggleMLMode()
-                    } label: {
-                        HStack(spacing: 4) {
-                            if viewModel.isMLProcessing {
-                                ProgressView()
-                                    .progressViewStyle(CircularProgressViewStyle(tint: .white))
-                                    .scaleEffect(0.7)
-                            } else {
-                                Image(systemName: viewModel.isMLModeEnabled ? "brain" : "brain.head.profile")
-                            }
-                            Text("ML")
-                            if viewModel.mlConfidence > 0 {
-                                Text("\(Int(viewModel.mlConfidence * 100))%")
-                                    .font(.caption)
-                            }
-                        }
-                        .foregroundStyle(.white)
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 8)
-                        .background(viewModel.isMLModeEnabled ? Color.orange.opacity(0.8) : Color.black.opacity(0.6))
-                        .clipShape(Capsule())
-                    }
-                    .disabled(viewModel.isMLProcessing)
-                }
-            }
 
             Spacer()
 
@@ -458,29 +383,9 @@ struct PhotoMeasurementView: View {
                     }
                 }
 
-                // ML 학습 데이터 통계 버튼 (ML 모드일 때만)
-                if viewModel.isMLModeEnabled {
-                    Button {
-                        showingTrainingStats = true
-                    } label: {
-                        HStack(spacing: 4) {
-                            Image(systemName: "chart.bar.fill")
-                            Text("학습 데이터")
-                        }
-                        .font(.caption)
-                        .foregroundStyle(.white)
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 6)
-                        .background(Color.indigo.opacity(0.8))
-                        .clipShape(Capsule())
-                    }
-                }
             }
             .padding()
             .background(Color(.systemBackground))
-            .sheet(isPresented: $showingTrainingStats) {
-                TrainingStatsView(statistics: viewModel.getTrainingStatistics())
-            }
         }
     }
 

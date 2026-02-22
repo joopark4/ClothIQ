@@ -316,6 +316,16 @@ final class PhotoMeasurementViewModel: ObservableObject {
         let normalizedStart = normalizeFinalImagePoint(measurementAnchors[0].position)
         let normalizedEnd = normalizeFinalImagePoint(measurementAnchors[1].position)
 
+        print("💾 [saveMeasurement] 저장 시작:")
+        print("  - type: \(measurementType.rawValue)")
+        print("  - distance: \(result.distance)cm")
+        print("  - confidence: \(result.confidence)")
+        print("  - anchor[0]: \(measurementAnchors[0].position)")
+        print("  - anchor[1]: \(measurementAnchors[1].position)")
+        print("  - normalizedStart: \(normalizedStart)")
+        print("  - normalizedEnd: \(normalizedEnd)")
+        print("  - item.measurements 개수 (저장 전): \(item.measurements.count)")
+
         // 기존 측정값 확인
         if let existingMeasurement = item.measurements.first(where: { $0.type == measurementType.rawValue }) {
             // 업데이트
@@ -326,6 +336,7 @@ final class PhotoMeasurementViewModel: ObservableObject {
             existingMeasurement.startPointY = Double(normalizedStart.y)
             existingMeasurement.endPointX = Double(normalizedEnd.x)
             existingMeasurement.endPointY = Double(normalizedEnd.y)
+            print("  - 기존 측정값 업데이트 완료")
         } else {
             // 새로 추가
             let measurement = MeasurementModel(
@@ -341,20 +352,17 @@ final class PhotoMeasurementViewModel: ObservableObject {
             )
             item.measurements.append(measurement)
             measurement.clothingItem = item
+            print("  - 새 측정값 추가 완료")
         }
 
         // 업데이트 시간 갱신
         item.updatedAt = Date()
 
-        // 학습 데이터 수집 (활성화되어 있고 사용자가 수정한 경우)
-        if isCollectingTrainingData && (hasUserModifiedAnchors || detectedKeypoints.count > 0) {
-            collectTrainingData()
-        }
-
         // 저장
         do {
             try modelContext.save()
-            showSuccess("저장되었습니다")
+            print("✅ [saveMeasurement] 저장 성공 - item.measurements 개수: \(item.measurements.count)")
+            showSuccess("\(measurementType.displayName): \(String(format: "%.1f", result.distance))cm 저장됨")
 
             // 초기화 (다음 측정 준비)
             DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
@@ -362,6 +370,7 @@ final class PhotoMeasurementViewModel: ObservableObject {
                 self.selectedMeasurementType = nil
             }
         } catch {
+            print("❌ [saveMeasurement] 저장 실패: \(error)")
             showError("저장 실패: \(error.localizedDescription)")
         }
     }
@@ -420,16 +429,14 @@ final class PhotoMeasurementViewModel: ObservableObject {
             print("    - 측정 타입: \(type.displayName)")
 
             // 정규화된 좌표 (0-1) → 픽셀 좌표 변환
-            // 저장 시: normalizeFinalImagePoint에서 SwiftUI 좌표계 그대로 저장 (Y 반전 없음)
-            // 로드 시: SwiftUI 좌표계 그대로 복원 (Y 반전 불필요)
-
+            // SwiftUI 좌표계 (top-left origin) 기준으로 저장/로드
             let startPosition = CGPoint(
                 x: start.x * imageSize.width,
-                y: start.y * imageSize.height  // SwiftUI 좌표계 그대로 복원
+                y: start.y * imageSize.height
             )
             let endPosition = CGPoint(
                 x: end.x * imageSize.width,
-                y: end.y * imageSize.height  // SwiftUI 좌표계 그대로 복원
+                y: end.y * imageSize.height
             )
 
             print("  ✅ [loadAnchors] 복원된 픽셀 좌표 (SwiftUI - top-left origin):")
@@ -537,11 +544,12 @@ final class PhotoMeasurementViewModel: ObservableObject {
             return CGPoint(x: 0.5, y: 0.5)
         }
 
-        // SwiftUI 픽셀 좌표 (top-left origin) → Vision 정규화 좌표 (bottom-left origin)
-        // loadAnchors, MeasurementOverlayLineView 모두 Vision 좌표계(1.0 - y)를 기대
+        // SwiftUI 픽셀 좌표 (top-left origin) → 정규화 좌표 (0~1)
+        // loadAnchors, MeasurementLinesOverlay 모두 SwiftUI 좌표계 (top-left origin) 기준
+        // Y축 반전하지 않음
         return CGPoint(
             x: clamp(point.x / size.width, min: 0, max: 1),
-            y: clamp(1.0 - (point.y / size.height), min: 0, max: 1)
+            y: clamp(point.y / size.height, min: 0, max: 1)
         )
     }
 

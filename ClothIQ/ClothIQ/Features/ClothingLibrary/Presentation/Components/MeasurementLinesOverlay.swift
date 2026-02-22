@@ -204,8 +204,7 @@ struct MeasurementOverlayLineView: View {
                    let startPoint = measurement.startPoint,
                    let endPoint = measurement.endPoint {
 
-                    // 저장 시 SwiftUI 좌표계 그대로 저장됨 (Y 반전 없음)
-                    // SwiftUI (렌더링): top-left origin (y=0이 상단) - 변환 불필요
+                    // 정규화 좌표 (0~1) → 표시 좌표 변환 (SwiftUI top-left origin)
                     let start = CGPoint(
                         x: displayRect.minX + startPoint.x * displayRect.width,
                         y: displayRect.minY + startPoint.y * displayRect.height
