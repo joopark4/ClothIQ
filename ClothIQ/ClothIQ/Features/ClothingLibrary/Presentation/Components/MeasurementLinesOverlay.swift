@@ -204,16 +204,15 @@ struct MeasurementOverlayLineView: View {
                    let startPoint = measurement.startPoint,
                    let endPoint = measurement.endPoint {
 
-                    // Vision Framework (저장): bottom-left origin (y=1.0이 상단)
-                    // SwiftUI (렌더링): top-left origin (y=0이 상단)
-                    // Y축 좌표를 반전하여 변환 (1.0 - y)
+                    // 저장 시 SwiftUI 좌표계 그대로 저장됨 (Y 반전 없음)
+                    // SwiftUI (렌더링): top-left origin (y=0이 상단) - 변환 불필요
                     let start = CGPoint(
                         x: displayRect.minX + startPoint.x * displayRect.width,
-                        y: displayRect.minY + (1.0 - startPoint.y) * displayRect.height
+                        y: displayRect.minY + startPoint.y * displayRect.height
                     )
                     let end = CGPoint(
                         x: displayRect.minX + endPoint.x * displayRect.width,
-                        y: displayRect.minY + (1.0 - endPoint.y) * displayRect.height
+                        y: displayRect.minY + endPoint.y * displayRect.height
                     )
 
                     let color = colorForMeasurementType(measurement.type)

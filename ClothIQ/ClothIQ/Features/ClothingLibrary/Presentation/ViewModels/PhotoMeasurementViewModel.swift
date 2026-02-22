@@ -420,17 +420,16 @@ final class PhotoMeasurementViewModel: ObservableObject {
             print("    - 측정 타입: \(type.displayName)")
 
             // 정규화된 좌표 (0-1) → 픽셀 좌표 변환
-            // 저장 시: Vision 좌표계 (bottom-left origin, Y=0이 하단)
-            // 로드 시: SwiftUI 좌표계 (top-left origin, Y=0이 상단)
-            // ⚠️ Y축 좌표 변환 필수: Vision → SwiftUI
+            // 저장 시: normalizeFinalImagePoint에서 SwiftUI 좌표계 그대로 저장 (Y 반전 없음)
+            // 로드 시: SwiftUI 좌표계 그대로 복원 (Y 반전 불필요)
 
             let startPosition = CGPoint(
                 x: start.x * imageSize.width,
-                y: (1.0 - start.y) * imageSize.height  // ⚠️ Y축 flip (Vision → SwiftUI)
+                y: start.y * imageSize.height  // SwiftUI 좌표계 그대로 복원
             )
             let endPosition = CGPoint(
                 x: end.x * imageSize.width,
-                y: (1.0 - end.y) * imageSize.height  // ⚠️ Y축 flip (Vision → SwiftUI)
+                y: end.y * imageSize.height  // SwiftUI 좌표계 그대로 복원
             )
 
             print("  ✅ [loadAnchors] 복원된 픽셀 좌표 (SwiftUI - top-left origin):")

@@ -61,6 +61,7 @@ struct ZoomableImageView: View {
                     anchors: $measurementAnchors,
                     isEditingAnchors: $isEditingAnchors,
                     imageSize: imageSize,  // 전달받은 effectiveImageSize 사용
+                    rotation: rotation,  // 회전 각도 전달 (좌표 변환에 필요)
                     scale: 1.0,  // 확대 비활성화
                     offset: .zero,  // 이동 비활성화
                     padding: imagePadding,  // 이미지 여백
@@ -142,58 +143,15 @@ struct ZoomableImageView: View {
 
     // MARK: - Helpers
 
-    /// 탭 위치를 이미지 좌표로 변환
+    /// 탭 위치를 이미지 좌표로 변환 (rotation 및 imagePadding 반영)
     private func convertTapLocation(_ location: CGPoint, in viewSize: CGSize) -> CGPoint {
         let scale = finalScale * currentScale
         let offset = CGSize(
             width: finalOffset.width + currentOffset.width,
             height: finalOffset.height + currentOffset.height
         )
-
-        // 이미지의 실제 표시 크기 계산
-        let imageAspect = image.size.width / image.size.height
-        let viewAspect = viewSize.width / viewSize.height
-
-        var displaySize: CGSize
-        if imageAspect > viewAspect {
-            // 이미지가 더 넓음 (너비 기준)
-            displaySize = CGSize(
-                width: viewSize.width,
-                height: viewSize.width / imageAspect
-            )
-        } else {
-            // 이미지가 더 높음 (높이 기준)
-            displaySize = CGSize(
-                width: viewSize.height * imageAspect,
-                height: viewSize.height
-            )
-        }
-
-        // 이미지 중심 위치
-        let imageCenter = CGPoint(
-            x: viewSize.width / 2,
-            y: viewSize.height / 2
-        )
-
-        // 스케일과 오프셋 적용된 좌표 계산
-        let scaledDisplaySize = CGSize(
-            width: displaySize.width * scale,
-            height: displaySize.height * scale
-        )
-
-        let imageOrigin = CGPoint(
-            x: imageCenter.x - scaledDisplaySize.width / 2 + offset.width,
-            y: imageCenter.y - scaledDisplaySize.height / 2 + offset.height
-        )
-
-        // 탭 위치를 이미지 좌표로 변환
-        let relativeX = (location.x - imageOrigin.x) / scaledDisplaySize.width
-        let relativeY = (location.y - imageOrigin.y) / scaledDisplaySize.height
-
-        return CGPoint(
-            x: relativeX * image.size.width,
-            y: relativeY * image.size.height
-        )
+        let converter = CoordinateConverter(imageSize: imageSize, rotation: rotation)
+        return converter.viewToImage(location, in: viewSize, scale: scale, offset: offset, padding: imagePadding)
     }
 
     private func convertImagePointToView(_ point: CGPoint, in viewSize: CGSize) -> CGPoint {
@@ -242,12 +200,187 @@ struct ZoomableImageView: View {
     }
 }
 
+// MARK: - Coordinate Converter
+
+/// 이미지 좌표계 ↔ 뷰 좌표계 변환기
+///
+/// rotation이 적용된 이미지의 좌표 변환을 중앙에서 관리합니다.
+/// 저장 좌표계: SwiftUI 기준 (top-left origin, Y 증가 = 아래방향)
+///
+/// 정방향 변환 (imageToView) 공식 (nx = x/W, ny = y/H):
+/// - 0°:   dx = nx,   dy = ny
+/// - 90°:  dx = 1-ny, dy = nx
+/// - 180°: dx = 1-nx, dy = 1-ny
+/// - 270°: dx = ny,   dy = 1-nx
+///
+/// 역방향 변환 (viewToImage = imageToView의 역함수):
+/// - 0°:   nx = dx,   ny = dy
+/// - 90°:  nx = dy,   ny = 1-dx
+/// - 180°: nx = 1-dx, ny = 1-dy
+/// - 270°: nx = 1-dy, ny = dx
+struct CoordinateConverter {
+
+    // MARK: - Properties
+
+    let imageSize: CGSize
+    let rotation: Double
+
+    private var normalizedRotation: Int {
+        ((Int(rotation) % 360) + 360) % 360
+    }
+
+    private var isRotated90or270: Bool {
+        normalizedRotation == 90 || normalizedRotation == 270
+    }
+
+    // MARK: - Private Helpers
+
+    /// 표시 영역에서의 스케일된 이미지 크기와 원점을 계산합니다.
+    private func scaledLayout(
+        in viewSize: CGSize,
+        scale: CGFloat,
+        offset: CGSize,
+        padding: CGFloat
+    ) -> (size: CGSize, origin: CGPoint) {
+        // padding을 고려한 실제 이미지 표시 가능 영역
+        let availableSize = CGSize(
+            width: viewSize.width - padding * 2,
+            height: viewSize.height - padding * 2
+        )
+
+        // rotation 반영한 이미지 종횡비 (90°/270°이면 width/height 교환)
+        let displayedWidth = isRotated90or270 ? imageSize.height : imageSize.width
+        let displayedHeight = isRotated90or270 ? imageSize.width : imageSize.height
+        let imageAspect = displayedWidth / displayedHeight
+        let availableAspect = availableSize.width / availableSize.height
+
+        let baseDisplaySize: CGSize
+        if imageAspect > availableAspect {
+            // 이미지가 더 넓음 → 너비 기준 fit
+            baseDisplaySize = CGSize(
+                width: availableSize.width,
+                height: availableSize.width / imageAspect
+            )
+        } else {
+            // 이미지가 더 높음 → 높이 기준 fit
+            baseDisplaySize = CGSize(
+                width: availableSize.height * imageAspect,
+                height: availableSize.height
+            )
+        }
+
+        let scaledSize = CGSize(
+            width: baseDisplaySize.width * scale,
+            height: baseDisplaySize.height * scale
+        )
+
+        let center = CGPoint(x: viewSize.width / 2, y: viewSize.height / 2)
+        let origin = CGPoint(
+            x: center.x - scaledSize.width / 2 + offset.width,
+            y: center.y - scaledSize.height / 2 + offset.height
+        )
+
+        return (scaledSize, origin)
+    }
+
+    // MARK: - Public Methods
+
+    /// 이미지 좌표 → 뷰 좌표 변환 (정방향)
+    ///
+    /// - Parameters:
+    ///   - point: 이미지 좌표 (원본 이미지 픽셀 기준, SwiftUI 좌표계)
+    ///   - viewSize: 뷰의 크기
+    ///   - scale: 확대/축소 배율
+    ///   - offset: 패닝 오프셋
+    ///   - padding: 이미지 여백 (기본값: 0)
+    /// - Returns: 뷰 좌표
+    func imageToView(
+        _ point: CGPoint,
+        in viewSize: CGSize,
+        scale: CGFloat,
+        offset: CGSize,
+        padding: CGFloat = 0
+    ) -> CGPoint {
+        let (scaledSize, origin) = scaledLayout(in: viewSize, scale: scale, offset: offset, padding: padding)
+
+        let nx = point.x / imageSize.width
+        let ny = point.y / imageSize.height
+
+        let dx: CGFloat
+        let dy: CGFloat
+        switch normalizedRotation {
+        case 90:   // 시계방향 90°: dx = 1-ny, dy = nx
+            dx = 1 - ny
+            dy = nx
+        case 180:  // 180°: dx = 1-nx, dy = 1-ny
+            dx = 1 - nx
+            dy = 1 - ny
+        case 270:  // 시계방향 270°: dx = ny, dy = 1-nx
+            dx = ny
+            dy = 1 - nx
+        default:   // 0°: dx = nx, dy = ny
+            dx = nx
+            dy = ny
+        }
+
+        return CGPoint(
+            x: origin.x + dx * scaledSize.width,
+            y: origin.y + dy * scaledSize.height
+        )
+    }
+
+    /// 뷰 좌표 → 이미지 좌표 변환 (역방향, imageToView의 역함수)
+    ///
+    /// - Parameters:
+    ///   - point: 뷰 좌표
+    ///   - viewSize: 뷰의 크기
+    ///   - scale: 확대/축소 배율
+    ///   - offset: 패닝 오프셋
+    ///   - padding: 이미지 여백 (기본값: 0)
+    /// - Returns: 이미지 좌표 (원본 이미지 픽셀 기준, SwiftUI 좌표계)
+    func viewToImage(
+        _ point: CGPoint,
+        in viewSize: CGSize,
+        scale: CGFloat,
+        offset: CGSize,
+        padding: CGFloat = 0
+    ) -> CGPoint {
+        let (scaledSize, origin) = scaledLayout(in: viewSize, scale: scale, offset: offset, padding: padding)
+
+        let dx = (point.x - origin.x) / scaledSize.width
+        let dy = (point.y - origin.y) / scaledSize.height
+
+        let nx: CGFloat
+        let ny: CGFloat
+        switch normalizedRotation {
+        case 90:   // 역변환: nx = dy, ny = 1-dx
+            nx = dy
+            ny = 1 - dx
+        case 180:  // 역변환: nx = 1-dx, ny = 1-dy
+            nx = 1 - dx
+            ny = 1 - dy
+        case 270:  // 역변환: nx = 1-dy, ny = dx
+            nx = 1 - dy
+            ny = dx
+        default:   // 0° 역변환: nx = dx, ny = dy
+            nx = dx
+            ny = dy
+        }
+
+        return CGPoint(
+            x: nx * imageSize.width,
+            y: ny * imageSize.height
+        )
+    }
+}
+
 // MARK: - Measurement Points Overlay
 
 struct MeasurementAnchorsOverlay: View {
     @Binding var anchors: [MeasurementAnchor]
     @Binding var isEditingAnchors: Bool
     let imageSize: CGSize
+    let rotation: Double  // 회전 각도 (좌표 변환에 필요)
     let scale: CGFloat
     let offset: CGSize
     let padding: CGFloat  // 이미지 여백
@@ -388,77 +521,16 @@ struct MeasurementAnchorsOverlay: View {
     }
 
     private func convertImageToViewCoordinates(_ point: CGPoint, in viewSize: CGSize) -> CGPoint {
-        print("🔵 [convertImageToViewCoordinates] INPUT - point: \(point), imageSize: \(imageSize), viewSize: \(viewSize)")
-
-        // padding을 고려한 실제 표시 영역
-        let availableSize = CGSize(
-            width: viewSize.width - padding * 2,
-            height: viewSize.height - padding * 2
-        )
-
-        let imageAspect = imageSize.width / imageSize.height
-        let viewAspect = availableSize.width / availableSize.height
-
-        var displaySize: CGSize
-        if imageAspect > viewAspect {
-            displaySize = CGSize(width: availableSize.width, height: availableSize.width / imageAspect)
-        } else {
-            displaySize = CGSize(width: availableSize.height * imageAspect, height: availableSize.height)
-        }
-
-        let scaledDisplaySize = CGSize(width: displaySize.width * scale, height: displaySize.height * scale)
-
-        let imageCenter = CGPoint(x: viewSize.width / 2, y: viewSize.height / 2)
-
-        let imageOrigin = CGPoint(
-            x: imageCenter.x - scaledDisplaySize.width / 2 + offset.width,
-            y: imageCenter.y - scaledDisplaySize.height / 2 + offset.height
-        )
-
-        let relativeX = point.x / imageSize.width
-        let relativeY = point.y / imageSize.height
-
-        let result = CGPoint(
-            x: imageOrigin.x + relativeX * scaledDisplaySize.width,
-            y: imageOrigin.y + relativeY * scaledDisplaySize.height
-        )
-
+        print("🔵 [convertImageToViewCoordinates] INPUT - point: \(point), imageSize: \(imageSize), rotation: \(rotation), viewSize: \(viewSize)")
+        let converter = CoordinateConverter(imageSize: imageSize, rotation: rotation)
+        let result = converter.imageToView(point, in: viewSize, scale: scale, offset: offset, padding: padding)
         print("🔵 [convertImageToViewCoordinates] OUTPUT - result: \(result)")
-
         return result
     }
 
     private func convertViewToImageCoordinates(_ location: CGPoint, in viewSize: CGSize) -> CGPoint {
-        // padding을 고려한 실제 표시 영역
-        let availableSize = CGSize(
-            width: viewSize.width - padding * 2,
-            height: viewSize.height - padding * 2
-        )
-
-        let imageAspect = imageSize.width / imageSize.height
-        let viewAspect = availableSize.width / availableSize.height
-
-        var displaySize: CGSize
-        if imageAspect > viewAspect {
-            displaySize = CGSize(width: availableSize.width, height: availableSize.width / imageAspect)
-        } else {
-            displaySize = CGSize(width: availableSize.height * imageAspect, height: availableSize.height)
-        }
-
-        let scaledDisplaySize = CGSize(width: displaySize.width * scale, height: displaySize.height * scale)
-        let imageCenter = CGPoint(x: viewSize.width / 2, y: viewSize.height / 2)
-        let imageOrigin = CGPoint(
-            x: imageCenter.x - scaledDisplaySize.width / 2 + offset.width,
-            y: imageCenter.y - scaledDisplaySize.height / 2 + offset.height
-        )
-
-        let relativeX = (location.x - imageOrigin.x) / scaledDisplaySize.width
-        let relativeY = (location.y - imageOrigin.y) / scaledDisplaySize.height
-
-        return CGPoint(
-            x: relativeX * imageSize.width,
-            y: relativeY * imageSize.height
-        )
+        let converter = CoordinateConverter(imageSize: imageSize, rotation: rotation)
+        return converter.viewToImage(location, in: viewSize, scale: scale, offset: offset, padding: padding)
     }
 }
 
