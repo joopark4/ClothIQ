@@ -79,16 +79,3 @@ cd scripts
 ./ios_device_tools.sh full-deploy
 ```
 
-## 주요 문서
-
-- 디바이스 배포/로그: `DOC/IOS_DEVICE_GUIDE.md`
-- 라이브 디버그/임계값: `DOC/LIVE_DEBUG_ANALYSIS.md`
-- Core ML 통합: `DOC/CORE_ML_INTEGRATION_GUIDE.md`
-- ML 데이터 수집 가이드: `DOC/ML_DATA_COLLECTION_GUIDE.md`
-- ML 빠른 참조: `DOC/ML_DATA_COLLECTION_QUICK_REFERENCE.md`
-- ML 테스트 가이드: `DOC/ML_DATA_COLLECTION_TEST_GUIDE.md`
-
-## 참고
-
-- 개발 진행 히스토리: `ClothIQ/PROGRESS.md`
-- iOS 디바이스 스크립트: `scripts/README.md`
