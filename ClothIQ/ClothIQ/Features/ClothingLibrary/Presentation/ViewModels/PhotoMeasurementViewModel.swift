@@ -558,6 +558,8 @@ final class PhotoMeasurementViewModel: ObservableObject {
     }
 
     /// 회전된 이미지 저장
+    ///
+    /// 이미지를 회전하여 저장하고, 저장된 측정 앵커 좌표도 함께 변환합니다.
     func saveRotatedImage() {
         guard rotationDegrees != 0 else { return }
 
@@ -576,10 +578,60 @@ final class PhotoMeasurementViewModel: ObservableObject {
         do {
             let newPath = try ImageFileManager.shared.saveImage(rotatedImage, quality: .high)
             item.imagePath = newPath
+
+            // 저장된 측정 앵커 좌표를 회전 변환
+            transformMeasurementCoordinates(byDegrees: rotationDegrees)
+
             item.updatedAt = Date()
             try modelContext.save()
         } catch {
             showError("이미지 저장 실패: \(error.localizedDescription)")
+        }
+    }
+
+    /// 측정 앵커 좌표를 회전 변환합니다.
+    ///
+    /// 정규화된 좌표(0-1)에 대한 회전 변환:
+    /// - 90° CW:  (x, y) → (1-y, x)
+    /// - 180°:    (x, y) → (1-x, 1-y)
+    /// - 270° CW: (x, y) → (y, 1-x)
+    ///
+    /// - Parameter degrees: 회전 각도 (도)
+    private func transformMeasurementCoordinates(byDegrees degrees: CGFloat) {
+        let normalizedDegrees = ((Int(degrees) % 360) + 360) % 360
+        guard normalizedDegrees != 0 else { return }
+
+        for measurement in item.measurements {
+            if let sx = measurement.startPointX, let sy = measurement.startPointY {
+                let (newX, newY) = rotateNormalizedPoint(x: sx, y: sy, degrees: normalizedDegrees)
+                measurement.startPointX = newX
+                measurement.startPointY = newY
+            }
+            if let ex = measurement.endPointX, let ey = measurement.endPointY {
+                let (newX, newY) = rotateNormalizedPoint(x: ex, y: ey, degrees: normalizedDegrees)
+                measurement.endPointX = newX
+                measurement.endPointY = newY
+            }
+        }
+    }
+
+    /// 정규화된 좌표를 회전 변환합니다.
+    ///
+    /// - Parameters:
+    ///   - x: 정규화된 X 좌표 (0-1)
+    ///   - y: 정규화된 Y 좌표 (0-1)
+    ///   - degrees: 회전 각도 (0, 90, 180, 270)
+    /// - Returns: 변환된 (x, y) 좌표
+    private func rotateNormalizedPoint(x: Double, y: Double, degrees: Int) -> (Double, Double) {
+        switch degrees {
+        case 90:
+            return (1.0 - y, x)
+        case 180:
+            return (1.0 - x, 1.0 - y)
+        case 270:
+            return (y, 1.0 - x)
+        default:
+            return (x, y)
         }
     }
 

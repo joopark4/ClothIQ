@@ -388,8 +388,8 @@ extension ObjectCaptureService {
             finalMask = maskCGImage
         }
 
-        // 픽셀 단위로 마스크 적용
-        let result = applyMaskPixelByPixel(image: cgImage, mask: finalMask)
+        // GPU 가속 마스크 적용 (CIBlendWithMask)
+        let result = applyMaskWithCoreImage(image: cgImage, mask: finalMask)
 
         return result.map { UIImage(cgImage: $0, scale: 1.0, orientation: .up) }
     }
@@ -438,7 +438,56 @@ extension ObjectCaptureService {
     /// 마스크 임계값을 100으로 낮춰서 더 많은 전경 픽셀을 보존합니다.
     /// (이전 128 → 현재 100)
     ///
-    func applyMaskPixelByPixel(image: CGImage, mask: CGImage) -> CGImage? {
+    /// GPU 가속 마스크 적용 (CIBlendWithMask 사용)
+    ///
+    /// Core Image의 CIBlendWithMask 필터를 사용하여 GPU에서 병렬 처리합니다.
+    /// CPU 기반 픽셀 처리 대비 4-10배 성능 향상이 기대됩니다.
+    ///
+    /// - Parameters:
+    ///   - image: 원본 이미지
+    ///   - mask: 이진화된 마스크 (흰색=전경, 검은색=배경)
+    /// - Returns: 배경이 밝은 회색(245,245,245)으로 처리된 CGImage
+    func applyMaskWithCoreImage(image: CGImage, mask: CGImage) -> CGImage? {
+        let ciImage = CIImage(cgImage: image)
+        let ciMask = CIImage(cgImage: mask)
+
+        // 마스크 크기를 이미지 크기에 맞추기
+        let scaleX = CGFloat(image.width) / ciMask.extent.width
+        let scaleY = CGFloat(image.height) / ciMask.extent.height
+        let scaledMask = ciMask.transformed(by: CGAffineTransform(scaleX: scaleX, y: scaleY))
+
+        // 배경 색상 이미지 생성 (245, 245, 245)
+        let backgroundColor = CIColor(red: 245.0 / 255.0, green: 245.0 / 255.0, blue: 245.0 / 255.0)
+        let backgroundImage = CIImage(color: backgroundColor)
+            .cropped(to: ciImage.extent)
+
+        // CIBlendWithMask: mask가 흰색인 영역은 inputImage(전경), 검은색인 영역은 backgroundImage
+        guard let blendFilter = CIFilter(name: "CIBlendWithMask") else {
+            print("⚠️ [BackgroundRemoval] CIBlendWithMask 필터 생성 실패, CPU fallback 사용")
+            return applyMaskPixelByPixelFallback(image: image, mask: mask)
+        }
+
+        blendFilter.setValue(ciImage, forKey: kCIInputImageKey)
+        blendFilter.setValue(backgroundImage, forKey: kCIInputBackgroundImageKey)
+        blendFilter.setValue(scaledMask, forKey: kCIInputMaskImageKey)
+
+        guard let outputCIImage = blendFilter.outputImage else {
+            print("⚠️ [BackgroundRemoval] CIBlendWithMask 출력 생성 실패, CPU fallback 사용")
+            return applyMaskPixelByPixelFallback(image: image, mask: mask)
+        }
+
+        // CIImage → CGImage 변환 (GPU 렌더링)
+        let context = CIContext(options: [.useSoftwareRenderer: false])
+        return context.createCGImage(outputCIImage, from: outputCIImage.extent)
+    }
+
+    /// CPU 기반 마스크 적용 (GPU 실패 시 fallback)
+    ///
+    /// - Parameters:
+    ///   - image: 원본 이미지
+    ///   - mask: 이진화된 마스크
+    /// - Returns: 배경이 회색으로 처리된 CGImage
+    func applyMaskPixelByPixelFallback(image: CGImage, mask: CGImage) -> CGImage? {
         let width = image.width
         let height = image.height
 
@@ -551,8 +600,8 @@ extension ObjectCaptureService {
         // Vision 마스크는 흰색=전경, 검은색=배경이므로 반전 불필요
         // (Vision Framework가 제공하는 마스크를 그대로 신뢰)
 
-        // 픽셀 단위로 마스크 적용
-        let result = applyMaskPixelByPixel(image: cgImage, mask: finalMask)
+        // GPU 가속 마스크 적용 (CIBlendWithMask)
+        let result = applyMaskWithCoreImage(image: cgImage, mask: finalMask)
 
         return result.map { UIImage(cgImage: $0, scale: 1.0, orientation: .up) }
     }

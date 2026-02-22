@@ -445,14 +445,15 @@ extension MeasurementViewModelRefactored {
                     print("    - 신뢰도: \(result.confidence)")
 
                     // 픽셀 좌표 → 정규화 좌표 (0~1) 변환
-                    // Vision 좌표계 → SwiftUI 좌표계(top-left origin) 변환: Y축 반전
+                    // point1/point2는 toCameraPixelPoint()에서 이미 top-left 원점으로 변환됨
+                    // 따라서 추가 Y축 반전 없이 단순 정규화만 수행
                     let normalizedStart = CGPoint(
                         x: point1.x / cameraImageSize.width,
-                        y: 1.0 - (point1.y / cameraImageSize.height)  // Vision → SwiftUI Y축 반전
+                        y: point1.y / cameraImageSize.height  // 이미 top-left 원점, 정규화만 수행
                     )
                     let normalizedEnd = CGPoint(
                         x: point2.x / cameraImageSize.width,
-                        y: 1.0 - (point2.y / cameraImageSize.height)  // Vision → SwiftUI Y축 반전
+                        y: point2.y / cameraImageSize.height  // 이미 top-left 원점, 정규화만 수행
                     )
 
                     guard MeasurementValidator.isValid(

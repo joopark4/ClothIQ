@@ -5,7 +5,7 @@
 //  Created by EUN YEON on 10/22/25.
 //
 //  Description:
-//  메인 화면으로 ClothingListView를 표시합니다.
+//  메인 화면으로 ClothingLibraryView를 표시합니다.
 //
 
 import SwiftUI
