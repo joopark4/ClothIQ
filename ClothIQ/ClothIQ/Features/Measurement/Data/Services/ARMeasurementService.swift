@@ -1,0 +1,677 @@
+//
+//  ARMeasurementService.swift
+//  ClothIQ
+//
+//  Created on 2025-10-22
+//
+//  Description:
+//  AR 측정 서비스의 구현체입니다.
+//  LiDAR 깊이 데이터를 활용하여 정확한 측정을 수행합니다.
+//
+//  Key Responsibilities:
+//  - AR 프레임에서 측정 포인트 추출
+//  - 깊이 데이터 검증
+//  - 측정 환경 평가
+//  - 신뢰도 계산
+//
+
+import Foundation
+import ARKit
+import simd
+
+/// AR 측정 서비스
+///
+/// ARMeasurementServiceProtocol의 실제 구현체입니다.
+/// EnhancedMeasurementService를 통합하여 향상된 정확도를 제공합니다.
+///
+final class ARMeasurementService: ARMeasurementServiceProtocol {
+
+    // MARK: - Properties
+
+    /// 뷰포트 크기 (화면 크기)
+    private let viewportSize: CGSize
+
+    /// 향상된 측정 서비스
+    private let enhancedService = EnhancedMeasurementService.shared
+
+    /// 칼만 필터 (3D 포인트용)
+    private let kalmanFilter3D = KalmanFilter3D(processNoise: 0.0001, measurementNoise: 0.001)
+
+    /// 다중 샘플링 프로세서
+    private let multiSamplingProcessor = MultiSamplingProcessor()
+
+    /// 카메라 보정 시스템
+    private let cameraCalibrator = CameraCalibrator()
+
+    // MARK: - Multi-Sampling Session Management
+
+    /// 샘플링 세션
+    private struct SamplingSession {
+        let id: String
+        let screenPoint: CGPoint
+        let targetSampleCount: Int = 15
+        var samples: [SIMD3<Float>] = []
+        var confidences: [Float] = []
+        var timestamps: [Date] = []
+        let kalmanFilter: KalmanFilter3D
+        let startTime: Date
+
+        var progress: Float {
+            return Float(samples.count) / Float(targetSampleCount)
+        }
+
+        var isComplete: Bool {
+            return samples.count >= targetSampleCount
+        }
+
+        init(id: String, screenPoint: CGPoint) {
+            self.id = id
+            self.screenPoint = screenPoint
+            self.kalmanFilter = KalmanFilter3D(processNoise: 0.0001, measurementNoise: 0.001)
+            self.startTime = Date()
+        }
+    }
+
+    /// 활성 샘플링 세션들
+    private var samplingSessions: [String: SamplingSession] = [:]
+    private let samplingSessionsLock = NSLock()
+
+    // MARK: - Initialization
+
+    init(viewportSize: CGSize? = nil) {
+        if let viewportSize = viewportSize {
+            self.viewportSize = viewportSize
+        } else {
+            // Get screen size from first window scene if available
+            if let windowScene = UIApplication.shared.connectedScenes
+                .compactMap({ $0 as? UIWindowScene })
+                .first {
+                self.viewportSize = windowScene.screen.bounds.size
+            } else {
+                // Fallback to a reasonable default for iPhone
+                self.viewportSize = CGSize(width: 393, height: 852)
+            }
+        }
+    }
+
+    // MARK: - ARMeasurementServiceProtocol
+
+    func extractMeasurementPoint(
+        at screenPoint: CGPoint,
+        from frame: ARFrame
+    ) throws -> MeasurementPoint? {
+        print("🔍🔍🔍 [ARMeasurementService] extractMeasurementPoint 호출됨!")
+        print("  - screenPoint: \(screenPoint)")
+
+        // LiDAR depth + confidence 강건 샘플링 (smoothed/scene depth 모두 사용)
+        guard let sampled = sampleDepthAndConfidence(at: screenPoint, frame: frame) else {
+            print("❌ depth/confidence 샘플링 실패")
+            throw ARError.insufficientDepthData
+        }
+        let depth = sampled.depth
+        let confidence = sampled.confidence
+
+        // 3D 월드 좌표 계산
+        let worldPosition = DepthDataProcessor.calculateWorldPosition(
+            screenPoint: screenPoint,
+            depth: depth,
+            camera: frame.camera,
+            viewportSize: frame.camera.imageResolution
+        )
+
+        // 🎯 향상된 처리: 칼만 필터 적용
+        kalmanFilter3D.predict()
+        let filteredWorldPosition = kalmanFilter3D.update(measurement: worldPosition)
+
+        // 🎯 향상된 처리: 다중 샘플링에 추가
+        multiSamplingProcessor.addSample(
+            point: filteredWorldPosition,
+            confidence: confidence
+        )
+
+        // 카메라 각도 계산
+        let cameraPitchAngle = AngleCorrectionService.calculateCameraPitch(from: frame.camera)
+
+        // 🎯 향상된 처리: 카메라 보정 적용
+        let cameraAngle = cameraCalibrator.calculateCameraAngle(from: frame.camera.transform)
+        let calibrationFactor = cameraCalibrator.getCalibrationFactor(for: cameraAngle)
+
+        // 보정된 신뢰도 계산
+        let calibratedConfidence = confidence * calibrationFactor
+
+        // 측정 포인트 생성 (필터링 및 보정된 값 사용)
+        let point = MeasurementPoint(
+            worldPosition: filteredWorldPosition,
+            screenPosition: screenPoint,
+            depth: depth,
+            confidence: calibratedConfidence,
+            cameraPitchAngle: cameraPitchAngle
+        )
+
+        // 유효성 검증
+        print("🔍🔍🔍 [ARMeasurementService] 신뢰도 검증 시작!")
+        print("  - point.confidence: \(point.confidence)")
+        print("  - point.depth: \(point.depth)")
+        print("  - 칼만 필터 적용: ✅")
+        print("  - 카메라 보정 계수: \(calibrationFactor)")
+
+        let validation = validatePoint(point)
+        print("  - validation.isValid: \(validation.isValid)")
+        if let error = validation.error {
+            print("  - validation.error: \(error)")
+        }
+
+        if !validation.isValid, let error = validation.error {
+            print("❌ 검증 실패로 에러 throw: \(error)")
+            throw error
+        }
+
+        print("✅ 검증 통과!")
+        return point
+    }
+
+    func assessEnvironment(from frame: ARFrame) -> Float {
+        var scores: [Float] = []
+
+        // 1. 깊이 데이터 품질 평가
+        let depthQualities = [frame.smoothedSceneDepth?.depthMap, frame.sceneDepth?.depthMap]
+            .compactMap { $0 }
+            .map { DepthDataProcessor.assessDepthQuality(depthMap: $0) }
+        if let bestDepthQuality = depthQualities.max() {
+            scores.append(bestDepthQuality)
+        }
+
+        // 2. 추적 상태 평가
+        let trackingScore = assessTrackingState(frame.camera.trackingState)
+        scores.append(trackingScore)
+
+        // 3. 조명 조건 평가
+        if let lightEstimate = frame.lightEstimate {
+            let lightingScore = assessLighting(lightEstimate)
+            scores.append(lightingScore)
+        }
+
+        // 4. 카메라 안정성 평가 (모션 블러)
+        // TODO: 카메라 모션 분석 추가
+
+        // 평균 점수 계산
+        guard !scores.isEmpty else { return 0.5 }
+        let avgScore = scores.reduce(0, +) / Float(scores.count)
+
+        return avgScore
+    }
+
+    /// 카메라 정렬 상태 계산
+    ///
+    /// 감지된 평면과 카메라의 각도 및 거리를 계산합니다.
+    ///
+    /// - Parameters:
+    ///   - frame: 현재 AR 프레임
+    ///   - planeAnchor: 감지된 평면 앵커 (옵셔널)
+    /// - Returns: 카메라 정렬 데이터. 평면이 없으면 nil
+    func calculateCameraAlignment(
+        from frame: ARFrame,
+        planeAnchor: ARPlaneAnchor?
+    ) -> CameraAlignmentData? {
+        guard let planeAnchor = planeAnchor else {
+            return nil
+        }
+
+        // 카메라 transform 추출
+        let cameraTransform = frame.camera.transform
+
+        // 카메라의 forward 벡터 (Z축, 카메라가 보는 방향)
+        // ARKit에서 카메라는 -Z 방향을 바라봄
+        let cameraForward = SIMD3<Float>(
+            -cameraTransform.columns.2.x,
+            -cameraTransform.columns.2.y,
+            -cameraTransform.columns.2.z
+        )
+
+        // 평면의 법선 벡터 (평면에 수직인 벡터)
+        // ARKit의 평면은 Y축이 법선 방향
+        let planeTransform = planeAnchor.transform
+        let planeNormal = SIMD3<Float>(
+            planeTransform.columns.1.x,
+            planeTransform.columns.1.y,
+            planeTransform.columns.1.z
+        )
+
+        // 두 벡터 정규화
+        let normalizedCameraForward = normalize(cameraForward)
+        let normalizedPlaneNormal = normalize(planeNormal)
+
+        // 두 벡터 사이의 각도 계산 (내적 사용)
+        // cos(θ) = a · b / (|a| * |b|)
+        let dotProduct = dot(normalizedCameraForward, normalizedPlaneNormal)
+
+        // 각도 계산 (라디안 → 도)
+        // 카메라가 평면을 위에서 수직으로 내려다보면 dotProduct ≈ -1 (반대 방향)
+        // 평행하면 dotProduct ≈ 0
+        // 따라서 부호를 반전시켜 계산
+        let adjustedDotProduct = -dotProduct
+        let angleRadians = acos(max(-1.0, min(1.0, adjustedDotProduct)))
+        let tiltAngle = Double(angleRadians * 180.0 / .pi)
+
+        // tiltAngle:
+        // - 0° = 완벽한 수직 (카메라가 평면을 정확히 내려다봄)
+        // - 90° = 완벽한 수평 (카메라가 평면과 평행)
+
+        // 카메라 위치 추출
+        let cameraPosition = SIMD3<Float>(
+            cameraTransform.columns.3.x,
+            cameraTransform.columns.3.y,
+            cameraTransform.columns.3.z
+        )
+
+        // 평면 중심 위치 추출
+        let planePosition = SIMD3<Float>(
+            planeTransform.columns.3.x,
+            planeTransform.columns.3.y,
+            planeTransform.columns.3.z
+        )
+
+        // 카메라에서 평면까지의 거리 계산
+        let distance = simd_distance(cameraPosition, planePosition)
+
+        return CameraAlignmentData(
+            tiltAngle: tiltAngle,
+            distance: Double(distance),
+            hasPlaneDetected: true
+        )
+    }
+
+    // MARK: - Enhanced Measurement Methods
+
+    /// 향상된 측정 수행 - 다중 샘플링과 필터링 적용
+    /// - Parameters:
+    ///   - startPoint: 시작 지점
+    ///   - endPoint: 끝 지점
+    ///   - frame: AR 프레임
+    /// - Returns: 향상된 측정 결과
+    func performEnhancedMeasurement(
+        from startPoint: MeasurementPoint,
+        to endPoint: MeasurementPoint,
+        frame: ARFrame
+    ) async throws -> EnhancedMeasurementResult {
+
+        guard let sceneDepth = frame.sceneDepth else {
+            throw ARError.insufficientDepthData
+        }
+
+        // EnhancedMeasurementService 사용
+        let result = try await enhancedService.performEnhancedMeasurement(
+            from: startPoint.worldPosition,
+            to: endPoint.worldPosition,
+            depthData: sceneDepth,
+            cameraTransform: frame.camera.transform
+        )
+
+        return result
+    }
+
+    /// 다중 샘플링 프로세서를 사용한 측정 통계 반환
+    func getMultiSamplingStatistics() -> SamplingStatistics? {
+        return multiSamplingProcessor.getCurrentStatistics()
+    }
+
+    /// 샘플링 시작
+    func startSampling() {
+        multiSamplingProcessor.startSampling()
+        kalmanFilter3D.reset()
+    }
+
+    /// 샘플링 결과 처리
+    func processSamplingResult() -> ProcessedSamplingResult? {
+        return multiSamplingProcessor.processSamples()
+    }
+
+    /// 카메라 안정성 평가
+    func evaluateCameraStability() -> StabilityLevel {
+        return cameraCalibrator.evaluateStability()
+    }
+
+    // MARK: - Private Helpers
+
+    /// 추적 상태 평가
+    private func assessTrackingState(_ state: ARCamera.TrackingState) -> Float {
+        switch state {
+        case .normal:
+            return 1.0
+
+        case .limited(let reason):
+            switch reason {
+            case .initializing:
+                return 0.5
+            case .relocalizing:
+                return 0.6
+            case .excessiveMotion:
+                return 0.3
+            case .insufficientFeatures:
+                return 0.4
+            @unknown default:
+                return 0.5
+            }
+
+        case .notAvailable:
+            return 0.0
+        }
+    }
+
+    /// 조명 조건 평가
+    private func assessLighting(_ lightEstimate: ARLightEstimate) -> Float {
+        let ambientIntensity = lightEstimate.ambientIntensity
+
+        // 적정 조명 범위: 500 ~ 2000 lumens
+        switch ambientIntensity {
+        case 1000...1500:
+            return 1.0  // 이상적인 조명
+
+        case 500..<1000, 1500..<2000:
+            return 0.8  // 양호한 조명
+
+        case 300..<500, 2000..<3000:
+            return 0.6  // 허용 가능한 조명
+
+        case 0..<300:
+            return 0.3  // 너무 어두움
+
+        default:
+            return 0.5  // 너무 밝음
+        }
+    }
+
+    /// LiDAR depth/confidence 샘플링 (smoothedSceneDepth 우선, sceneDepth fallback)
+    ///
+    /// - Parameters:
+    ///   - screenPoint: 카메라 해상도 기준 픽셀 좌표
+    ///   - frame: ARFrame
+    /// - Returns: (depth, confidence)
+    private func sampleDepthAndConfidence(
+        at screenPoint: CGPoint,
+        frame: ARFrame
+    ) -> (depth: Float, confidence: Float)? {
+        let imageResolution = frame.camera.imageResolution
+        let depthSources = [frame.smoothedSceneDepth, frame.sceneDepth].compactMap { $0 }
+
+        for sceneDepth in depthSources {
+            let depthMap = sceneDepth.depthMap
+            let confidenceMap = sceneDepth.confidenceMap
+
+            let depthMapSize = CGSize(
+                width: CGFloat(CVPixelBufferGetWidth(depthMap)),
+                height: CGFloat(CVPixelBufferGetHeight(depthMap))
+            )
+            guard depthMapSize.width > 0, depthMapSize.height > 0 else {
+                continue
+            }
+
+            // 카메라 픽셀 좌표 -> depthMap 정규화 좌표
+            let scaleX = depthMapSize.width / imageResolution.width
+            let scaleY = depthMapSize.height / imageResolution.height
+            let depthMapPoint = CGPoint(
+                x: screenPoint.x * scaleX,
+                y: screenPoint.y * scaleY
+            )
+            let normalizedPoint = CGPoint(
+                x: depthMapPoint.x / depthMapSize.width,
+                y: depthMapPoint.y / depthMapSize.height
+            )
+
+            // 1) 강건 샘플링
+            if let robustSample = DepthDataProcessor.extractRobustDepth(
+                at: normalizedPoint,
+                from: depthMap,
+                confidenceMap: confidenceMap,
+                kernelRadius: 2
+            ) {
+                return robustSample
+            }
+
+            // 2) 단일 샘플 fallback
+            if let depth = DepthDataProcessor.extractDepth(at: normalizedPoint, from: depthMap) {
+                let confidence = DepthDataProcessor.extractConfidence(
+                    at: normalizedPoint,
+                    from: confidenceMap
+                ) ?? 0.5
+                return (depth, confidence)
+            }
+        }
+
+        return nil
+    }
+
+    /// 샘플링 세션 조회 (스레드 안전)
+    private func samplingSession(for id: String) -> SamplingSession? {
+        samplingSessionsLock.lock()
+        defer { samplingSessionsLock.unlock() }
+        return samplingSessions[id]
+    }
+
+    /// 샘플링 세션 저장/업데이트 (스레드 안전)
+    private func setSamplingSession(_ session: SamplingSession) {
+        samplingSessionsLock.lock()
+        samplingSessions[session.id] = session
+        samplingSessionsLock.unlock()
+    }
+
+    /// 샘플링 세션 삭제 (스레드 안전)
+    private func removeSamplingSession(for id: String) {
+        samplingSessionsLock.lock()
+        samplingSessions.removeValue(forKey: id)
+        samplingSessionsLock.unlock()
+    }
+
+    // MARK: - Multi-Sampling Protocol Methods
+
+    /// 포인트 샘플링 시작
+    func startPointSampling(at screenPoint: CGPoint) -> String {
+        let sessionID = UUID().uuidString
+        let session = SamplingSession(id: sessionID, screenPoint: screenPoint)
+        setSamplingSession(session)
+
+        print("🎯 [Sampling] 샘플링 시작: \(sessionID)")
+        print("  - 화면 좌표: \(screenPoint)")
+        print("  - 목표 샘플 수: 15")
+
+        return sessionID
+    }
+
+    /// 샘플 수집
+    func collectSample(
+        for samplingID: String,
+        from frame: ARFrame
+    ) throws -> Float? {
+        guard var session = samplingSession(for: samplingID) else {
+            throw ARError.invalidSamplingSession
+        }
+
+        guard !session.isComplete else {
+            return nil  // 이미 완료됨
+        }
+
+        guard let sampled = sampleDepthAndConfidence(at: session.screenPoint, frame: frame) else {
+            throw ARError.insufficientDepthData
+        }
+        let depth = sampled.depth
+        let confidence = sampled.confidence
+
+        // 3D 월드 좌표 계산
+        let worldPosition = DepthDataProcessor.calculateWorldPosition(
+            screenPoint: session.screenPoint,
+            depth: depth,
+            camera: frame.camera,
+            viewportSize: frame.camera.imageResolution
+        )
+
+        // 칼만 필터 적용
+        session.kalmanFilter.predict()
+        let filteredPosition = session.kalmanFilter.update(measurement: worldPosition)
+
+        // 샘플 추가
+        session.samples.append(filteredPosition)
+        session.confidences.append(confidence)
+        session.timestamps.append(Date())
+
+        // 세션 업데이트
+        setSamplingSession(session)
+
+        let progress = session.progress
+        print("📊 [Sampling] 샘플 수집: \(session.samples.count)/15 (\(Int(progress * 100))%)")
+
+        return session.isComplete ? nil : progress
+    }
+
+    /// 샘플링 완료 및 정제된 포인트 반환
+    func finalizeSampledPoint(
+        for samplingID: String
+    ) throws -> MeasurementPoint {
+        guard let session = samplingSession(for: samplingID) else {
+            throw ARError.invalidSamplingSession
+        }
+
+        guard !session.samples.isEmpty else {
+            throw ARError.insufficientSamples
+        }
+
+        // 신뢰도 기반 가중 평균 계산
+        let totalConfidence = session.confidences.reduce(0, +)
+        let averagePoint: SIMD3<Float>
+        if totalConfidence > 0 {
+            var weightedSum = SIMD3<Float>(0, 0, 0)
+            for (index, sample) in session.samples.enumerated() {
+                let weight = session.confidences[index] / totalConfidence
+                weightedSum += sample * weight
+            }
+            averagePoint = weightedSum
+        } else {
+            // 신뢰도 합계가 0인 드문 케이스 방어: 단순 평균으로 fallback
+            let sum = session.samples.reduce(SIMD3<Float>(0, 0, 0), +)
+            averagePoint = sum / Float(session.samples.count)
+        }
+
+        // 평균 신뢰도
+        let averageConfidence = totalConfidence > 0
+            ? totalConfidence / Float(session.confidences.count)
+            : 0.5
+
+        // 표준편차 계산 (품질 평가용)
+        var varianceSum: Float = 0
+        for sample in session.samples {
+            let diff = simd_distance(sample, averagePoint)
+            varianceSum += diff * diff
+        }
+        let standardDeviation = sqrt(varianceSum / Float(session.samples.count))
+
+        // 정제된 포인트 생성
+        let refinedPoint = MeasurementPoint(
+            worldPosition: averagePoint,
+            screenPosition: session.screenPoint,
+            depth: simd_length(averagePoint),  // 원점으로부터의 거리
+            confidence: averageConfidence,
+            cameraPitchAngle: 0  // TODO: 실제 각도 저장 및 사용
+        )
+
+        // 세션 제거
+        removeSamplingSession(for: samplingID)
+
+        print("✅ [Sampling] 샘플링 완료!")
+        print("  - 최종 포인트: \(refinedPoint.worldPosition)")
+        print("  - 평균 신뢰도: \(averageConfidence)")
+        print("  - 표준편차: \(standardDeviation * 100)cm")
+
+        return refinedPoint
+    }
+
+    /// 샘플링 취소
+    func cancelSampling(for samplingID: String) {
+        removeSamplingSession(for: samplingID)
+        print("❌ [Sampling] 샘플링 취소: \(samplingID)")
+    }
+}
+
+// MARK: - Mock Service (테스트용)
+
+#if DEBUG
+/// 테스트용 Mock AR 측정 서비스
+final class MockARMeasurementService: ARMeasurementServiceProtocol {
+
+    var shouldSucceed: Bool = true
+    var mockConfidence: Float = 0.9
+    var mockEnvironmentScore: Float = 0.85
+
+    func extractMeasurementPoint(
+        at screenPoint: CGPoint,
+        from frame: ARFrame
+    ) throws -> MeasurementPoint? {
+        guard shouldSucceed else {
+            throw ARError.insufficientDepthData
+        }
+
+        // Mock 포인트 생성
+        let worldPosition = SIMD3<Float>(
+            Float(screenPoint.x) / 1000.0,
+            Float(screenPoint.y) / 1000.0,
+            -1.0
+        )
+
+        return MeasurementPoint(
+            worldPosition: worldPosition,
+            screenPosition: screenPoint,
+            depth: 1.0,
+            confidence: mockConfidence
+        )
+    }
+
+    func assessEnvironment(from frame: ARFrame) -> Float {
+        return mockEnvironmentScore
+    }
+
+    func calculateCameraAlignment(
+        from frame: ARFrame,
+        planeAnchor: ARPlaneAnchor?
+    ) -> CameraAlignmentData? {
+        // Mock implementation - 테스트용 정렬 데이터 반환
+        guard planeAnchor != nil else {
+            return nil
+        }
+
+        return CameraAlignmentData(
+            tiltAngle: 5.0,  // Mock: 거의 수직
+            distance: 0.5,   // Mock: 50cm
+            hasPlaneDetected: true
+        )
+    }
+
+    // MARK: - Multi-Sampling Mock Methods
+
+    func startPointSampling(at screenPoint: CGPoint) -> String {
+        return UUID().uuidString
+    }
+
+    func collectSample(for samplingID: String, from frame: ARFrame) throws -> Float? {
+        // Mock: 즉시 완료된 것으로 반환
+        return nil
+    }
+
+    func finalizeSampledPoint(for samplingID: String) throws -> MeasurementPoint {
+        // Mock: 랜덤 포인트 반환
+        let worldPosition = SIMD3<Float>(
+            Float.random(in: -0.5...0.5),
+            Float.random(in: -0.5...0.5),
+            -1.0
+        )
+
+        return MeasurementPoint(
+            worldPosition: worldPosition,
+            screenPosition: CGPoint(x: 200, y: 400),
+            depth: 1.0,
+            confidence: mockConfidence
+        )
+    }
+
+    func cancelSampling(for samplingID: String) {
+        // Mock: 아무 동작 안 함
+    }
+}
+#endif

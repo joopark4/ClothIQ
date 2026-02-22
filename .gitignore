@@ -60,3 +60,20 @@ fastlane/report.xml
 fastlane/Preview.html
 fastlane/screenshots/**/*.png
 fastlane/test_output
+
+DerivedData/
+Reference/
+ClothIQ/build/
+ClothIQ/build.log
+DOC/
+.vscode/
+.claude/
+CLAUDE.md
+AGENTS.md
+GEMINI.md
+
+# Test Results
+TestResults/
+
+# iOS Device Tools Config
+scripts/ios_device_config.sh
