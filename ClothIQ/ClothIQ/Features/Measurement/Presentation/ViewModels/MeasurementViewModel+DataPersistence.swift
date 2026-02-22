@@ -102,7 +102,7 @@ extension MeasurementViewModelRefactored {
         for (type, value) in session.measurements {
             // autoMeasurementResults에서 해당 타입의 좌표 및 신뢰도 찾기
             let resultWithCoords = autoMeasurementResults.first { $0.type == type }
-            // 이미 크롭 이미지 기준 정규화 좌표이므로 그대로 사용
+            // 자동 측정 결과는 Vision 정규화 좌표(0~1)로 저장되어 있으므로 그대로 사용
             let startPoint = resultWithCoords?.startPoint
             let endPoint = resultWithCoords?.endPoint
 
@@ -223,7 +223,7 @@ extension MeasurementViewModelRefactored {
         // 측정값들을 MeasurementModel로 변환
         for (type, value) in session.measurements {
             let resultWithCoords = autoMeasurementResults.first { $0.type == type }
-            // 이미 크롭 이미지 기준 정규화 좌표이므로 그대로 사용
+            // 자동 측정 결과는 Vision 정규화 좌표(0~1)로 저장되어 있으므로 그대로 사용
             let startPoint = resultWithCoords?.startPoint
             let endPoint = resultWithCoords?.endPoint
 
@@ -304,7 +304,7 @@ extension MeasurementViewModelRefactored {
                 // 1. 윤곽선 감지
                 guard let contour = try await autoMeasurementService.detectClothingContour(
                     from: frame.capturedImage,
-                    depthMap: frame.sceneDepth?.depthMap
+                    depthMap: frame.smoothedSceneDepth?.depthMap ?? frame.sceneDepth?.depthMap
                 ) else {
                     await MainActor.run {
                         showError("의류 윤곽선을 감지할 수 없습니다. 의류를 평평하게 펼쳐주세요.")
@@ -366,9 +366,95 @@ extension MeasurementViewModelRefactored {
     func processCandidates(
         _ candidates: [MeasurementPointCandidate],
         frame: ARFrame,
-        clothingType: ClothingType
+        clothingType: ClothingType,
+        useTemporalFusion: Bool = true
     ) async throws -> [MeasurementResult] {
+        if useTemporalFusion {
+            let temporalFrames = await collectTemporalFrames(
+                seedFrame: frame,
+                targetCount: 6,
+                intervalMs: 45
+            )
+
+            // 신규 프레임을 충분히 확보하지 못하면 기존 단일 프레임 경로로 fallback
+            if temporalFrames.count >= 2 {
+                print("⏱️ [TemporalFusion] 프레임 수집 완료: \(temporalFrames.count)프레임")
+
+                var measurementsByType: [MeasurementType: [MeasurementResult]] = [:]
+
+                for (frameIndex, sampledFrame) in temporalFrames.enumerated() {
+                    let singleFrameResults = try await processCandidates(
+                        candidates,
+                        frame: sampledFrame,
+                        clothingType: clothingType,
+                        useTemporalFusion: false
+                    )
+                    print("  - [TemporalFusion] frame[\(frameIndex)] 결과: \(singleFrameResults.count)개")
+
+                    for result in singleFrameResults {
+                        measurementsByType[result.type, default: []].append(result)
+                    }
+                }
+
+                var fusedResults: [MeasurementResult] = []
+                for (type, results) in measurementsByType {
+                    if let fused = fuseTemporalResults(type: type, results: results) {
+                        fusedResults.append(fused)
+                    }
+                }
+
+                print("✅ [TemporalFusion] 융합 완료: \(fusedResults.count)개 항목")
+                return fusedResults
+            } else {
+                print("⚠️ [TemporalFusion] 프레임 부족(\(temporalFrames.count)개) → 단일 프레임 모드로 fallback")
+            }
+        }
+
         var measurements: [MeasurementResult] = []
+        let cameraImageSize = frame.camera.imageResolution
+
+        func clamp01(_ value: CGFloat) -> CGFloat {
+            min(max(value, 0.0), 1.0)
+        }
+
+        // Vision 정규화 좌표(bottom-left) -> AR 카메라 픽셀 좌표(top-left)
+        func toCameraPixelPoint(_ visionNormalizedPoint: CGPoint) -> CGPoint {
+            let normalizedX = clamp01(visionNormalizedPoint.x)
+            let normalizedY = clamp01(visionNormalizedPoint.y)
+            return CGPoint(
+                x: normalizedX * cameraImageSize.width,
+                y: (1.0 - normalizedY) * cameraImageSize.height
+            )
+        }
+
+        // 동일 측정 타입의 후보들 중 가장 신뢰도 높은 "쌍"을 선택
+        // groupId를 우선 사용하고, 없으면 타입 내 상위 신뢰도 2개로 fallback
+        func selectBestCandidatePair(
+            from typeCandidates: [MeasurementPointCandidate]
+        ) -> [MeasurementPointCandidate]? {
+            let groupedByLine = Dictionary(grouping: typeCandidates, by: { $0.groupId })
+            var bestPair: [MeasurementPointCandidate]?
+            var bestScore: Float = -1
+
+            for (_, lineCandidates) in groupedByLine {
+                guard lineCandidates.count >= 2 else { continue }
+                let pair = Array(lineCandidates.sorted(by: { $0.confidence > $1.confidence }).prefix(2))
+                guard pair.count == 2 else { continue }
+
+                let score = pair.map { $0.confidence }.reduce(0, +) / 2.0
+                if score > bestScore {
+                    bestScore = score
+                    bestPair = pair
+                }
+            }
+
+            if let bestPair {
+                return bestPair
+            }
+
+            guard typeCandidates.count >= 2 else { return nil }
+            return Array(typeCandidates.sorted(by: { $0.confidence > $1.confidence }).prefix(2))
+        }
 
         print("🔍 [processCandidates] 시작 - 총 후보: \(candidates.count)개")
 
@@ -380,67 +466,29 @@ extension MeasurementViewModelRefactored {
             print("  - \(type.displayName): \(group.count)개")
         }
 
-        for (type, group) in grouped {
-            guard group.count >= 2 else {
-                print("⏭️ [processCandidates] \(type.displayName) 스킵 (후보 부족: \(group.count)개 < 2개)")
+        for (type, typeCandidates) in grouped {
+            guard let selectedCandidates = selectBestCandidatePair(from: typeCandidates) else {
+                print("⏭️ [processCandidates] \(type.displayName) 스킵 (후보 부족: \(typeCandidates.count)개 < 2개)")
                 continue
             }
 
-            print("✅ [processCandidates] \(type.displayName) 처리 시작 (\(group.count)개 후보)")
+            print("✅ [processCandidates] \(type.displayName) 처리 시작 (전체 \(typeCandidates.count)개 후보 중 최적 쌍 선택)")
 
             // 각 후보를 3D 포인트로 변환
             var points3D: [MeasurementPoint] = []
 
-            for (index, candidate) in group.enumerated() {
-                // ===== 좌표 변환: 크롭된 이미지 정규화 좌표 → AR 원본 이미지 좌표 =====
-
-                // 1. 정규화 좌표 → 크롭된 이미지 픽셀 좌표
-                guard let processedSize = await MainActor.run(body: { self.capturedProcessedImageSize }) else {
-                    print("    ❌ 크롭 이미지 크기 정보 없음")
-                    continue
-                }
-
-                let croppedX = candidate.screenPosition.x * processedSize.width
-                let croppedY = candidate.screenPosition.y * processedSize.height
-
-                // 2. 크롭된 이미지 픽셀 좌표 → 원본 AR 이미지 좌표
-                guard let cropRect = await MainActor.run(body: { self.capturedCropRect }) else {
-                    print("    ❌ Crop rect 정보 없음")
-                    continue
-                }
-
-                let originalX = cropRect.origin.x + croppedX
-                let originalY = cropRect.origin.y + croppedY
-
-                // 원본 AR 이미지 픽셀 좌표
-                let pixelPoint = CGPoint(x: originalX, y: originalY)
-
-                // extractDepth는 정규화된 좌표(0~1)를 기대하므로, 이미지 해상도로 나누어 정규화
-                // 중요: capturedOriginalImageSize는 normalizedOrientation() 후의 크기이므로
-                // 회전된 이미지 (1440×1920) 기준으로 정규화해야 합니다.
-                guard let originalImageSize = capturedOriginalImageSize else {
-                    print("    ❌ capturedOriginalImageSize 없음")
-                    continue
-                }
-
-                let normalizedScreenPoint = CGPoint(
-                    x: originalX / originalImageSize.width,
-                    y: originalY / originalImageSize.height
-                )
+            for (index, candidate) in selectedCandidates.enumerated() {
+                let cameraPixelPoint = toCameraPixelPoint(candidate.screenPosition)
 
                 print("  [후보 \(index+1)] 좌표 변환:")
-                print("    - 정규화: \(candidate.screenPosition)")
-                print("    - 크롭 이미지(\(processedSize)): (\(croppedX), \(croppedY))")
-                print("    - CropRect: \(cropRect)")
-                print("    - 원본 AR 픽셀: \(pixelPoint)")
-                print("    - 정규화된 좌표: \(normalizedScreenPoint)")
-                print("    - 원본 이미지 크기 (회전 후): \(originalImageSize)")
-                print("    - AR 카메라 해상도 (회전 전): \(frame.camera.imageResolution)")
+                print("    - Vision 정규화 좌표: \(candidate.screenPosition)")
+                print("    - AR 카메라 픽셀 좌표: \(cameraPixelPoint)")
+                print("    - AR 카메라 해상도: \(cameraImageSize)")
 
                 // ===== 3D 변환 에러 상세 로깅 =====
                 do {
                     if let point = try measurementService.extractMeasurementPoint(
-                        at: normalizedScreenPoint,
+                        at: cameraPixelPoint,
                         from: frame
                     ) {
                         points3D.append(point)
@@ -454,48 +502,43 @@ extension MeasurementViewModelRefactored {
                 }
             }
 
-            print("📍 [processCandidates] \(type.displayName) 3D 변환 결과: \(points3D.count)/\(group.count)")
+            print("📍 [processCandidates] \(type.displayName) 3D 변환 결과: \(points3D.count)/\(selectedCandidates.count)")
 
             // ===== Depth map fallback: LiDAR 측정 실패 시 depth map 직접 사용 =====
             guard points3D.count >= 2 else {
                 print("⚠️ [processCandidates] LiDAR 측정 실패 → Depth map 기반 측정 시도")
 
                 // Depth map 및 필요한 정보 추출
-                guard let depthMap = await MainActor.run(body: { self.capturedDepthMap }),
-                      let imageSize = await MainActor.run(body: { self.capturedOriginalImageSize }),
-                      group.count >= 2 else {
+                guard let depthMap = frame.smoothedSceneDepth?.depthMap
+                        ?? frame.sceneDepth?.depthMap
+                        ?? capturedDepthMap,
+                      selectedCandidates.count >= 2 else {
                     print("⏭️ [processCandidates] \(type.displayName) 스킵 (depth map 없음 또는 후보 부족)")
                     continue
                 }
 
                 let intrinsics = frame.camera.intrinsics
-                let resolution = frame.camera.imageResolution
+                let resolution = cameraImageSize
 
                 // 첫 두 포인트로 거리 측정
-                let candidate1 = group[0]
-                let candidate2 = group[1]
+                let candidate1 = selectedCandidates[0]
+                let candidate2 = selectedCandidates[1]
 
-                // 정규화 좌표 → 픽셀 좌표
-                let point1 = CGPoint(
-                    x: candidate1.screenPosition.x * imageSize.width,
-                    y: candidate1.screenPosition.y * imageSize.height
-                )
-                let point2 = CGPoint(
-                    x: candidate2.screenPosition.x * imageSize.width,
-                    y: candidate2.screenPosition.y * imageSize.height
-                )
+                // Vision 정규화 좌표 -> 카메라 픽셀 좌표
+                let point1 = toCameraPixelPoint(candidate1.screenPosition)
+                let point2 = toCameraPixelPoint(candidate2.screenPosition)
 
                 print("  📐 [DepthMapFallback] 측정 시도:")
                 print("    - Point 1: \(point1)")
                 print("    - Point 2: \(point2)")
-                print("    - Image size: \(imageSize)")
+                print("    - Image size: \(cameraImageSize)")
 
                 // PhotoMeasurementCalculator로 거리 계산 (교정 계수 포함)
                 if let result = PhotoMeasurementCalculator.calculateDistance(
                     from: point1,
                     to: point2,
                     depthMap: depthMap,
-                    imageSize: imageSize,
+                    imageSize: cameraImageSize,
                     cameraIntrinsics: intrinsics,
                     cameraResolution: resolution,
                     measurementType: type,
@@ -506,17 +549,32 @@ extension MeasurementViewModelRefactored {
                     print("    - 신뢰도: \(result.confidence)")
 
                     // 픽셀 좌표 → 정규화 좌표 (0~1) 변환
-                    // screenPosition은 Vision 좌표계(bottom-left origin)이므로
-                    // point1은 Vision 픽셀 좌표.
                     // Vision 좌표계 → SwiftUI 좌표계(top-left origin) 변환: Y축 반전
                     let normalizedStart = CGPoint(
-                        x: point1.x / imageSize.width,
-                        y: 1.0 - (point1.y / imageSize.height)  // Vision → SwiftUI Y축 반전
+                        x: point1.x / cameraImageSize.width,
+                        y: 1.0 - (point1.y / cameraImageSize.height)  // Vision → SwiftUI Y축 반전
                     )
                     let normalizedEnd = CGPoint(
-                        x: point2.x / imageSize.width,
-                        y: 1.0 - (point2.y / imageSize.height)  // Vision → SwiftUI Y축 반전
+                        x: point2.x / cameraImageSize.width,
+                        y: 1.0 - (point2.y / cameraImageSize.height)  // Vision → SwiftUI Y축 반전
                     )
+
+                    guard MeasurementValidator.isValid(
+                        measurementType: type,
+                        value: result.distance,
+                        for: clothingType
+                    ) else {
+                        print("  ❌ [DepthMapFallback] 범위 검증 실패: \(type.displayName)=\(result.distance)cm")
+                        continue
+                    }
+
+                    let validatedConfidence = MeasurementValidator.evaluateConfidence(
+                        measurementType: type,
+                        value: result.distance,
+                        lidarConfidence: result.confidence,
+                        for: clothingType
+                    )
+                    let finalConfidence = Float((Double(result.confidence) + validatedConfidence) / 2.0)
 
                     print("    - 정규화 좌표 저장 (SwiftUI): start=\(normalizedStart), end=\(normalizedEnd)")
 
@@ -524,7 +582,7 @@ extension MeasurementViewModelRefactored {
                     let measurement = MeasurementResult(
                         type: type,
                         value: result.distance,
-                        confidence: Float(result.confidence),
+                        confidence: finalConfidence,
                         startPoint: normalizedStart,
                         endPoint: normalizedEnd
                     )
@@ -539,11 +597,11 @@ extension MeasurementViewModelRefactored {
             }
 
             // 평균 신뢰도 계산 (미리)
-            let avgConfidence = group.map { $0.confidence }.reduce(0, +) / Float(group.count)
+            let avgConfidence = selectedCandidates.map { $0.confidence }.reduce(0, +) / Float(selectedCandidates.count)
 
             // AutoSize02.md: 평면 투영을 사용한 정확한 거리 계산 (카메라 기울기 보정)
             // depthMap과 카메라 정보 추출
-            guard let depthMap = frame.sceneDepth?.depthMap else {
+            guard let depthMap = frame.smoothedSceneDepth?.depthMap ?? frame.sceneDepth?.depthMap else {
                 let distance = simd_distance(points3D[0].worldPosition, points3D[1].worldPosition)
                 let directValue = Double(distance) * 100.0
 
@@ -555,7 +613,10 @@ extension MeasurementViewModelRefactored {
                     MeasurementType.chestCircumference,
                     MeasurementType.waistCircumference,
                     MeasurementType.thighCircumference,
-                    MeasurementType.armCircumference
+                    MeasurementType.armCircumference,
+                    MeasurementType.hipCircumference,
+                    MeasurementType.neckCircumference,
+                    MeasurementType.cuffCircumference
                 ].contains(type)
 
                 let finalValue: Double
@@ -575,21 +636,38 @@ extension MeasurementViewModelRefactored {
                     finalValue = directValue
                 }
 
-                // 정규화된 좌표 저장 (크롭된 이미지 기준, 0~1 범위)
+                guard MeasurementValidator.isValid(
+                    measurementType: type,
+                    value: finalValue,
+                    for: clothingType
+                ) else {
+                    print("⏭️ [processCandidates] \(type.displayName) 스킵 (범위 검증 실패: \(finalValue)cm)")
+                    continue
+                }
+
+                let validatedConfidence = MeasurementValidator.evaluateConfidence(
+                    measurementType: type,
+                    value: finalValue,
+                    lidarConfidence: Double(avgConfidence),
+                    for: clothingType
+                )
+                let finalConfidence = Float((Double(avgConfidence) + validatedConfidence) / 2.0)
+
+                // 정규화된 좌표 저장 (SwiftUI 좌표계, 0~1 범위)
                 // screenPosition은 Vision 좌표계(bottom-left)이므로 SwiftUI 좌표계(top-left)로 변환
-                let startPoint: CGPoint? = group.count > 0 ? CGPoint(
-                    x: group[0].screenPosition.x,
-                    y: 1.0 - group[0].screenPosition.y  // Vision → SwiftUI Y축 반전
+                let startPoint: CGPoint? = selectedCandidates.count > 0 ? CGPoint(
+                    x: selectedCandidates[0].screenPosition.x,
+                    y: 1.0 - selectedCandidates[0].screenPosition.y  // Vision → SwiftUI Y축 반전
                 ) : nil
-                let endPoint: CGPoint? = group.count > 1 ? CGPoint(
-                    x: group[1].screenPosition.x,
-                    y: 1.0 - group[1].screenPosition.y  // Vision → SwiftUI Y축 반전
+                let endPoint: CGPoint? = selectedCandidates.count > 1 ? CGPoint(
+                    x: selectedCandidates[1].screenPosition.x,
+                    y: 1.0 - selectedCandidates[1].screenPosition.y  // Vision → SwiftUI Y축 반전
                 ) : nil
 
                 measurements.append(MeasurementResult(
                     type: type,
                     value: finalValue,
-                    confidence: avgConfidence,
+                    confidence: finalConfidence,
                     startPoint: startPoint,
                     endPoint: endPoint
                 ))
@@ -612,7 +690,7 @@ extension MeasurementViewModelRefactored {
                     cameraIntrinsics: cameraIntrinsics
                 )
 
-            case .chestCircumference, .waistCircumference, .thighCircumference:
+            case .chestCircumference, .waistCircumference, .thighCircumference, .armCircumference, .hipCircumference, .neckCircumference, .cuffCircumference:
                 // AutoSize02.md: 평면 투영된 폭 사용 (카메라 기울기 보정)
                 let widthCm = MeasurementCalculator.calculateDistanceOnPlane(
                     from: points3D[0],
@@ -641,6 +719,18 @@ extension MeasurementViewModelRefactored {
                     case .thighCircumference:
                         // 허벅지: 바지의 허벅지 부분 (폭 × 1.4)
                         return 1.4
+                    case .armCircumference:
+                        // 팔둘레: 소매 부위는 허벅지보다 얇은 단면 (폭 × 1.3)
+                        return 1.3
+                    case .hipCircumference:
+                        // 엉덩이둘레: 허벅지보다 큰 단면 (폭 × 1.8)
+                        return 1.8
+                    case .neckCircumference:
+                        // 목둘레: 상대적으로 작은 원형 단면 (폭 × 1.3)
+                        return 1.3
+                    case .cuffCircumference:
+                        // 소매단둘레: 팔둘레보다 작은 단면 (폭 × 1.2)
+                        return 1.2
                     default:
                         return 1.5
                     }
@@ -652,29 +742,148 @@ extension MeasurementViewModelRefactored {
                 continue
             }
 
-            // 정규화된 좌표 저장 (크롭된 이미지 기준, 0~1 범위)
+            guard MeasurementValidator.isValid(
+                measurementType: type,
+                value: value,
+                for: clothingType
+            ) else {
+                print("⏭️ [processCandidates] \(type.displayName) 스킵 (범위 검증 실패: \(value)cm)")
+                continue
+            }
+
+            let validatedConfidence = MeasurementValidator.evaluateConfidence(
+                measurementType: type,
+                value: value,
+                lidarConfidence: Double(avgConfidence),
+                for: clothingType
+            )
+            let finalConfidence = Float((Double(avgConfidence) + validatedConfidence) / 2.0)
+
+            // 정규화된 좌표 저장 (SwiftUI 좌표계, 0~1 범위)
             // screenPosition은 Vision 좌표계(bottom-left)이므로 SwiftUI 좌표계(top-left)로 변환
-            // PhotoMeasurementView에서 processedImageSize 또는 image.size로 역정규화
-            let startPoint: CGPoint? = group.count > 0 ? CGPoint(
-                x: group[0].screenPosition.x,
-                y: 1.0 - group[0].screenPosition.y  // Vision → SwiftUI Y축 반전
+            let startPoint: CGPoint? = selectedCandidates.count > 0 ? CGPoint(
+                x: selectedCandidates[0].screenPosition.x,
+                y: 1.0 - selectedCandidates[0].screenPosition.y  // Vision → SwiftUI Y축 반전
             ) : nil
-            let endPoint: CGPoint? = group.count > 1 ? CGPoint(
-                x: group[1].screenPosition.x,
-                y: 1.0 - group[1].screenPosition.y  // Vision → SwiftUI Y축 반전
+            let endPoint: CGPoint? = selectedCandidates.count > 1 ? CGPoint(
+                x: selectedCandidates[1].screenPosition.x,
+                y: 1.0 - selectedCandidates[1].screenPosition.y  // Vision → SwiftUI Y축 반전
             ) : nil
 
             // MeasurementResult 생성 및 추가
             measurements.append(MeasurementResult(
                 type: type,
                 value: value,
-                confidence: avgConfidence,
+                confidence: finalConfidence,
                 startPoint: startPoint,
                 endPoint: endPoint
             ))
         }
 
         return measurements
+    }
+
+    /// 자동 측정 전용 시간축 프레임 수집
+    ///
+    /// seedFrame을 포함하여 최신 ARFrame을 주기적으로 읽어 targetCount만큼 수집합니다.
+    /// timestamp가 증가한 프레임만 채택하여 동일 프레임 중복 수집을 방지합니다.
+    private func collectTemporalFrames(
+        seedFrame: ARFrame,
+        targetCount: Int,
+        intervalMs: UInt64
+    ) async -> [ARFrame] {
+        guard targetCount > 1 else { return [seedFrame] }
+
+        var frames: [ARFrame] = [seedFrame]
+        var lastAcceptedTimestamp = seedFrame.timestamp
+        let minDelta: TimeInterval = 0.0001
+        let sleepNs = max(intervalMs, 10) * 1_000_000
+        let maxAttempts = max(targetCount * 10, 20)
+
+        var attempts = 0
+        while frames.count < targetCount && attempts < maxAttempts {
+            attempts += 1
+            try? await Task.sleep(nanoseconds: sleepNs)
+
+            guard let latestFrame = currentARFrame else { continue }
+            let timestamp = latestFrame.timestamp
+            guard timestamp > lastAcceptedTimestamp + minDelta else { continue }
+
+            frames.append(latestFrame)
+            lastAcceptedTimestamp = timestamp
+        }
+
+        return frames
+    }
+
+    /// 시간축 융합: 단일 측정 타입 결과들을 강건하게 통합
+    ///
+    /// 1) median + MAD 기반 이상치 제거
+    /// 2) confidence^2 가중 평균으로 최종 값 계산
+    /// 3) 프레임 간 분산을 반영해 최종 confidence 재평가
+    private func fuseTemporalResults(
+        type: MeasurementType,
+        results: [MeasurementResult]
+    ) -> MeasurementResult? {
+        guard !results.isEmpty else { return nil }
+        guard results.count > 1 else { return results.first }
+
+        let values = results.map { $0.value }
+        let center = median(values)
+        let absoluteDeviations = values.map { abs($0 - center) }
+        let mad = median(absoluteDeviations)
+        let outlierThreshold = max(1.5, mad * 2.5)
+
+        let inliers = results.filter { abs($0.value - center) <= outlierThreshold }
+        let filteredResults = inliers.isEmpty ? results : inliers
+
+        let weighted: [(result: MeasurementResult, weight: Double)] = filteredResults.map { result in
+            let confidenceWeight = max(0.05, Double(result.confidence))
+            return (result, confidenceWeight * confidenceWeight)
+        }
+
+        let totalWeight = weighted.map { $0.weight }.reduce(0, +)
+        guard totalWeight > 0 else { return filteredResults.max(by: { $0.confidence < $1.confidence }) }
+
+        let fusedValue = weighted
+            .map { $0.result.value * $0.weight }
+            .reduce(0, +) / totalWeight
+
+        let weightedConfidence = weighted
+            .map { Double($0.result.confidence) * $0.weight }
+            .reduce(0, +) / totalWeight
+
+        let weightedVariance = weighted
+            .map { pow($0.result.value - fusedValue, 2) * $0.weight }
+            .reduce(0, +) / totalWeight
+        let weightedStdDev = sqrt(max(0, weightedVariance))
+
+        // 측정값 규모를 반영한 허용 표준편차 (최소 1.5cm)
+        let allowedStdDev = max(1.5, fusedValue * 0.05)
+        let stability = max(0.0, min(1.0, 1.0 - (weightedStdDev / allowedStdDev)))
+        let fusedConfidence = Float(max(0.1, min(1.0, weightedConfidence * 0.8 + stability * 0.2)))
+
+        let bestAnchoredResult = filteredResults.max(by: { $0.confidence < $1.confidence })
+
+        return MeasurementResult(
+            type: type,
+            value: fusedValue,
+            confidence: fusedConfidence,
+            startPoint: bestAnchoredResult?.startPoint,
+            endPoint: bestAnchoredResult?.endPoint
+        )
+    }
+
+    private func median(_ values: [Double]) -> Double {
+        guard !values.isEmpty else { return 0 }
+        let sorted = values.sorted()
+        let middle = sorted.count / 2
+
+        if sorted.count.isMultiple(of: 2) {
+            return (sorted[middle - 1] + sorted[middle]) / 2.0
+        } else {
+            return sorted[middle]
+        }
     }
 
 

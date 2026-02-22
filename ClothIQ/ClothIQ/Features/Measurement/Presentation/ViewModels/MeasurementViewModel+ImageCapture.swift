@@ -290,7 +290,7 @@ extension MeasurementViewModelRefactored {
                     // 1. 윤곽선 감지
                     guard let contour = try await autoMeasurementService.detectClothingContour(
                         from: frame.capturedImage,
-                        depthMap: frame.sceneDepth?.depthMap
+                        depthMap: frame.smoothedSceneDepth?.depthMap ?? frame.sceneDepth?.depthMap
                     ) else {
                         await MainActor.run {
                             // 자동 측정 실패해도 저장은 진행

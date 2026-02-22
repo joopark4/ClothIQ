@@ -60,12 +60,20 @@ final class AutoMeasurementService {
             print("  - 기본 특징점 추출 완료")
 
             // 2. 키포인트 감지
-            let keypoints = keypointDetector.detectKeypoints(
+            var keypoints = keypointDetector.detectKeypoints(
                 from: contour,
                 clothingType: clothingType,
                 featurePoints: featurePoints
             )
             print("  - 키포인트 감지 완료: \(keypoints.count)개")
+
+            // 2.5 Depth 기반 주름 필터링
+            keypoints = filterKeypointsByDepthConsistency(
+                keypoints: keypoints,
+                depthMap: depthMap,
+                imageSize: imageSize
+            )
+            print("  - Depth 필터링 후: \(keypoints.count)개")
 
             // 3. 측정 라인 생성
             let measurementLines = keypointDetector.generateMeasurementLines(
@@ -256,7 +264,7 @@ final class AutoMeasurementService {
                 let points = childContour.normalizedPath.points()
 
                 // 포인트가 너무 적으면 노이즈
-                guard points.count >= 30 else {
+                guard points.count >= 8 else {
                     continue
                 }
 
@@ -271,7 +279,7 @@ final class AutoMeasurementService {
                 let area = width * height
 
                 // 너무 작은 윤곽선 제외 (면적 기준)
-                if area < 0.05 {  // 5% 미만
+                if area < 0.02 {  // 2% 미만
                     continue
                 }
 
@@ -337,10 +345,20 @@ final class AutoMeasurementService {
         clothingType: ClothingType
     ) -> [MeasurementPointCandidate] {
         let detector = createDetector(for: clothingType)
-        return detector.detectPoints(
+        var candidates = detector.detectPoints(
             featurePoints: featurePoints,
             contour: contour
         )
+
+        // 카메라 기반 키포인트 라인 후보를 추가로 결합
+        let keypointCandidates = generateCandidatesFromKeypoints(
+            contour: contour,
+            featurePoints: featurePoints,
+            clothingType: clothingType
+        )
+        candidates.append(contentsOf: keypointCandidates)
+
+        return candidates
     }
 
     // MARK: - Private Methods
@@ -399,6 +417,66 @@ final class AutoMeasurementService {
         case .dress, .jumpsuit:
             return TopMeasurementDetector()  // 원피스류는 상의 감지기로 시작
         }
+    }
+
+    /// 키포인트 감지 결과(측정 라인)를 MeasurementPointCandidate로 변환
+    private func generateCandidatesFromKeypoints(
+        contour: VNContoursObservation,
+        featurePoints: ClothingFeaturePoints,
+        clothingType: ClothingType
+    ) -> [MeasurementPointCandidate] {
+        let keypoints = keypointDetector.detectKeypoints(
+            from: contour,
+            clothingType: clothingType,
+            featurePoints: featurePoints
+        )
+        let lines = keypointDetector.generateMeasurementLines(
+            from: keypoints,
+            clothingType: clothingType
+        )
+
+        guard !lines.isEmpty else { return [] }
+
+        // 동일 좌표의 키포인트 신뢰도를 lookup 하기 위한 맵
+        func pointKey(_ point: CGPoint) -> String {
+            let qx = Int((point.x * 1000).rounded())
+            let qy = Int((point.y * 1000).rounded())
+            return "\(qx)_\(qy)"
+        }
+
+        var confidenceByPoint: [String: Float] = [:]
+        for keypoint in keypoints {
+            let key = pointKey(keypoint.position)
+            let existing = confidenceByPoint[key] ?? 0
+            confidenceByPoint[key] = max(existing, keypoint.confidence)
+        }
+
+        var candidates: [MeasurementPointCandidate] = []
+        for line in lines {
+            // 단일 포인트 placeholder 라인은 실제 거리 측정에 사용하지 않음
+            let lineLength = hypot(line.end.x - line.start.x, line.end.y - line.start.y)
+            guard lineLength > 0.005 else { continue }
+
+            let groupId = UUID().uuidString
+            let startConfidence = confidenceByPoint[pointKey(line.start)] ?? 0.75
+            let endConfidence = confidenceByPoint[pointKey(line.end)] ?? 0.75
+            let lineConfidence = max(0.5, min(1.0, (startConfidence + endConfidence) / 2.0))
+
+            candidates.append(MeasurementPointCandidate(
+                type: line.type,
+                screenPosition: line.start,
+                confidence: lineConfidence,
+                groupId: groupId
+            ))
+            candidates.append(MeasurementPointCandidate(
+                type: line.type,
+                screenPosition: line.end,
+                confidence: lineConfidence,
+                groupId: groupId
+            ))
+        }
+
+        return candidates
     }
 
     /// 의류 타입별 측정 항목 추출
@@ -508,6 +586,99 @@ final class AutoMeasurementService {
         }
 
         return measurements
+    }
+
+    // MARK: - Depth Filtering
+
+    /// Depth 기반 주름 필터링
+    ///
+    /// 각 키포인트 주변의 depth 분산을 계산하여
+    /// 주름/접힌 부분(분산 큰 곳)에 위치한 키포인트를 제거하거나 신뢰도 하향
+    private func filterKeypointsByDepthConsistency(
+        keypoints: [MeasurementKeypoint],
+        depthMap: CVPixelBuffer,
+        imageSize: CGSize
+    ) -> [MeasurementKeypoint] {
+        guard !keypoints.isEmpty else { return [] }
+
+        let depthWidth = CVPixelBufferGetWidth(depthMap)
+        let depthHeight = CVPixelBufferGetHeight(depthMap)
+        guard depthWidth > 0, depthHeight > 0 else { return keypoints }
+
+        CVPixelBufferLockBaseAddress(depthMap, .readOnly)
+        defer { CVPixelBufferUnlockBaseAddress(depthMap, .readOnly) }
+
+        guard let baseAddress = CVPixelBufferGetBaseAddress(depthMap) else {
+            return keypoints
+        }
+        let bytesPerRow = CVPixelBufferGetBytesPerRow(depthMap)
+
+        var filteredKeypoints: [MeasurementKeypoint] = []
+        let kernelRadius = 2  // 5x5 커널
+
+        for keypoint in keypoints {
+            // 정규화 좌표 → depth map 픽셀 좌표
+            let depthU = Int(keypoint.position.x * CGFloat(depthWidth - 1))
+            let depthV = Int((1.0 - keypoint.position.y) * CGFloat(depthHeight - 1))  // Y축 반전
+
+            let clampedU = max(0, min(depthWidth - 1, depthU))
+            let clampedV = max(0, min(depthHeight - 1, depthV))
+
+            // 커널 내 depth 값 수집
+            var depthValues: [Float] = []
+            for offsetY in -kernelRadius...kernelRadius {
+                for offsetX in -kernelRadius...kernelRadius {
+                    let u = clampedU + offsetX
+                    let v = clampedV + offsetY
+                    guard u >= 0, u < depthWidth, v >= 0, v < depthHeight else { continue }
+
+                    let row = baseAddress + v * bytesPerRow
+                    let depth = row.assumingMemoryBound(to: Float32.self)[u]
+
+                    if depth.isFinite && depth >= 0.2 && depth <= 5.0 {
+                        depthValues.append(depth)
+                    }
+                }
+            }
+
+            // depth 값이 충분하지 않으면 그대로 유지
+            guard depthValues.count >= 3 else {
+                filteredKeypoints.append(keypoint)
+                continue
+            }
+
+            // 표준편차 계산
+            let mean = depthValues.reduce(0, +) / Float(depthValues.count)
+            let variance = depthValues.reduce(Float(0)) { $0 + ($1 - mean) * ($1 - mean) } / Float(depthValues.count)
+            let stdDev = sqrt(variance)
+
+            if stdDev > 0.05 {
+                // 5cm 이상 분산: 명백한 노이즈 → 제거
+                print("  ⛔ [DepthFilter] \(keypoint.type.displayName) 제거 (depth stdDev: \(String(format: "%.3f", stdDev))m)")
+                continue
+            } else if stdDev > 0.02 {
+                // 2cm 이상 분산: 주름 위 포인트 → 신뢰도 하향
+                let adjusted = MeasurementKeypoint(
+                    type: keypoint.type,
+                    position: keypoint.position,
+                    confidence: min(keypoint.confidence, 0.3)
+                )
+                print("  ⚠️ [DepthFilter] \(keypoint.type.displayName) 신뢰도 하향 (depth stdDev: \(String(format: "%.3f", stdDev))m)")
+                filteredKeypoints.append(adjusted)
+            } else {
+                // 정상 포인트
+                filteredKeypoints.append(keypoint)
+            }
+        }
+
+        // 최소 2개 키포인트 보장
+        if filteredKeypoints.count < 2 && keypoints.count >= 2 {
+            print("  ⚠️ [DepthFilter] 최소 키포인트 보장: 신뢰도 상위 2개 복원")
+            let sorted = keypoints.sorted { $0.confidence > $1.confidence }
+            filteredKeypoints = Array(sorted.prefix(max(2, filteredKeypoints.count)))
+        }
+
+        return filteredKeypoints
     }
 
     // MARK: - Individual Measurement Methods

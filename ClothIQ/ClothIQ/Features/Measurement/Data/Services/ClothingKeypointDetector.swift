@@ -178,7 +178,7 @@ final class ClothingKeypointDetector {
         }
 
         let points = mainContour.normalizedPath.points()
-        guard points.count >= 50 else {
+        guard points.count >= 8 else {
             print("⚠️ [KeypointDetector] 윤곽선 포인트 부족: \(points.count)개")
             return keypoints
         }
@@ -470,11 +470,11 @@ final class ClothingKeypointDetector {
 
     /// 허리 위치 감지
     private func detectWaistPoints(points: [CGPoint], featurePoints: ClothingFeaturePoints) -> [MeasurementKeypoint]? {
-        // 상단에서 10% 지점
-        let waistY = featurePoints.topPoint.y - 0.1
+        // 템플릿 기반 허리 Y좌표 사용
+        let waistY = featurePoints.waistY
 
         let waistCandidates = points.filter { point in
-            abs(point.y - waistY) < 0.03
+            abs(point.y - waistY) < 0.05
         }
 
         guard waistCandidates.count >= 2 else { return nil }
@@ -490,11 +490,11 @@ final class ClothingKeypointDetector {
 
     /// 엉덩이 위치 감지
     private func detectHipPoints(points: [CGPoint], featurePoints: ClothingFeaturePoints) -> [MeasurementKeypoint]? {
-        // 상단에서 35% 지점에서 가장 넓은 부분
-        let hipY = featurePoints.topPoint.y - 0.35
+        // 템플릿 기반 엉덩이 Y좌표 사용
+        let hipY = featurePoints.hipY
 
         let hipCandidates = points.filter { point in
-            abs(point.y - hipY) < 0.05
+            abs(point.y - hipY) < 0.07
         }
 
         guard hipCandidates.count >= 2 else { return nil }
@@ -558,12 +558,12 @@ final class ClothingKeypointDetector {
             guard let contour = try? observation.contour(at: i) else { continue }
 
             let points = contour.normalizedPath.points()
-            guard points.count >= 30 else { continue }
+            guard points.count >= 8 else { continue }
 
             let box = calculateBoundingBox(from: points)
             let area = box.width * box.height
 
-            if area > 0.05 && area > bestArea {
+            if area > 0.02 && area > bestArea {
                 bestArea = area
                 bestContour = contour
             }

@@ -103,61 +103,20 @@ final class ARMeasurementService: ARMeasurementServiceProtocol {
         print("🔍🔍🔍 [ARMeasurementService] extractMeasurementPoint 호출됨!")
         print("  - screenPoint: \(screenPoint)")
 
-        // Scene Depth 확인 (AutoSize.md: sceneDepth 사용)
-        guard let sceneDepth = frame.sceneDepth else {
-            print("❌ sceneDepth 없음")
+        // LiDAR depth + confidence 강건 샘플링 (smoothed/scene depth 모두 사용)
+        guard let sampled = sampleDepthAndConfidence(at: screenPoint, frame: frame) else {
+            print("❌ depth/confidence 샘플링 실패")
             throw ARError.insufficientDepthData
         }
-
-        print("✅ sceneDepth 존재")
-
-        let depthMap = sceneDepth.depthMap
-        let confidenceMap = sceneDepth.confidenceMap
-
-        // AR 카메라 이미지 해상도 사용 (중요!)
-        let imageResolution = frame.camera.imageResolution
-
-        // 깊이 맵 크기
-        let depthMapSize = CGSize(
-            width: CGFloat(CVPixelBufferGetWidth(depthMap)),
-            height: CGFloat(CVPixelBufferGetHeight(depthMap))
-        )
-
-        // 화면 좌표 → 깊이 맵 좌표 (AR 카메라 해상도 기준)
-        let scaleX = depthMapSize.width / imageResolution.width
-        let scaleY = depthMapSize.height / imageResolution.height
-
-        let depthMapPoint = CGPoint(
-            x: screenPoint.x * scaleX,
-            y: screenPoint.y * scaleY
-        )
-
-        // 0~1 범위로 정규화
-        let normalizedPoint = CGPoint(
-            x: depthMapPoint.x / depthMapSize.width,
-            y: depthMapPoint.y / depthMapSize.height
-        )
-
-        // 깊이 값 추출
-        guard let depth = DepthDataProcessor.extractDepth(
-            at: normalizedPoint,
-            from: depthMap
-        ) else {
-            throw ARError.insufficientDepthData
-        }
-
-        // 신뢰도 추출
-        let confidence = DepthDataProcessor.extractConfidence(
-            at: normalizedPoint,
-            from: confidenceMap
-        ) ?? 0.7
+        let depth = sampled.depth
+        let confidence = sampled.confidence
 
         // 3D 월드 좌표 계산
         let worldPosition = DepthDataProcessor.calculateWorldPosition(
             screenPoint: screenPoint,
             depth: depth,
             camera: frame.camera,
-            viewportSize: imageResolution
+            viewportSize: frame.camera.imageResolution
         )
 
         // 🎯 향상된 처리: 칼만 필터 적용
@@ -215,9 +174,11 @@ final class ARMeasurementService: ARMeasurementServiceProtocol {
         var scores: [Float] = []
 
         // 1. 깊이 데이터 품질 평가
-        if let depthMap = frame.sceneDepth?.depthMap {
-            let depthQuality = DepthDataProcessor.assessDepthQuality(depthMap: depthMap)
-            scores.append(depthQuality)
+        let depthQualities = [frame.smoothedSceneDepth?.depthMap, frame.sceneDepth?.depthMap]
+            .compactMap { $0 }
+            .map { DepthDataProcessor.assessDepthQuality(depthMap: $0) }
+        if let bestDepthQuality = depthQualities.max() {
+            scores.append(bestDepthQuality)
         }
 
         // 2. 추적 상태 평가
@@ -420,6 +381,66 @@ final class ARMeasurementService: ARMeasurementServiceProtocol {
         }
     }
 
+    /// LiDAR depth/confidence 샘플링 (smoothedSceneDepth 우선, sceneDepth fallback)
+    ///
+    /// - Parameters:
+    ///   - screenPoint: 카메라 해상도 기준 픽셀 좌표
+    ///   - frame: ARFrame
+    /// - Returns: (depth, confidence)
+    private func sampleDepthAndConfidence(
+        at screenPoint: CGPoint,
+        frame: ARFrame
+    ) -> (depth: Float, confidence: Float)? {
+        let imageResolution = frame.camera.imageResolution
+        let depthSources = [frame.smoothedSceneDepth, frame.sceneDepth].compactMap { $0 }
+
+        for sceneDepth in depthSources {
+            let depthMap = sceneDepth.depthMap
+            let confidenceMap = sceneDepth.confidenceMap
+
+            let depthMapSize = CGSize(
+                width: CGFloat(CVPixelBufferGetWidth(depthMap)),
+                height: CGFloat(CVPixelBufferGetHeight(depthMap))
+            )
+            guard depthMapSize.width > 0, depthMapSize.height > 0 else {
+                continue
+            }
+
+            // 카메라 픽셀 좌표 -> depthMap 정규화 좌표
+            let scaleX = depthMapSize.width / imageResolution.width
+            let scaleY = depthMapSize.height / imageResolution.height
+            let depthMapPoint = CGPoint(
+                x: screenPoint.x * scaleX,
+                y: screenPoint.y * scaleY
+            )
+            let normalizedPoint = CGPoint(
+                x: depthMapPoint.x / depthMapSize.width,
+                y: depthMapPoint.y / depthMapSize.height
+            )
+
+            // 1) 강건 샘플링
+            if let robustSample = DepthDataProcessor.extractRobustDepth(
+                at: normalizedPoint,
+                from: depthMap,
+                confidenceMap: confidenceMap,
+                kernelRadius: 2
+            ) {
+                return robustSample
+            }
+
+            // 2) 단일 샘플 fallback
+            if let depth = DepthDataProcessor.extractDepth(at: normalizedPoint, from: depthMap) {
+                let confidence = DepthDataProcessor.extractConfidence(
+                    at: normalizedPoint,
+                    from: confidenceMap
+                ) ?? 0.5
+                return (depth, confidence)
+            }
+        }
+
+        return nil
+    }
+
     // MARK: - Multi-Sampling Protocol Methods
 
     /// 포인트 샘플링 시작
@@ -451,56 +472,18 @@ final class ARMeasurementService: ARMeasurementServiceProtocol {
             return nil  // 이미 완료됨
         }
 
-        // Scene Depth 확인
-        guard let sceneDepth = frame.sceneDepth else {
+        guard let sampled = sampleDepthAndConfidence(at: session.screenPoint, frame: frame) else {
             throw ARError.insufficientDepthData
         }
-
-        let depthMap = sceneDepth.depthMap
-        let confidenceMap = sceneDepth.confidenceMap
-        let imageResolution = frame.camera.imageResolution
-
-        // 깊이 맵 크기
-        let depthMapSize = CGSize(
-            width: CGFloat(CVPixelBufferGetWidth(depthMap)),
-            height: CGFloat(CVPixelBufferGetHeight(depthMap))
-        )
-
-        // 화면 좌표 → 깊이 맵 좌표
-        let scaleX = depthMapSize.width / imageResolution.width
-        let scaleY = depthMapSize.height / imageResolution.height
-
-        let depthMapPoint = CGPoint(
-            x: session.screenPoint.x * scaleX,
-            y: session.screenPoint.y * scaleY
-        )
-
-        // 0~1 범위로 정규화
-        let normalizedPoint = CGPoint(
-            x: depthMapPoint.x / depthMapSize.width,
-            y: depthMapPoint.y / depthMapSize.height
-        )
-
-        // 깊이 값 추출
-        guard let depth = DepthDataProcessor.extractDepth(
-            at: normalizedPoint,
-            from: depthMap
-        ) else {
-            throw ARError.insufficientDepthData
-        }
-
-        // 신뢰도 추출
-        let confidence = DepthDataProcessor.extractConfidence(
-            at: normalizedPoint,
-            from: confidenceMap
-        ) ?? 0.7
+        let depth = sampled.depth
+        let confidence = sampled.confidence
 
         // 3D 월드 좌표 계산
         let worldPosition = DepthDataProcessor.calculateWorldPosition(
             screenPoint: session.screenPoint,
             depth: depth,
             camera: frame.camera,
-            viewportSize: imageResolution
+            viewportSize: frame.camera.imageResolution
         )
 
         // 칼만 필터 적용

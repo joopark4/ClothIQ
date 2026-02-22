@@ -88,11 +88,6 @@ struct RealTimeFeedbackOverlay: View {
     var body: some View {
         GeometryReader { geometry in
             ZStack {
-                // 측정 가이드라인
-                if draggingAnchor != nil {
-                    measurementGuidelines
-                }
-
                 // 드래그 중 실시간 측정값 표시
                 if let measurement = currentMeasurement,
                    let dragPosition = dragPosition {
@@ -117,50 +112,6 @@ struct RealTimeFeedbackOverlay: View {
     }
 
     // MARK: - Components
-
-    /// 측정 가이드라인
-    private var measurementGuidelines: some View {
-        Canvas { context, size in
-            guard let draggingAnchor = draggingAnchor,
-                  let dragPosition = dragPosition else { return }
-
-            // 수평/수직 가이드라인
-            let path = Path { path in
-                // 수평선
-                path.move(to: CGPoint(x: 0, y: dragPosition.y))
-                path.addLine(to: CGPoint(x: size.width, y: dragPosition.y))
-
-                // 수직선
-                path.move(to: CGPoint(x: dragPosition.x, y: 0))
-                path.addLine(to: CGPoint(x: dragPosition.x, y: size.height))
-            }
-
-            context.stroke(
-                path,
-                with: .color(.blue.opacity(0.3)),
-                style: StrokeStyle(lineWidth: 1, dash: [5, 5])
-            )
-
-            // 연결된 앵커와의 연결선
-            if let connectedAnchor = findConnectedAnchor(for: draggingAnchor) {
-                let connectionPath = Path { path in
-                    path.move(to: dragPosition)
-                    path.addLine(to: connectedAnchor.position)
-                }
-
-                let confidence = calculateConfidence(
-                    for: currentMeasurement?.value ?? 0,
-                    type: draggingAnchor.measurementType
-                )
-
-                context.stroke(
-                    connectionPath,
-                    with: .color(colorForConfidence(confidence)),
-                    style: StrokeStyle(lineWidth: 2)
-                )
-            }
-        }
-    }
 
     /// 측정값 오버레이
     private func measurementValueOverlay(

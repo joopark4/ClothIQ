@@ -107,8 +107,8 @@ struct MeasurementView: View {
 
                             isUpdatingMask = true
                             let capturedImage = frame.capturedImage
-                            // AutoSize.md에 따라 sceneDepth 사용 (smoothedSceneDepth는 부정확할 수 있음)
-                            let depthMap = frame.sceneDepth?.depthMap
+                            // 센서 융합: smoothed depth 우선, 없으면 raw scene depth 사용
+                            let depthMap = frame.smoothedSceneDepth?.depthMap ?? frame.sceneDepth?.depthMap
 
                             segmentationQueue.async {
                                 let mask: CVPixelBuffer? = {

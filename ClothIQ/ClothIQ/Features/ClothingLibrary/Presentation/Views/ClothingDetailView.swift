@@ -38,6 +38,9 @@ struct ClothingDetailView: View {
     @State private var showMeasurementLines = true  // 기본값을 true로 변경 (측정값 자동 표시)
     @State private var selectedMeasurement: MeasurementModel?
 
+    // 일괄 자동 측정
+    @State private var showingBatchAutoMeasurement = false
+
     // 디버그 도구
     @State private var imageTapCount = 0
     @State private var showingDebugDiagnostics = false
@@ -109,6 +112,9 @@ struct ClothingDetailView: View {
         }
         .sheet(isPresented: $showingTypeEditor) {
             ClothingTypeEditorView(item: item)
+        }
+        .sheet(isPresented: $showingBatchAutoMeasurement) {
+            BatchAutoMeasurementView(item: item, modelContext: modelContext)
         }
     }
 
@@ -485,25 +491,40 @@ struct ClothingDetailView: View {
     // MARK: - Action Buttons
 
     private var actionButtons: some View {
-        HStack(spacing: 16) {
-            Button(action: {
-                showingMeasurement = true
-            }) {
-                Label("측정 추가", systemImage: "ruler")
+        VStack(spacing: 12) {
+            // 자동 측정 버튼
+            Button {
+                showingBatchAutoMeasurement = true
+            } label: {
+                Label("자동 측정", systemImage: "wand.and.stars")
                     .frame(maxWidth: .infinity)
                     .padding()
-                    .background(Color.blue)
+                    .background(item.depthMapPath != nil ? Color.orange : Color.gray)
                     .foregroundColor(.white)
                     .cornerRadius(12)
             }
+            .disabled(item.depthMapPath == nil)
 
-            Button(action: shareItem) {
-                Label("공유", systemImage: "square.and.arrow.up")
-                    .frame(maxWidth: .infinity)
-                    .padding()
-                    .background(Color.green)
-                    .foregroundColor(.white)
-                    .cornerRadius(12)
+            HStack(spacing: 16) {
+                Button(action: {
+                    showingMeasurement = true
+                }) {
+                    Label("측정 추가", systemImage: "ruler")
+                        .frame(maxWidth: .infinity)
+                        .padding()
+                        .background(Color.blue)
+                        .foregroundColor(.white)
+                        .cornerRadius(12)
+                }
+
+                Button(action: shareItem) {
+                    Label("공유", systemImage: "square.and.arrow.up")
+                        .frame(maxWidth: .infinity)
+                        .padding()
+                        .background(Color.green)
+                        .foregroundColor(.white)
+                        .cornerRadius(12)
+                }
             }
         }
         .padding(.top)

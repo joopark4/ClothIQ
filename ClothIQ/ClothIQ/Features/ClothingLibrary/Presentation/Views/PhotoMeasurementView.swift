@@ -25,12 +25,6 @@ struct PhotoMeasurementView: View {
     @State private var showingTrainingStats = false  // 학습 데이터 통계 표시
     @State private var refreshID = UUID()  // 뷰 강제 업데이트용
 
-    // 실시간 피드백을 위한 State
-    @State private var draggingAnchor: MeasurementAnchor?
-    @State private var dragPosition: CGPoint?
-    @State private var snapPoints: [CGPoint] = []
-    @State private var hapticFeedback = UIImpactFeedbackGenerator(style: .light)
-
     // MARK: - Initialization
 
     init(item: ClothingItemModel, modelContext: ModelContext) {
@@ -147,36 +141,14 @@ struct PhotoMeasurementView: View {
                 onAnchorDragBegan: { id in
                     viewModel.isEditingAnchors = true
                     viewModel.activeAnchorID = id
-                    // 드래그 시작 시 햅틱 피드백 준비
-                    hapticFeedback.prepare()
-                    // 드래그 앵커 설정
-                    if let anchor = viewModel.measurementAnchors.first(where: { $0.id == id }) {
-                        draggingAnchor = anchor
-                        dragPosition = anchor.position
-                        // 스냅 포인트 계산
-                        updateSnapPoints()
-                    }
                 },
                 onAnchorDragChanged: { id, position in
                     viewModel.updateAnchorPosition(id: id, to: position, shouldRecalculate: true)
-                    // 실시간 피드백을 위한 드래그 상태 업데이트
-                    if let anchor = viewModel.measurementAnchors.first(where: { $0.id == id }) {
-                        draggingAnchor = anchor
-                        dragPosition = position
-
-                        // 스냅 포인트 근처에서 햅틱 피드백
-                        checkForSnapAndProvideFeedback(position: position)
-                    }
                 },
                 onAnchorDragEnded: { id, position in
                     viewModel.updateAnchorPosition(id: id, to: position, shouldRecalculate: true)
                     viewModel.isEditingAnchors = false
-                    // ML 학습 데이터 수집 (사용자 수정)
                     viewModel.onUserModifiedAnchors()
-
-                    // 드래그 종료 시 상태 초기화
-                    draggingAnchor = nil
-                    dragPosition = nil
                 },
                 onAnchorSelected: { id in
                     viewModel.activeAnchorID = id
@@ -202,25 +174,6 @@ struct PhotoMeasurementView: View {
                         )
                         .allowsHitTesting(false)  // 터치 통과
                     }
-                }
-            }
-            .overlay {
-                // 실시간 피드백 오버레이 (드래그 중일 때만)
-                if draggingAnchor != nil {
-                    RealTimeFeedbackOverlay(
-                        draggingAnchor: draggingAnchor,
-                        dragPosition: dragPosition,
-                        allAnchors: viewModel.measurementAnchors,
-                        imageSize: viewModel.effectiveImageSize,
-                        clothingType: viewModel.item.clothingType ?? .shortSleeve,
-                        snapPoints: snapPoints,
-                        onHapticFeedback: { style in
-                            let generator = UIImpactFeedbackGenerator(style: style)
-                            generator.impactOccurred()
-                        }
-                    )
-                    .allowsHitTesting(false)  // 터치 통과
-                    .animation(.easeInOut(duration: 0.1), value: dragPosition)
                 }
             }
             .overlay(alignment: .top) {
@@ -541,90 +494,6 @@ struct PhotoMeasurementView: View {
         }
     }
 
-    // MARK: - Helper Methods
-
-    /// 스냅 포인트 업데이트
-    private func updateSnapPoints() {
-        // 키포인트가 있으면 그것들을 스냅 포인트로 사용
-        if !viewModel.detectedKeypoints.isEmpty {
-            snapPoints = viewModel.detectedKeypoints.map { keypoint in
-                // 정규화된 좌표를 픽셀 좌표로 변환
-                CGPoint(
-                    x: keypoint.position.x * viewModel.effectiveImageSize.width,
-                    y: keypoint.position.y * viewModel.effectiveImageSize.height
-                )
-            }
-        } else {
-            // 키포인트가 없으면 기본 가이드 위치 사용
-            let imageWidth = viewModel.effectiveImageSize.width
-            let imageHeight = viewModel.effectiveImageSize.height
-
-            snapPoints = [
-                // 상단 중앙
-                CGPoint(x: imageWidth / 2, y: imageHeight * 0.1),
-                // 좌우 어깨 예상 위치
-                CGPoint(x: imageWidth * 0.3, y: imageHeight * 0.15),
-                CGPoint(x: imageWidth * 0.7, y: imageHeight * 0.15),
-                // 좌우 가슴 예상 위치
-                CGPoint(x: imageWidth * 0.2, y: imageHeight * 0.35),
-                CGPoint(x: imageWidth * 0.8, y: imageHeight * 0.35),
-                // 좌우 허리 예상 위치
-                CGPoint(x: imageWidth * 0.25, y: imageHeight * 0.5),
-                CGPoint(x: imageWidth * 0.75, y: imageHeight * 0.5),
-                // 하단 중앙
-                CGPoint(x: imageWidth / 2, y: imageHeight * 0.9)
-            ]
-        }
-    }
-
-    /// 가장 가까운 스냅 포인트 찾기
-    private func findNearestSnapPoint(to position: CGPoint) -> CGPoint? {
-        let snapThreshold: CGFloat = 30.0  // 30픽셀 이내
-
-        return snapPoints.min { point1, point2 in
-            distance(from: position, to: point1) < distance(from: position, to: point2)
-        }.flatMap { nearestPoint in
-            distance(from: position, to: nearestPoint) <= snapThreshold ? nearestPoint : nil
-        }
-    }
-
-    /// 두 포인트 간 거리 계산
-    private func distance(from: CGPoint, to: CGPoint) -> CGFloat {
-        let dx = from.x - to.x
-        let dy = from.y - to.y
-        return sqrt(dx * dx + dy * dy)
-    }
-
-    /// 스냅 포인트 근처에서 햅틱 피드백 제공
-    private func checkForSnapAndProvideFeedback(position: CGPoint) {
-        if let nearestSnap = findNearestSnapPoint(to: position) {
-            let dist = distance(from: position, to: nearestSnap)
-
-            // 거리에 따른 단계적 햅틱 피드백
-            if dist < 10 {
-                // 매우 가까움 - 강한 피드백 (이미 스냅됨)
-                hapticFeedback = UIImpactFeedbackGenerator(style: .medium)
-                hapticFeedback.impactOccurred()
-
-                // 자동 스냅 적용
-                if let draggingAnchor = draggingAnchor {
-                    viewModel.updateAnchorPosition(
-                        id: draggingAnchor.id,
-                        to: nearestSnap,
-                        shouldRecalculate: true
-                    )
-                }
-            } else if dist < 20 {
-                // 가까움 - 중간 피드백
-                hapticFeedback = UIImpactFeedbackGenerator(style: .light)
-                hapticFeedback.impactOccurred()
-            } else if dist < 30 {
-                // 근처 - 약한 피드백
-                hapticFeedback = UIImpactFeedbackGenerator(style: .soft)
-                hapticFeedback.impactOccurred()
-            }
-        }
-    }
 }
 
 // MARK: - Preview

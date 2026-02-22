@@ -47,13 +47,15 @@ struct MeasurementValidator {
         .chestCircumference: 60.0...200.0,  // 가슴둘레
         .totalLength: 40.0...150.0,         // 총길이
         .sleeveLength: 10.0...100.0,        // 소매길이
-        .armCircumference: 15.0...60.0      // 팔둘레
+        .armCircumference: 15.0...60.0,     // 팔둘레
+        .neckCircumference: 20.0...60.0,    // 목둘레
+        .cuffCircumference: 8.0...40.0      // 소매단둘레
     ]
 
     /// 하의 측정값 범위 (센티미터)
-    /// TODO: hipCircumference, inseam, outseam을 MeasurementType에 추가 후 활성화
     private static let bottomRanges: [MeasurementType: ClosedRange<Double>] = [
         .waistCircumference: 40.0...200.0,  // 허리둘레
+        .hipCircumference: 60.0...220.0,    // 엉덩이둘레
         .totalLength: 20.0...150.0,         // 총길이 (반바지~긴바지)
         .rise: 15.0...50.0,                 // 밑위
         .hem: 15.0...60.0,                  // 밑단
@@ -116,8 +118,20 @@ struct MeasurementValidator {
             }
         }
 
-        // 3. 하의: 허리둘레만 검증 (엉덩이둘레는 MeasurementType에 아직 미구현)
-        // TODO: hipCircumference를 MeasurementType에 추가 후 활성화
+        // 3. 하의: 허리/엉덩이 비율 검증
+        if !clothingType.isTop,
+           let waist = measurements[.waistCircumference],
+           let hip = measurements[.hipCircumference] {
+            let ratio = hip / max(waist, 1.0)
+            if ratio < 0.8 || ratio > 1.6 {
+                warnings.append(
+                    "엉덩이/허리 비율(\(String(format: "%.2f", ratio)))이 비정상적 (정상: 0.8-1.6)"
+                )
+                confidenceScores.append(0.8)
+            } else {
+                confidenceScores.append(1.0)
+            }
+        }
 
         // 4. 하의: 총길이 vs 밑위 비율 검증
         if !clothingType.isTop,

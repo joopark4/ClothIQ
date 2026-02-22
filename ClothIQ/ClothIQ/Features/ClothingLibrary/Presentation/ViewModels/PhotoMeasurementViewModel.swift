@@ -537,12 +537,11 @@ final class PhotoMeasurementViewModel: ObservableObject {
             return CGPoint(x: 0.5, y: 0.5)
         }
 
-        // SwiftUI 픽셀 좌표 → 정규화된 SwiftUI 좌표 (0-1 범위)
-        // SwiftUI: y=0이 상단, y=height가 하단
-        // 정규화: 단순히 이미지 크기로 나눔 (Y축 반전 없음)
+        // SwiftUI 픽셀 좌표 (top-left origin) → Vision 정규화 좌표 (bottom-left origin)
+        // loadAnchors, MeasurementOverlayLineView 모두 Vision 좌표계(1.0 - y)를 기대
         return CGPoint(
             x: clamp(point.x / size.width, min: 0, max: 1),
-            y: clamp(point.y / size.height, min: 0, max: 1)
+            y: clamp(1.0 - (point.y / size.height), min: 0, max: 1)
         )
     }
 
@@ -764,14 +763,14 @@ final class PhotoMeasurementViewModel: ObservableObject {
             let startAnchor = MeasurementAnchor(
                 position: CGPoint(
                     x: line.start.x * effectiveImageSize.width,
-                    y: line.start.y * effectiveImageSize.height
+                    y: (1.0 - line.start.y) * effectiveImageSize.height  // Vision→SwiftUI Y축 반전
                 ),
                 measurementType: line.type
             )
             let endAnchor = MeasurementAnchor(
                 position: CGPoint(
                     x: line.end.x * effectiveImageSize.width,
-                    y: line.end.y * effectiveImageSize.height
+                    y: (1.0 - line.end.y) * effectiveImageSize.height  // Vision→SwiftUI Y축 반전
                 ),
                 measurementType: line.type
             )
@@ -883,7 +882,7 @@ final class PhotoMeasurementViewModel: ObservableObject {
                     type: .leftShoulder,
                     position: CGPoint(
                         x: measurementAnchors[0].position.x / effectiveImageSize.width,
-                        y: measurementAnchors[0].position.y / effectiveImageSize.height
+                        y: 1.0 - (measurementAnchors[0].position.y / effectiveImageSize.height)  // SwiftUI→Vision Y축 반전
                     ),
                     confidence: 1.0  // 사용자 수정이므로 신뢰도 최대
                 ))
@@ -891,7 +890,7 @@ final class PhotoMeasurementViewModel: ObservableObject {
                     type: .rightShoulder,
                     position: CGPoint(
                         x: measurementAnchors[1].position.x / effectiveImageSize.width,
-                        y: measurementAnchors[1].position.y / effectiveImageSize.height
+                        y: 1.0 - (measurementAnchors[1].position.y / effectiveImageSize.height)  // SwiftUI→Vision Y축 반전
                     ),
                     confidence: 1.0
                 ))
@@ -902,7 +901,7 @@ final class PhotoMeasurementViewModel: ObservableObject {
                     type: .chestLeft,
                     position: CGPoint(
                         x: measurementAnchors[0].position.x / effectiveImageSize.width,
-                        y: measurementAnchors[0].position.y / effectiveImageSize.height
+                        y: 1.0 - (measurementAnchors[0].position.y / effectiveImageSize.height)  // SwiftUI→Vision Y축 반전
                     ),
                     confidence: 1.0
                 ))
@@ -910,7 +909,7 @@ final class PhotoMeasurementViewModel: ObservableObject {
                     type: .chestRight,
                     position: CGPoint(
                         x: measurementAnchors[1].position.x / effectiveImageSize.width,
-                        y: measurementAnchors[1].position.y / effectiveImageSize.height
+                        y: 1.0 - (measurementAnchors[1].position.y / effectiveImageSize.height)  // SwiftUI→Vision Y축 반전
                     ),
                     confidence: 1.0
                 ))
@@ -921,7 +920,7 @@ final class PhotoMeasurementViewModel: ObservableObject {
                     type: .neckline,
                     position: CGPoint(
                         x: measurementAnchors[0].position.x / effectiveImageSize.width,
-                        y: measurementAnchors[0].position.y / effectiveImageSize.height
+                        y: 1.0 - (measurementAnchors[0].position.y / effectiveImageSize.height)  // SwiftUI→Vision Y축 반전
                     ),
                     confidence: 1.0
                 ))
@@ -929,7 +928,7 @@ final class PhotoMeasurementViewModel: ObservableObject {
                     type: .hemCenter,
                     position: CGPoint(
                         x: measurementAnchors[1].position.x / effectiveImageSize.width,
-                        y: measurementAnchors[1].position.y / effectiveImageSize.height
+                        y: 1.0 - (measurementAnchors[1].position.y / effectiveImageSize.height)  // SwiftUI→Vision Y축 반전
                     ),
                     confidence: 1.0
                 ))

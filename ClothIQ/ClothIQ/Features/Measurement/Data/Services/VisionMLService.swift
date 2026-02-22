@@ -140,9 +140,72 @@ final class VisionMLService {
         )
     }
 
-    /// 하이브리드 키포인트 감지 (ML + 휴리스틱)
+    /// Saliency 기반 키포인트 감지
     ///
-    /// ML 모델과 기존 휴리스틱 알고리즘을 결합하여 최적의 결과를 제공합니다.
+    /// VNGenerateObjectnessBasedSaliencyImageRequest로 시각적으로
+    /// 두드러진 영역의 중심점들을 키포인트 후보로 반환합니다.
+    ///
+    /// - Parameters:
+    ///   - image: 입력 이미지
+    ///   - clothingType: 의류 타입
+    /// - Returns: 감지된 키포인트 배열
+    func detectKeypointsUsingSaliency(
+        from image: UIImage,
+        clothingType: ClothingType
+    ) async throws -> [MeasurementKeypoint] {
+        guard let ciImage = CIImage(image: image) else {
+            throw VisionMLError.imagePreprocessingFailed
+        }
+
+        return try await withCheckedThrowingContinuation { continuation in
+            requestQueue.async {
+                let request = VNGenerateObjectnessBasedSaliencyImageRequest()
+                let handler = VNImageRequestHandler(ciImage: ciImage, options: [:])
+
+                do {
+                    try handler.perform([request])
+                } catch {
+                    continuation.resume(throwing: error)
+                    return
+                }
+
+                guard let observation = request.results?.first as? VNSaliencyImageObservation,
+                      let salientObjects = observation.salientObjects, !salientObjects.isEmpty else {
+                    continuation.resume(returning: [])
+                    return
+                }
+
+                print("🔬 [Saliency] \(salientObjects.count)개 salient region 감지")
+
+                // 바운딩 박스 중심점을 키포인트 후보로 변환
+                var candidates: [(center: CGPoint, confidence: Float)] = []
+                for obj in salientObjects {
+                    let box = obj.boundingBox  // Vision 좌표계 (bottom-left origin, 0~1)
+                    let center = CGPoint(x: box.midX, y: box.midY)
+                    candidates.append((center: center, confidence: obj.confidence))
+                }
+
+                // Y좌표 기준 정렬 (상단→하단: Vision 좌표계에서 큰 Y가 상단)
+                candidates.sort { $0.center.y > $1.center.y }
+
+                let keypoints = self.mapSaliencyToKeypoints(
+                    candidates: candidates,
+                    clothingType: clothingType
+                )
+
+                print("✅ [Saliency] \(keypoints.count)개 키포인트 매핑 완료")
+                for kp in keypoints {
+                    print("  - \(kp.description)")
+                }
+
+                continuation.resume(returning: keypoints)
+            }
+        }
+    }
+
+    /// 하이브리드 키포인트 감지 (ML + Saliency + 휴리스틱)
+    ///
+    /// ML 모델, Saliency 감지, 기존 휴리스틱 알고리즘을 결합하여 최적의 결과를 제공합니다.
     func detectKeypointsHybrid(
         from image: UIImage,
         contour: VNContoursObservation?,
@@ -158,7 +221,7 @@ final class VisionMLService {
             mlKeypoints = mlResult.keypoints
             print("  - ML 키포인트: \(mlKeypoints.count)개 감지")
         } catch {
-            print("⚠️ ML 감지 실패, 휴리스틱만 사용: \(error)")
+            print("⚠️ ML 감지 실패: \(error)")
         }
 
         // 2. 휴리스틱 기반 감지 (기존 ClothingKeypointDetector 사용)
@@ -174,9 +237,22 @@ final class VisionMLService {
             print("  - 휴리스틱 키포인트: \(heuristicKeypoints.count)개 감지")
         }
 
-        // 3. 결과 병합 및 최적화
-        let mergedKeypoints = mergeKeypoints(
+        // 3. Saliency 기반 감지 (NEW)
+        var saliencyKeypoints: [MeasurementKeypoint] = []
+        do {
+            saliencyKeypoints = try await detectKeypointsUsingSaliency(
+                from: image,
+                clothingType: clothingType
+            )
+            print("  - Saliency 키포인트: \(saliencyKeypoints.count)개 감지")
+        } catch {
+            print("⚠️ Saliency 감지 실패: \(error)")
+        }
+
+        // 4. 3-way 병합: ML > Saliency > 휴리스틱 우선순위
+        let mergedKeypoints = mergeKeypointsThreeWay(
             mlKeypoints: mlKeypoints,
+            saliencyKeypoints: saliencyKeypoints,
             heuristicKeypoints: heuristicKeypoints
         )
 
@@ -196,18 +272,7 @@ final class VisionMLService {
 
     /// Vision 요청 생성
     private func createVisionRequest() throws -> VNRequest {
-        // 옵션 1: 사람 포즈 감지 (의류에 응용)
-        // 이는 사람이 입은 의류의 키포인트를 간접적으로 추정하는 데 사용할 수 있음
-        if #available(iOS 14.0, *) {
-            let request = VNDetectHumanBodyPoseRequest { request, error in
-                if let error = error {
-                    print("❌ [VisionML] 포즈 감지 실패: \(error)")
-                }
-            }
-            return request
-        }
-
-        // 옵션 2: 커스텀 Core ML 모델 사용 (있는 경우)
+        // 옵션 1: 커스텀 Core ML 모델 사용 (있는 경우)
         if let customModel = loadCustomModel() {
             let request = VNCoreMLRequest(model: customModel) { request, error in
                 if let error = error {
@@ -218,8 +283,13 @@ final class VisionMLService {
             return request
         }
 
-        // 폴백: 일반 특징점 감지
-        return VNDetectContoursRequest()
+        // 옵션 2: 윤곽선 감지 (평면 의류에 적합)
+        // VNDetectHumanBodyPoseRequest는 사람 포즈 전용이라 평면 의류에는 무용
+        let request = VNDetectContoursRequest()
+        request.contrastAdjustment = 2.0
+        request.detectsDarkOnLight = true
+        request.maximumImageDimension = 512
+        return request
     }
 
     /// 커스텀 Core ML 모델 로드
@@ -545,6 +615,121 @@ final class VisionMLService {
         }
 
         return mergedKeypoints
+    }
+
+    /// Saliency 후보를 의류 타입 기반 키포인트로 매핑
+    private func mapSaliencyToKeypoints(
+        candidates: [(center: CGPoint, confidence: Float)],
+        clothingType: ClothingType
+    ) -> [MeasurementKeypoint] {
+        guard !candidates.isEmpty else { return [] }
+
+        var keypoints: [MeasurementKeypoint] = []
+
+        // Y좌표 범위 계산 (이미 상단→하단 정렬됨)
+        let allY = candidates.map { $0.center.y }
+        let minY = allY.min() ?? 0
+        let maxY = allY.max() ?? 1
+        let rangeY = max(maxY - minY, 0.01)
+
+        // 각 후보를 상/중/하 영역으로 분류
+        var topCandidates: [(center: CGPoint, confidence: Float)] = []
+        var midCandidates: [(center: CGPoint, confidence: Float)] = []
+        var bottomCandidates: [(center: CGPoint, confidence: Float)] = []
+
+        for c in candidates {
+            let relativeY = (c.center.y - minY) / rangeY  // 0(하단)~1(상단)
+            if relativeY > 0.66 {
+                topCandidates.append(c)
+            } else if relativeY > 0.33 {
+                midCandidates.append(c)
+            } else {
+                bottomCandidates.append(c)
+            }
+        }
+
+        // 좌/우 분리 (X 중앙 기준)
+        let centerX: CGFloat = candidates.map { $0.center.x }.reduce(0, +) / CGFloat(candidates.count)
+
+        switch clothingType {
+        case .shortSleeve, .longSleeve, .shirt, .polo, .hoodie, .vest, .cardigan, .jacket, .coat, .dress, .jumpsuit:
+            // 상의: 상단 좌/우 → 어깨, 중간 좌/우 → 가슴, 하단 → 밑단
+            if let topLeft = topCandidates.filter({ $0.center.x < centerX }).first {
+                keypoints.append(MeasurementKeypoint(type: .leftShoulder, position: topLeft.center, confidence: topLeft.confidence * 0.7))
+            }
+            if let topRight = topCandidates.filter({ $0.center.x >= centerX }).first {
+                keypoints.append(MeasurementKeypoint(type: .rightShoulder, position: topRight.center, confidence: topRight.confidence * 0.7))
+            }
+            if let midLeft = midCandidates.filter({ $0.center.x < centerX }).first {
+                keypoints.append(MeasurementKeypoint(type: .chestLeft, position: midLeft.center, confidence: midLeft.confidence * 0.6))
+            }
+            if let midRight = midCandidates.filter({ $0.center.x >= centerX }).first {
+                keypoints.append(MeasurementKeypoint(type: .chestRight, position: midRight.center, confidence: midRight.confidence * 0.6))
+            }
+            if let bottom = bottomCandidates.max(by: { $0.confidence < $1.confidence }) {
+                keypoints.append(MeasurementKeypoint(type: .hemCenter, position: bottom.center, confidence: bottom.confidence * 0.6))
+            }
+            // 목선: 상단 중앙
+            if let topCenter = topCandidates.min(by: { abs($0.center.x - centerX) < abs($1.center.x - centerX) }) {
+                keypoints.append(MeasurementKeypoint(type: .neckline, position: CGPoint(x: centerX, y: topCenter.center.y), confidence: topCenter.confidence * 0.6))
+            }
+
+        case .pants, .shorts, .jeans, .leggings:
+            // 하의: 상단 좌/우 → 허리, 중간 → 밑위, 하단 좌/우 → 밑단
+            if let topLeft = topCandidates.filter({ $0.center.x < centerX }).first {
+                keypoints.append(MeasurementKeypoint(type: .waistLeft, position: topLeft.center, confidence: topLeft.confidence * 0.7))
+            }
+            if let topRight = topCandidates.filter({ $0.center.x >= centerX }).first {
+                keypoints.append(MeasurementKeypoint(type: .waistRight, position: topRight.center, confidence: topRight.confidence * 0.7))
+            }
+            if let midCenter = midCandidates.min(by: { abs($0.center.x - centerX) < abs($1.center.x - centerX) }) {
+                keypoints.append(MeasurementKeypoint(type: .crotch, position: midCenter.center, confidence: midCenter.confidence * 0.6))
+            }
+            if let bottomLeft = bottomCandidates.filter({ $0.center.x < centerX }).first {
+                keypoints.append(MeasurementKeypoint(type: .leftHem, position: bottomLeft.center, confidence: bottomLeft.confidence * 0.6))
+            }
+            if let bottomRight = bottomCandidates.filter({ $0.center.x >= centerX }).first {
+                keypoints.append(MeasurementKeypoint(type: .rightHem, position: bottomRight.center, confidence: bottomRight.confidence * 0.6))
+            }
+
+        case .skirt:
+            if let topLeft = topCandidates.filter({ $0.center.x < centerX }).first {
+                keypoints.append(MeasurementKeypoint(type: .waistLeft, position: topLeft.center, confidence: topLeft.confidence * 0.7))
+            }
+            if let topRight = topCandidates.filter({ $0.center.x >= centerX }).first {
+                keypoints.append(MeasurementKeypoint(type: .waistRight, position: topRight.center, confidence: topRight.confidence * 0.7))
+            }
+            if let bottom = bottomCandidates.max(by: { $0.confidence < $1.confidence }) {
+                keypoints.append(MeasurementKeypoint(type: .hemCenter, position: bottom.center, confidence: bottom.confidence * 0.6))
+            }
+        }
+
+        return keypoints
+    }
+
+    /// 3-way 키포인트 병합 (ML > Saliency > 휴리스틱 우선순위)
+    private func mergeKeypointsThreeWay(
+        mlKeypoints: [MLKeypoint],
+        saliencyKeypoints: [MeasurementKeypoint],
+        heuristicKeypoints: [MeasurementKeypoint]
+    ) -> [MeasurementKeypoint] {
+        // 1단계: ML + 휴리스틱 병합 (기존 로직)
+        var merged = mergeKeypoints(
+            mlKeypoints: mlKeypoints,
+            heuristicKeypoints: heuristicKeypoints
+        )
+
+        // 2단계: Saliency 키포인트 중 아직 없는 타입만 추가
+        var existingTypes = Set(merged.map { $0.type })
+
+        for saliencyKeypoint in saliencyKeypoints {
+            if !existingTypes.contains(saliencyKeypoint.type) {
+                merged.append(saliencyKeypoint)
+                existingTypes.insert(saliencyKeypoint.type)
+            }
+        }
+
+        return merged
     }
 
     /// 특징점 추출 (간단한 버전)

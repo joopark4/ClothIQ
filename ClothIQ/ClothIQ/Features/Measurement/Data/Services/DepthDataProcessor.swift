@@ -26,6 +26,23 @@ import CoreGraphics
 ///
 struct DepthDataProcessor {
 
+    // MARK: - Private Helpers
+
+    /// ARConfidenceLevel raw value를 0.0~1.0 신뢰도 점수로 변환
+    private static func confidenceScore(from rawValue: UInt8) -> Float {
+        let level = ARConfidenceLevel(rawValue: Int(rawValue)) ?? .low
+        switch level {
+        case .high:
+            return 1.0
+        case .medium:
+            return 0.5
+        case .low:
+            return 0.2
+        @unknown default:
+            return 0.0
+        }
+    }
+
     // MARK: - Depth Extraction
 
     /// 화면 좌표에서 깊이 값을 추출합니다.
@@ -88,12 +105,13 @@ struct DepthDataProcessor {
         let width = CVPixelBufferGetWidth(confidenceMap)
         let height = CVPixelBufferGetHeight(confidenceMap)
 
-        let normalizedX = Float(point.x) / Float(width)
-        let normalizedY = Float(point.y) / Float(height)
+        // point는 0~1 정규화 좌표
+        let normalizedX = Float(max(0.0, min(1.0, point.x)))
+        let normalizedY = Float(max(0.0, min(1.0, point.y)))
 
-        // AutoSize02.md: 경계값 처리를 위해 0...(resolution-1) 범위로 clamp
-        let u = max(0, min(width - 1, Int(normalizedX * Float(width))))
-        let v = max(0, min(height - 1, Int(normalizedY * Float(height))))
+        // 경계값 처리를 위해 0...(resolution-1) 범위로 clamp
+        let u = max(0, min(width - 1, Int(normalizedX * Float(width - 1))))
+        let v = max(0, min(height - 1, Int(normalizedY * Float(height - 1))))
 
         CVPixelBufferLockBaseAddress(confidenceMap, .readOnly)
         defer { CVPixelBufferUnlockBaseAddress(confidenceMap, .readOnly) }
@@ -106,21 +124,102 @@ struct DepthDataProcessor {
         let rowData = baseAddress + v * bytesPerRow
         let confidenceValue = rowData.assumingMemoryBound(to: UInt8.self)[u]
 
-        // ARConfidenceLevel: 0 (low), 1 (medium), 2 (high)
-        // LiDAR_SIZE_Ref.md: ARConfidenceLevel.high (2)만 사용하여 정확도 향상
-        let confidenceLevel = ARConfidenceLevel(rawValue: Int(confidenceValue)) ?? .low
+        return confidenceScore(from: confidenceValue)
+    }
 
-        // High 신뢰도만 1.0, 나머지는 패널티 적용
-        switch confidenceLevel {
-        case .high:
-            return 1.0  // 최고 신뢰도
-        case .medium:
-            return 0.5  // 중간 신뢰도 (사용 지양)
-        case .low:
-            return 0.2  // 낮은 신뢰도 (거의 사용 안 함)
-        @unknown default:
-            return 0.0
+    /// 주변 커널 기반으로 깊이/신뢰도를 강건하게 추출합니다.
+    ///
+    /// 단일 픽셀 값 대신 이웃 픽셀을 confidence+공간 가중치로 평균내어
+    /// 노이즈와 outlier 영향을 줄입니다.
+    ///
+    /// - Parameters:
+    ///   - point: 정규화 좌표 (0~1)
+    ///   - depthMap: 깊이 맵
+    ///   - confidenceMap: 신뢰도 맵
+    ///   - kernelRadius: 샘플링 반경 (기본 2 => 5x5)
+    /// - Returns: (깊이, 신뢰도), 실패 시 nil
+    static func extractRobustDepth(
+        at point: CGPoint,
+        from depthMap: CVPixelBuffer,
+        confidenceMap: CVPixelBuffer?,
+        kernelRadius: Int = 2
+    ) -> (depth: Float, confidence: Float)? {
+        let width = CVPixelBufferGetWidth(depthMap)
+        let height = CVPixelBufferGetHeight(depthMap)
+
+        guard width > 0, height > 0 else {
+            return nil
         }
+
+        let clampedX = max(0.0, min(1.0, point.x))
+        let clampedY = max(0.0, min(1.0, point.y))
+        let centerU = max(0, min(width - 1, Int(clampedX * CGFloat(width - 1))))
+        let centerV = max(0, min(height - 1, Int(clampedY * CGFloat(height - 1))))
+
+        CVPixelBufferLockBaseAddress(depthMap, .readOnly)
+        if let confidenceMap = confidenceMap {
+            CVPixelBufferLockBaseAddress(confidenceMap, .readOnly)
+        }
+        defer {
+            CVPixelBufferUnlockBaseAddress(depthMap, .readOnly)
+            if let confidenceMap = confidenceMap {
+                CVPixelBufferUnlockBaseAddress(confidenceMap, .readOnly)
+            }
+        }
+
+        guard let depthBaseAddress = CVPixelBufferGetBaseAddress(depthMap) else {
+            return nil
+        }
+
+        let depthBytesPerRow = CVPixelBufferGetBytesPerRow(depthMap)
+        let confidenceBytesPerRow = confidenceMap.map { CVPixelBufferGetBytesPerRow($0) }
+        let confidenceBaseAddress = confidenceMap.flatMap { CVPixelBufferGetBaseAddress($0) }
+
+        var weightedDepthSum: Float = 0
+        var weightSum: Float = 0
+        var confidenceSum: Float = 0
+        var validSampleCount = 0
+
+        for offsetY in -kernelRadius...kernelRadius {
+            for offsetX in -kernelRadius...kernelRadius {
+                let u = centerU + offsetX
+                let v = centerV + offsetY
+                guard u >= 0, u < width, v >= 0, v < height else { continue }
+
+                let depthRow = depthBaseAddress + v * depthBytesPerRow
+                let depth = depthRow.assumingMemoryBound(to: Float32.self)[u]
+
+                guard depth.isFinite, depth >= 0.2, depth <= 5.0 else { continue }
+
+                let sampleConfidence: Float
+                if let confidenceBaseAddress = confidenceBaseAddress,
+                   let confidenceBytesPerRow = confidenceBytesPerRow {
+                    let confidenceRow = confidenceBaseAddress + v * confidenceBytesPerRow
+                    let rawConfidence = confidenceRow.assumingMemoryBound(to: UInt8.self)[u]
+                    sampleConfidence = confidenceScore(from: rawConfidence)
+                } else {
+                    sampleConfidence = 0.7
+                }
+
+                // 신뢰도와 중심점 거리(가까울수록 높음)를 함께 가중치로 사용
+                let distance = sqrt(Float(offsetX * offsetX + offsetY * offsetY))
+                let spatialWeight = 1.0 / (1.0 + distance)
+                let weight = max(0.05, sampleConfidence * spatialWeight)
+
+                weightedDepthSum += depth * weight
+                weightSum += weight
+                confidenceSum += sampleConfidence
+                validSampleCount += 1
+            }
+        }
+
+        guard validSampleCount > 0, weightSum > 0 else {
+            return nil
+        }
+
+        let robustDepth = weightedDepthSum / weightSum
+        let robustConfidence = confidenceSum / Float(validSampleCount)
+        return (robustDepth, robustConfidence)
     }
 
     // MARK: - World Position Calculation
