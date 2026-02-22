@@ -139,18 +139,18 @@ enum MeasurementCategory {
     case common  // 공통
 }
 
-// MARK: - Calibration Extension
+// MARK: - Calibration Extension (Deprecated)
 
 extension MeasurementType {
-    /// 반바지에 대한 교정 계수
+    /// 반바지에 대한 교정 계수 (하드코딩)
     ///
-    /// 실측값을 기반으로 계산된 보정 계수입니다.
-    /// - 허리둘레: 40cm (실측) / 21.43cm (측정) = 1.866
-    /// - 총길이: 48cm (실측) / 59.61cm (측정) = 0.805
-    /// - 밑위: 30cm (실측) / 35.52cm (측정) = 0.845
+    /// - Warning: Deprecated. `MeasurementSettings.shared.applyCorrectionFactor()` 사용을 권장합니다.
+    ///   이 메서드는 반바지만 지원하며 오래된 값을 사용합니다.
+    ///   동적 교정 시스템(CalibrationProfile)이 모든 의류 타입과 측정 방식을 지원합니다.
     ///
     /// - Parameter clothingType: 의류 타입
     /// - Returns: 교정 계수 (1.0 = 보정 없음)
+    @available(*, deprecated, message: "MeasurementSettings.shared.applyCorrectionFactor() 사용을 권장합니다")
     func calibrationFactor(for clothingType: ClothingType) -> Double {
         // 반바지에 대한 교정 계수
         if clothingType == .shorts {
@@ -174,12 +174,15 @@ extension MeasurementType {
         return 1.0
     }
 
-    /// 교정된 측정값 계산
+    /// 교정된 측정값 계산 (하드코딩)
+    ///
+    /// - Warning: Deprecated. `MeasurementSettings.shared.applyCorrectionFactor()` 사용을 권장합니다.
     ///
     /// - Parameters:
     ///   - rawValue: 원시 측정값
     ///   - clothingType: 의류 타입
     /// - Returns: 교정된 측정값
+    @available(*, deprecated, message: "MeasurementSettings.shared.applyCorrectionFactor() 사용을 권장합니다")
     func calibrate(_ rawValue: Double, for clothingType: ClothingType) -> Double {
         return rawValue * calibrationFactor(for: clothingType)
     }

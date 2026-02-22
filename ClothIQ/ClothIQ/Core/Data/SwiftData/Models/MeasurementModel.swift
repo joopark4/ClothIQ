@@ -189,8 +189,9 @@ extension MeasurementModel {
 
     /// 교정된 측정값 반환
     ///
+    /// 동적 교정 시스템(MeasurementSettings + CalibrationProfile)을 통해
     /// 의류 타입과 측정 타입에 따라 교정 계수를 적용한 값을 반환합니다.
-    /// 교정 계수가 없는 경우 원본 값을 반환합니다.
+    /// 교정이 비활성화되어 있거나 프로필이 없으면 원본 값을 반환합니다.
     ///
     /// - Returns: 교정된 측정값 (센티미터)
     func calibratedValue() -> Double {
@@ -199,7 +200,13 @@ extension MeasurementModel {
             return value
         }
 
-        return measurementType.calibrate(value, for: clothingType)
+        // 동적 교정 시스템 사용 (CalibrationProfile 기반)
+        return MeasurementSettings.shared.applyCorrectionFactor(
+            type: measurementType,
+            clothingType: clothingType,
+            value: value,
+            method: .photo  // 기본값: 사진 측정 교정 계수 사용
+        )
     }
 
     /// 지정된 단위로 교정된 측정값 변환

@@ -5,11 +5,10 @@
 //  Created on 2025-11-05
 //
 //  Description:
-//  데이터 저장 및 자동 측정을 담당하는 extension입니다.
+//  데이터 저장을 담당하는 extension입니다.
 //
 //  Key Responsibilities:
 //  - SwiftData 저장
-//  - 자동 측정 실행
 //  - 측정 포인트 후보 처리
 //  - 세션 초기화
 //
@@ -98,26 +97,13 @@ extension MeasurementViewModelRefactored {
             clothingItem.cameraResolutionHeight = Double(resolution.height)
         }
 
-        // 측정값이 있다면 추가 (자동 측정이 성공한 경우)
+        // 측정값이 있다면 추가
         for (type, value) in session.measurements {
-            // autoMeasurementResults에서 해당 타입의 좌표 및 신뢰도 찾기
-            let resultWithCoords = autoMeasurementResults.first { $0.type == type }
-            // 자동 측정 결과는 Vision 정규화 좌표(0~1)로 저장되어 있으므로 그대로 사용
-            let startPoint = resultWithCoords?.startPoint
-            let endPoint = resultWithCoords?.endPoint
-
-            // 개별 측정의 신뢰도 사용 (없으면 전체 신뢰도 사용)
-            let confidence = Double(resultWithCoords?.confidence ?? overallConfidence)
-
             let measurement = MeasurementModel(
                 type: type.rawValue,
                 value: value,
                 unit: "cm",
-                confidence: confidence,
-                startPointX: startPoint.map { Double($0.x) },
-                startPointY: startPoint.map { Double($0.y) },
-                endPointX: endPoint.map { Double($0.x) },
-                endPointY: endPoint.map { Double($0.y) }
+                confidence: Double(overallConfidence)
             )
             clothingItem.measurements.append(measurement)
             measurement.clothingItem = clothingItem
@@ -222,23 +208,11 @@ extension MeasurementViewModelRefactored {
 
         // 측정값들을 MeasurementModel로 변환
         for (type, value) in session.measurements {
-            let resultWithCoords = autoMeasurementResults.first { $0.type == type }
-            // 자동 측정 결과는 Vision 정규화 좌표(0~1)로 저장되어 있으므로 그대로 사용
-            let startPoint = resultWithCoords?.startPoint
-            let endPoint = resultWithCoords?.endPoint
-
-            // 개별 측정의 신뢰도 사용 (없으면 전체 신뢰도 사용)
-            let confidence = Double(resultWithCoords?.confidence ?? overallConfidence)
-
             let measurement = MeasurementModel(
                 type: type.rawValue,
                 value: value,
                 unit: "cm",
-                confidence: confidence,
-                startPointX: startPoint.map { Double($0.x) },
-                startPointY: startPoint.map { Double($0.y) },
-                endPointX: endPoint.map { Double($0.x) },
-                endPointY: endPoint.map { Double($0.y) }
+                confidence: Double(overallConfidence)
             )
             clothingItem.measurements.append(measurement)
         }
@@ -280,87 +254,9 @@ extension MeasurementViewModelRefactored {
     }
 }
 
-// MARK: - Auto Measurement
+// MARK: - Measurement Processing
 
 extension MeasurementViewModelRefactored {
-    
-    /// 자동 측정 실행
-    ///
-    /// Vision Framework를 사용하여 의류 윤곽선을 감지하고,
-    /// 의류 타입에 맞는 측정 포인트를 자동으로 생성합니다.
-    ///
-    /// - Parameter frame: 현재 AR 프레임
-    func performAutoMeasurement(from frame: ARFrame) {
-        guard let clothingType = session.clothingType else {
-            showError("의류 타입을 선택해주세요")
-            return
-        }
-
-        isLoading = true
-        autoMeasurementPreview = nil
-
-        Task {
-            do {
-                // 1. 윤곽선 감지
-                guard let contour = try await autoMeasurementService.detectClothingContour(
-                    from: frame.capturedImage,
-                    depthMap: frame.smoothedSceneDepth?.depthMap ?? frame.sceneDepth?.depthMap
-                ) else {
-                    await MainActor.run {
-                        showError("의류 윤곽선을 감지할 수 없습니다. 의류를 평평하게 펼쳐주세요.")
-                        isLoading = false
-                    }
-                    return
-                }
-
-                // 2. 특징점 추출 (템플릿 기반)
-                let featurePoints = autoMeasurementService.extractFeaturePoints(from: contour, clothingType: clothingType)
-
-                // 3. 측정 포인트 감지
-                let candidates = autoMeasurementService.detectMeasurementPoints(
-                    featurePoints: featurePoints,
-                    contour: contour,
-                    clothingType: clothingType
-                )
-
-                guard !candidates.isEmpty else {
-                    await MainActor.run {
-                        showError("측정 포인트를 찾을 수 없습니다.")
-                        isLoading = false
-                    }
-                    return
-                }
-
-                // 4. 2D → 3D 변환 및 측정
-                let measurements = try await processCandidates(candidates, frame: frame, clothingType: clothingType)
-
-                // 5. 결과 저장
-                await MainActor.run {
-                    // 측정 결과 저장 (좌표 포함)
-                    autoMeasurementResults = measurements
-
-                    for measurement in measurements {
-                        session.setMeasurement(measurement.value, for: measurement.type)
-                    }
-
-                    autoMeasurementPreview = candidates
-                    showSuccess("자동 측정 완료! \(measurements.count)개 항목 측정됨")
-                    isLoading = false
-                }
-
-            } catch let error as AutoMeasurementError {
-                await MainActor.run {
-                    showError(error.localizedDescription)
-                    isLoading = false
-                }
-            } catch {
-                await MainActor.run {
-                    showError("자동 측정 실패: \(error.localizedDescription)")
-                    isLoading = false
-                }
-            }
-        }
-    }
 
     /// 측정 포인트 후보들을 처리하여 실제 측정값 계산
     func processCandidates(
@@ -549,14 +445,15 @@ extension MeasurementViewModelRefactored {
                     print("    - 신뢰도: \(result.confidence)")
 
                     // 픽셀 좌표 → 정규화 좌표 (0~1) 변환
-                    // Vision 좌표계 → SwiftUI 좌표계(top-left origin) 변환: Y축 반전
+                    // point1/point2는 toCameraPixelPoint()에서 이미 top-left 원점으로 변환됨
+                    // 따라서 추가 Y축 반전 없이 단순 정규화만 수행
                     let normalizedStart = CGPoint(
                         x: point1.x / cameraImageSize.width,
-                        y: 1.0 - (point1.y / cameraImageSize.height)  // Vision → SwiftUI Y축 반전
+                        y: point1.y / cameraImageSize.height  // 이미 top-left 원점, 정규화만 수행
                     )
                     let normalizedEnd = CGPoint(
                         x: point2.x / cameraImageSize.width,
-                        y: 1.0 - (point2.y / cameraImageSize.height)  // Vision → SwiftUI Y축 반전
+                        y: point2.y / cameraImageSize.height  // 이미 top-left 원점, 정규화만 수행
                     )
 
                     guard MeasurementValidator.isValid(

@@ -18,7 +18,7 @@
 //  Extensions:
 //  - MeasurementViewModel+MeasurementManagement.swift: 측정 포인트 관리, 거리 계산
 //  - MeasurementViewModel+ImageCapture.swift: 이미지 캡처 및 처리
-//  - MeasurementViewModel+DataPersistence.swift: SwiftData 저장, 자동 측정
+//  - MeasurementViewModel+DataPersistence.swift: SwiftData 저장
 //
 
 import Foundation
@@ -83,12 +83,6 @@ final class MeasurementViewModelRefactored: ObservableObject {
     /// 임시 저장할 처리된 이미지
     @Published var processedImageToSave: UIImage?
 
-    /// 자동 측정 포인트 미리보기
-    @Published var autoMeasurementPreview: [MeasurementPointCandidate]?
-
-    /// 자동 측정 결과 (좌표 포함)
-    var autoMeasurementResults: [MeasurementResult] = []
-
     /// 의류 타입 선택 Sheet 표시 여부
     @Published var showingTypeSelection: Bool = false
 
@@ -115,7 +109,6 @@ final class MeasurementViewModelRefactored: ObservableObject {
     // MARK: - Internal Properties (for Extensions)
 
     let measurementService: ARMeasurementServiceProtocol
-    let autoMeasurementService: AutoMeasurementService
     let imageFileManager: ImageFileManager
     let objectCaptureService: ObjectCaptureService
     let photoLibraryService: PhotoLibraryService
@@ -132,8 +125,6 @@ final class MeasurementViewModelRefactored: ObservableObject {
 
     /// 캡처된 depth map (사진 측정에 사용)
     var capturedDepthMap: CVPixelBuffer?
-    /// 캡처된 원본 픽셀 버퍼 (윤곽선 분석용)
-    var capturedPixelBuffer: CVPixelBuffer?
     /// 원본 이미지 크기 (크롭 전)
     var capturedOriginalImageSize: CGSize?
     /// 크롭 영역 (원본 이미지 좌표계)
@@ -144,7 +135,7 @@ final class MeasurementViewModelRefactored: ObservableObject {
     var capturedCameraIntrinsics: simd_float3x3?
     /// 캡처 시점 카메라 이미지 해상도
     var capturedCameraResolution: CGSize?
-    /// 현재 ARFrame (자동 측정용, 측정 완료 후 즉시 해제)
+    /// 현재 ARFrame (temporal fusion 프레임 수집용)
     var currentARFrame: ARFrame?
 
     // MARK: - Initialization
@@ -157,7 +148,6 @@ final class MeasurementViewModelRefactored: ObservableObject {
         self.session = MeasurementSession(clothingType: clothingType)
         self.modelContext = modelContext
         self.measurementService = ARMeasurementService()
-        self.autoMeasurementService = AutoMeasurementService()
         self.imageFileManager = .shared
         self.objectCaptureService = ObjectCaptureService()
         self.photoLibraryService = .shared
@@ -281,7 +271,7 @@ extension MeasurementViewModelRefactored {
 
 // MARK: - Measurement Result
 
-/// 자동 측정 결과
+/// 측정 결과
 struct MeasurementResult {
     let type: MeasurementType
     let value: Double

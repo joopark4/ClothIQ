@@ -35,8 +35,7 @@ struct MeasurementView: View {
     @State private var showingDetailView = false
     @State private var showingMeasurementTypeSelector = false
 
-    // AutoSize02.md: ARFrame은 자동 측정에만 짧게 사용하고 즉시 해제
-    // 타입 선택 시점에만 일시적으로 보관
+    /// 캡처 시점의 ARFrame (타입 선택 시 전달용)
     @State private var capturedFrameForMeasurement: ARFrame?
 
     private let maskUpdateInterval: TimeInterval = 1.0
@@ -77,11 +76,8 @@ struct MeasurementView: View {
                     viewModel.handleTap(at: location, frame: frame)
                 },
                 onFrameUpdate: { frame in
-                    // ARFrame 메모리 누수 방지: autoreleasepool 사용
                     let _ = autoreleasepool {
                         Task { @MainActor in
-                            // AutoSize02.md: ARFrame은 자동 측정용으로만 일시 보관
-                            // 매 프레임마다 최신 프레임으로 교체 (이전 프레임은 자동 해제)
                             self.capturedFrameForMeasurement = frame
                             viewModel.currentARFrame = frame
 
@@ -140,12 +136,8 @@ struct MeasurementView: View {
                 },
                 onAnchorsUpdate: nil,  // 평면 정렬 가이드 제거 - 평면 추정은 백그라운드에서 자동 처리
                 captureRequested: $viewModel.captureRequested,
-                onImageCaptured: { image, depthMap, camera, pixelBuffer in
-                    // 윤곽선 분석을 위해 원본 픽셀 버퍼 저장
-                    viewModel.capturedPixelBuffer = pixelBuffer
-                    // 캡처 시점의 ARFrame을 ViewModel에 저장
+                onImageCaptured: { image, depthMap, camera, _ in
                     viewModel.currentARFrame = capturedFrameForMeasurement
-                    print("📸 [Capture] ARFrame 저장 완료 - frame: \(capturedFrameForMeasurement != nil)")
                     viewModel.handleCapturedImage(image, depthMap: depthMap, camera: camera)
                 }
             )
@@ -212,11 +204,7 @@ struct MeasurementView: View {
         .sheet(isPresented: $viewModel.showingTypeSelection) {
             NavigationStack {
                 ClothingTypeSelectionView { selectedType in
-                    // AutoSize02.md: ARFrame을 메서드로 전달하되 즉시 해제되도록
-                    // handleTypeSelection 메서드 내에서만 사용됨
                     viewModel.handleTypeSelection(selectedType, frame: capturedFrameForMeasurement)
-
-                    // 타입 선택 후 프레임 참조 즉시 해제
                     capturedFrameForMeasurement = nil
                 }
             }

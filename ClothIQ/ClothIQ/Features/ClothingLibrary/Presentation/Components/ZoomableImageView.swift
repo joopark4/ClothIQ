@@ -72,10 +72,6 @@ struct ZoomableImageView: View {
                     onSelect: onAnchorSelected
                 )
                 .id(measurementAnchors.count)  // 앵커 개수 변경 시 뷰 강제 재생성
-                // .allowsHitTesting(!measurementAnchors.isEmpty)  // 항상 렌더링되도록 주석 처리
-                .onAppear {
-                    print("🎨 [MeasurementAnchorsOverlay] 오버레이 최초 표시 - 앵커 개수: \(measurementAnchors.count)")
-                }
             }
             .onTapGesture { location in
                 print("🟢 [ZoomableImageView] Tap detected at: \(location)")
@@ -398,34 +394,33 @@ struct MeasurementAnchorsOverlay: View {
     @State private var draggingPosition: CGPoint?
 
     var body: some View {
-        let _ = print("📐 [MeasurementAnchorsOverlay] body 호출됨 - anchors.count: \(anchors.count)")
-
-        return GeometryReader { geometry in
+        GeometryReader { geometry in
             ZStack {
                 // 투명한 배경으로 터치 통과
                 Color.clear
                     .allowsHitTesting(false)
 
                 if anchors.count == 2 {
-                    let point1 = convertImageToViewCoordinates(anchors[0].position, in: geometry.size)
-                    let point2 = convertImageToViewCoordinates(anchors[1].position, in: geometry.size)
-
-                    let _ = print("🔴 [MeasurementAnchorsOverlay] 빨간 선 그리기 - point1: \(point1), point2: \(point2)")
+                    // 드래그 중인 앵커는 draggingPosition(뷰 좌표)을 사용하여
+                    // 원과 선 끝점이 정확히 일치하도록 함
+                    let point1: CGPoint = {
+                        if anchors[0].id == draggingAnchorID, let dragPos = draggingPosition {
+                            return dragPos
+                        }
+                        return convertImageToViewCoordinates(anchors[0].position, in: geometry.size)
+                    }()
+                    let point2: CGPoint = {
+                        if anchors[1].id == draggingAnchorID, let dragPos = draggingPosition {
+                            return dragPos
+                        }
+                        return convertImageToViewCoordinates(anchors[1].position, in: geometry.size)
+                    }()
 
                     Path { path in
                         path.move(to: point1)
                         path.addLine(to: point2)
                     }
                     .stroke(Color.red, style: StrokeStyle(lineWidth: 4, lineCap: .round))
-                    .onAppear {
-                        print("✅ [Line] 빨간 선이 화면에 나타남")
-                        logRenderingDetails(geometry: geometry, point1: point1, point2: point2)
-                    }
-                } else {
-                    EmptyView()
-                        .onAppear {
-                            print("⚠️ [MeasurementAnchorsOverlay] 앵커 개수 부족 - 선 그리지 않음")
-                        }
                 }
 
                 ForEach(anchors) { anchor in
@@ -438,8 +433,6 @@ struct MeasurementAnchorsOverlay: View {
                         }
                     }()
                     let isActive = anchor.id == activeAnchorID
-
-                    let _ = print("🔵 [Anchor] 앵커 \(anchorLabel(for: anchor)) 그리기 - position: \(viewPoint)")
 
                     ZStack {
                         // 투명한 큰 터치 영역
@@ -464,9 +457,6 @@ struct MeasurementAnchorsOverlay: View {
                     }
                     .zIndex(1000)  // 최상위에 표시
                     .position(viewPoint)
-                    .onAppear {
-                        print("✅ [Anchor] 앵커 \(anchorLabel(for: anchor))가 화면에 나타남")
-                    }
                     .onTapGesture {
                         onSelect(anchor.id)
                     }
@@ -505,10 +495,6 @@ struct MeasurementAnchorsOverlay: View {
             }
             .zIndex(999)  // 오버레이를 최상위에 표시
             .allowsHitTesting(!anchors.isEmpty)  // anchors가 있을 때만 터치 활성화
-            .onChange(of: anchors.count) { oldValue, newValue in
-            }
-            .onChange(of: anchors.map { $0.id }) { oldValue, newValue in
-            }
         }
     }
 
@@ -517,15 +503,9 @@ struct MeasurementAnchorsOverlay: View {
         return "\(index + 1)"
     }
 
-    private func logRenderingDetails(geometry: GeometryProxy, point1: CGPoint, point2: CGPoint) {
-    }
-
     private func convertImageToViewCoordinates(_ point: CGPoint, in viewSize: CGSize) -> CGPoint {
-        print("🔵 [convertImageToViewCoordinates] INPUT - point: \(point), imageSize: \(imageSize), rotation: \(rotation), viewSize: \(viewSize)")
         let converter = CoordinateConverter(imageSize: imageSize, rotation: rotation)
-        let result = converter.imageToView(point, in: viewSize, scale: scale, offset: offset, padding: padding)
-        print("🔵 [convertImageToViewCoordinates] OUTPUT - result: \(result)")
-        return result
+        return converter.imageToView(point, in: viewSize, scale: scale, offset: offset, padding: padding)
     }
 
     private func convertViewToImageCoordinates(_ location: CGPoint, in viewSize: CGSize) -> CGPoint {
