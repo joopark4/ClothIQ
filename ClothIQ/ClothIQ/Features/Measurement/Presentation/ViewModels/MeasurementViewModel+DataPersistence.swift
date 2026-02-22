@@ -506,23 +506,19 @@ extension MeasurementViewModelRefactored {
                     print("    - 신뢰도: \(result.confidence)")
 
                     // 픽셀 좌표 → 정규화 좌표 (0~1) 변환
-                    // SwiftUI 좌표계(top-left origin) → Vision 좌표계(bottom-left origin)
-                    var normalizedStart = CGPoint(
+                    // screenPosition은 Vision 좌표계(bottom-left origin)이므로
+                    // point1은 Vision 픽셀 좌표.
+                    // Vision 좌표계 → SwiftUI 좌표계(top-left origin) 변환: Y축 반전
+                    let normalizedStart = CGPoint(
                         x: point1.x / imageSize.width,
-                        y: 1.0 - (point1.y / imageSize.height)  // Y축 반전
+                        y: 1.0 - (point1.y / imageSize.height)  // Vision → SwiftUI Y축 반전
                     )
-                    var normalizedEnd = CGPoint(
+                    let normalizedEnd = CGPoint(
                         x: point2.x / imageSize.width,
-                        y: 1.0 - (point2.y / imageSize.height)  // Y축 반전
+                        y: 1.0 - (point2.y / imageSize.height)  // Vision → SwiftUI Y축 반전
                     )
 
-                    // 방향 정규화: Vision 좌표계에서 Y가 큰 값(상단) → 작은 값(하단) 순서로 정렬
-                    if normalizedStart.y < normalizedEnd.y {
-                        swap(&normalizedStart, &normalizedEnd)
-                        print("    - [방향 정규화] start/end 순서를 교체하여 상단→하단 방향으로 정렬")
-                    }
-
-                    print("    - 정규화 좌표 저장: start=\(normalizedStart), end=\(normalizedEnd)")
+                    print("    - 정규화 좌표 저장 (SwiftUI): start=\(normalizedStart), end=\(normalizedEnd)")
 
                     // MeasurementResult 생성
                     let measurement = MeasurementResult(
@@ -580,8 +576,15 @@ extension MeasurementViewModelRefactored {
                 }
 
                 // 정규화된 좌표 저장 (크롭된 이미지 기준, 0~1 범위)
-                let startPoint = group.count > 0 ? group[0].screenPosition : nil
-                let endPoint = group.count > 1 ? group[1].screenPosition : nil
+                // screenPosition은 Vision 좌표계(bottom-left)이므로 SwiftUI 좌표계(top-left)로 변환
+                let startPoint: CGPoint? = group.count > 0 ? CGPoint(
+                    x: group[0].screenPosition.x,
+                    y: 1.0 - group[0].screenPosition.y  // Vision → SwiftUI Y축 반전
+                ) : nil
+                let endPoint: CGPoint? = group.count > 1 ? CGPoint(
+                    x: group[1].screenPosition.x,
+                    y: 1.0 - group[1].screenPosition.y  // Vision → SwiftUI Y축 반전
+                ) : nil
 
                 measurements.append(MeasurementResult(
                     type: type,
@@ -650,9 +653,16 @@ extension MeasurementViewModelRefactored {
             }
 
             // 정규화된 좌표 저장 (크롭된 이미지 기준, 0~1 범위)
+            // screenPosition은 Vision 좌표계(bottom-left)이므로 SwiftUI 좌표계(top-left)로 변환
             // PhotoMeasurementView에서 processedImageSize 또는 image.size로 역정규화
-            let startPoint = group.count > 0 ? group[0].screenPosition : nil
-            let endPoint = group.count > 1 ? group[1].screenPosition : nil
+            let startPoint: CGPoint? = group.count > 0 ? CGPoint(
+                x: group[0].screenPosition.x,
+                y: 1.0 - group[0].screenPosition.y  // Vision → SwiftUI Y축 반전
+            ) : nil
+            let endPoint: CGPoint? = group.count > 1 ? CGPoint(
+                x: group[1].screenPosition.x,
+                y: 1.0 - group[1].screenPosition.y  // Vision → SwiftUI Y축 반전
+            ) : nil
 
             // MeasurementResult 생성 및 추가
             measurements.append(MeasurementResult(
