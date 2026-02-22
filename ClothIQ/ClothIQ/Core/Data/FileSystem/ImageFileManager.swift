@@ -39,10 +39,12 @@ final class ImageFileManager {
 
     private init() {
         // Documents/clothing_images 디렉토리
-        let documentsDirectory = fileManager.urls(
+        guard let documentsDirectory = fileManager.urls(
             for: .documentDirectory,
             in: .userDomainMask
-        ).first!
+        ).first else {
+            fatalError("Documents directory not found")
+        }
 
         imageDirectory = documentsDirectory.appendingPathComponent("clothing_images")
 
@@ -120,10 +122,12 @@ final class ImageFileManager {
     /// - Returns: 로드된 이미지
     /// - Throws: 로드 실패 시 에러
     func loadImage(at relativePath: String) throws -> UIImage {
-        let documentsDirectory = fileManager.urls(
+        guard let documentsDirectory = fileManager.urls(
             for: .documentDirectory,
             in: .userDomainMask
-        ).first!
+        ).first else {
+            throw ImageFileError.fileNotFound
+        }
 
         let fileURL = documentsDirectory.appendingPathComponent(relativePath)
 
@@ -144,10 +148,12 @@ final class ImageFileManager {
     /// - Returns: 이미지 데이터
     /// - Throws: 로드 실패 시 에러
     func loadImageData(at relativePath: String) throws -> Data {
-        let documentsDirectory = fileManager.urls(
+        guard let documentsDirectory = fileManager.urls(
             for: .documentDirectory,
             in: .userDomainMask
-        ).first!
+        ).first else {
+            throw ImageFileError.fileNotFound
+        }
 
         let fileURL = documentsDirectory.appendingPathComponent(relativePath)
 
@@ -161,10 +167,12 @@ final class ImageFileManager {
     /// - Parameter relativePath: 상대 경로
     /// - Throws: 삭제 실패 시 에러
     func deleteImage(at relativePath: String) throws {
-        let documentsDirectory = fileManager.urls(
+        guard let documentsDirectory = fileManager.urls(
             for: .documentDirectory,
             in: .userDomainMask
-        ).first!
+        ).first else {
+            throw ImageFileError.fileNotFound
+        }
 
         let fileURL = documentsDirectory.appendingPathComponent(relativePath)
 

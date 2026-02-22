@@ -63,6 +63,14 @@ fastlane/test_output
 
 DerivedData/
 Reference/
+ClothIQ/build/
+ClothIQ/build.log
+DOC/
+.vscode/
+.claude/
+CLAUDE.md
+AGENTS.md
+GEMINI.md
 
 # Test Results
 TestResults/

@@ -1,5 +1,0 @@
-Command line invocation:
-    /Applications/Xcode.app/Contents/Developer/usr/bin/xcodebuild -project ClothIQ.xcodeproj -scheme ClothIQ -destination "platform=iOS Simulator,name=iPhone 16 Pro" build
-
-2025-10-24 07:06:36.103 xcodebuild[74520:8315086] Writing error result bundle to /var/folders/nr/nhs68vdj4zn1pjv7z9gsyln40000gn/T/ResultBundle_2025-24-10_07-06-0036.xcresult
-xcodebuild: error: 'ClothIQ.xcodeproj' does not exist.

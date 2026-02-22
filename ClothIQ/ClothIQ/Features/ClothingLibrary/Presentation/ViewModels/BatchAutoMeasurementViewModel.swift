@@ -335,9 +335,9 @@ final class BatchAutoMeasurementViewModel: ObservableObject {
         for type in types {
             guard let result = measurementResults[type] else { continue }
 
-            // pixel 좌표 → 정규화 Vision 좌표 (bottom-left origin, 0~1)
-            let normalizedStart = normalizeToVisionCoords(result.point1, imageSize: imageSize)
-            let normalizedEnd = normalizeToVisionCoords(result.point2, imageSize: imageSize)
+            // pixel 좌표 → 정규화 SwiftUI 좌표 (top-left origin, 0~1)
+            let normalizedStart = normalizeToSwiftUICoords(result.point1, imageSize: imageSize)
+            let normalizedEnd = normalizeToSwiftUICoords(result.point2, imageSize: imageSize)
 
             // 기존 측정값이 있으면 업데이트, 없으면 새로 생성
             if let existing = item.measurements.first(where: { $0.type == type.rawValue }) {
@@ -374,11 +374,11 @@ final class BatchAutoMeasurementViewModel: ObservableObject {
         }
     }
 
-    /// UIKit pixel 좌표 → 정규화 Vision 좌표 (bottom-left origin)
-    private func normalizeToVisionCoords(_ point: CGPoint, imageSize: CGSize) -> CGPoint {
+    /// UIKit pixel 좌표 → 정규화 SwiftUI 좌표 (top-left origin)
+    private func normalizeToSwiftUICoords(_ point: CGPoint, imageSize: CGSize) -> CGPoint {
         CGPoint(
             x: clamp(point.x / imageSize.width, min: 0, max: 1),
-            y: clamp(1.0 - (point.y / imageSize.height), min: 0, max: 1)
+            y: clamp(point.y / imageSize.height, min: 0, max: 1)
         )
     }
 
