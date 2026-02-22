@@ -66,7 +66,7 @@ extension MeasurementViewModelRefactored {
         updateEnvironment(from: frame)
 
         // 샘플링 중이면 샘플 수집
-        if isSampling, let samplingID = currentSamplingID {
+        if isSampling, currentSamplingID != nil {
             collectSampleForCurrentSession(from: frame)
         }
     }
@@ -160,6 +160,10 @@ extension MeasurementViewModelRefactored {
         _ = measurementPoints.popLast()
         session.removeLastPoint()
 
+        if measurementPoints.count < 2 {
+            pendingMeasurement = nil
+        }
+
         if measurementPoints.isEmpty {
             selectedPointIndex = nil
         } else {
@@ -171,6 +175,7 @@ extension MeasurementViewModelRefactored {
     func clearAllPoints() {
         measurementPoints.removeAll()
         session.clearPoints()
+        pendingMeasurement = nil
         selectedPointIndex = nil
     }
 
@@ -196,8 +201,10 @@ extension MeasurementViewModelRefactored {
             state: .measuring
         )
         measurementPoints.removeAll()
+        completedMeasurements.removeAll() // 옷 타입이 바뀌면 전체 측정도 초기화
+        pendingMeasurement = nil
         selectedPointIndex = nil
-        currentMeasurementType = nil
+        currentMeasurementType = type.requiredMeasurements.first
         captureRequested = false
         capturedImage = nil
         showSuccess("\(type.displayName) 측정을 시작하세요")
@@ -279,38 +286,107 @@ extension MeasurementViewModelRefactored {
                 calibratedDistance = filteredDistance
             }
 
-            // 측정값 검증 (교정 후 값으로)
-            let validation = MeasurementCalculator.validateMeasurement(
-                value: calibratedDistance,
-                type: measurementType
-            )
-
-            if !validation.isValid {
-                showError(validation.warning ?? "측정값이 유효하지 않습니다")
+            // 값 자체가 비정상(NaN/무한/0이하)일 때만 차단
+            guard calibratedDistance.isFinite, calibratedDistance > 0 else {
+                pendingMeasurement = nil
+                showError("측정값 계산에 실패했습니다. 다시 측정해주세요.")
                 return
             }
 
             // 각도 경고 (60도 이상일 때만)
             if avgAngle > 60 {
                 showSuccess("⚠️ 카메라 각도가 큽니다 (현재: \(Int(avgAngle))°)")
-            } else if let warning = validation.warning {
-                showSuccess("⚠️ \(warning)")
             }
 
-            // 교정된 값으로 저장
+            // 교정된 값으로 저장 (임시 저장 상태)
             session.setMeasurement(calibratedDistance, for: measurementType)
 
-            // 측정 품질 표시
-            let qualityDesc = AngleCorrectionService.qualityDescription(for: avgAngle)
-            showSuccess("측정 완료: \(measurementType.displayName) = \(String(format: "%.1f", calibratedDistance)) cm (품질: \(qualityDesc))")
+            // 적용 버튼에서 사용할 최근 계산 결과 캐시
+            pendingMeasurement = CompletedMeasurement(
+                type: measurementType,
+                startPoint: startPoint,
+                endPoint: endPoint,
+                distanceInCm: calibratedDistance
+            )
+
+            // 진행 중 오버레이 리스트에 임시 추가 (아직 확정은 아니지만, 시각적인 정보와 함께)
+            // 화면상에 거리가 텍스트로 보일 테지만 measurementPoints에 의해 선이 파란색으로 그려질 것입니다.
+
+            showSuccess("예상 측정 거리: \(measurementType.displayName) = \(String(format: "%.1f", calibratedDistance)) cm")
+        }
+    }
+    
+    /// 현재의 측정을 확정하고 다음 측정으로 넘어감 ("적용" 버튼에서 호출)
+    func applyCurrentMeasurement() {
+        guard let measurementType = currentMeasurementType else {
+            showError("측정 항목을 선택해주세요.")
+            return
+        }
+
+        let candidate: CompletedMeasurement
+        if measurementPoints.count >= 2 {
+            let lastIndex = measurementPoints.count - 1
+            let startPoint = measurementPoints[lastIndex - 1]
+            let endPoint = measurementPoints[lastIndex]
+
+            let measuredValue = session.measurements[measurementType] ?? startPoint.distanceInCentimeters(to: endPoint)
+            candidate = CompletedMeasurement(
+                type: measurementType,
+                startPoint: startPoint,
+                endPoint: endPoint,
+                distanceInCm: measuredValue
+            )
+        } else if let pending = pendingMeasurement, pending.type == measurementType {
+            candidate = pending
+            if session.measurements[measurementType] == nil {
+                session.setMeasurement(pending.distanceInCm, for: measurementType)
+            }
+        } else {
+            showError("저장할 두 개의 측정 포인트가 필요합니다.")
+            return
+        }
+
+        let savedValue = session.measurements[measurementType] ?? candidate.distanceInCm
+        
+        // 오버레이 리스트에 추가 (중복 덮어쓰기)
+        let completed = CompletedMeasurement(
+            type: measurementType,
+            startPoint: candidate.startPoint,
+            endPoint: candidate.endPoint,
+            distanceInCm: savedValue
+        )
+        completedMeasurements.removeAll { $0.type == measurementType }
+        completedMeasurements.append(completed)
+
+        // 측정 완료 품질 표시
+        showSuccess("\(measurementType.displayName) 측정 완료!")
+
+        // 다음 측정을 준비하기 위해 방금 찍은 포인트를 초기화
+        clearAllPoints()
+        
+        // 다음 권장 항목 선택
+        if let clothingType = session.clothingType {
+            let nextType = clothingType.requiredMeasurements.first { !completedMeasurements.map({$0.type}).contains($0) }
+            if let nextType = nextType {
+                currentMeasurementType = nextType
+                showSuccess("다음 항목: \(nextType.displayName)")
+            } else {
+                showSuccess("모든 필수 측정 완료. 촬영(완료) 버튼을 눌러주세요.")
+            }
         }
     }
 
-    /// 특정 측정 타입 시작
+    /// 특정 측정 타입 시작 (In-Camera Picker에서 호출될 때)
     func startMeasurement(for type: MeasurementType) {
         currentMeasurementType = type
         clearAllPoints()
-        showSuccess("\(type.displayName) 측정을 시작합니다\n\n\(type.measurementGuide)")
+        pendingMeasurement = nil
+        
+        if completedMeasurements.contains(where: { $0.type == type }) {
+            showSuccess("\(type.displayName) 항목을 다시 측정합니다.\n이전 측정선은 덮어씌워집니다.")
+        } else {
+            showSuccess("\(type.displayName) 측정을 시작합니다\n\n\(type.measurementGuide)")
+        }
     }
 
     /// 측정 완료
@@ -332,6 +408,17 @@ extension MeasurementViewModelRefactored {
 
         // SwiftData에 저장
         saveToSwiftData()
+    }
+}
+
+extension MeasurementViewModelRefactored {
+    /// 현재 측정 항목을 적용할 수 있는지 여부
+    var canApplyCurrentMeasurement: Bool {
+        guard let measurementType = currentMeasurementType else { return false }
+        if measurementPoints.count >= 2 {
+            return true
+        }
+        return pendingMeasurement?.type == measurementType
     }
 }
 

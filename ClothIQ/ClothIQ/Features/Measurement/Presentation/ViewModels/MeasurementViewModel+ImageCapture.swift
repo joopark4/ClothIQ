@@ -28,9 +28,14 @@ extension MeasurementViewModelRefactored {
     /// 카메라 포커스의 객체를 캡처하고, 다음 처리를 수행합니다:
     /// 1. 객체 감지 및 정사각형 크롭
     /// 2. 배경 제거
-    /// 3. Photos 앱에 저장
-    /// 4. 의류 타입 선택 화면 표시
+    /// 3. 측정 결과 미리보기 화면 표시
+    /// 4. 사용자 저장/취소 확정 대기
     func captureImage() {
+        guard !completedMeasurements.isEmpty else {
+            showError("최소 1개 측정 항목을 적용한 뒤 촬영해주세요")
+            return
+        }
+
         captureRequested = true
     }
 
@@ -41,8 +46,8 @@ extension MeasurementViewModelRefactored {
     /// 2. 1:1 정사각형 크로핑 (객체 중심)
     /// 3. JPG로 임시 저장 (디스크에 임시 파일 생성)
     /// 4. 임시 저장된 JPG에 대해 배경 제거 실행
-    /// 5. 최종 이미지를 Photos 앨범 및 로컬에 저장
-    /// 6. 의류 타입 선택 화면 표시
+    /// 5. 측정 항목 미리보기 화면 표시
+    /// 6. 저장/취소 확정
     ///
     /// - Parameters:
     ///   - image: AR 카메라에서 캡처된 원본 이미지
@@ -90,11 +95,8 @@ extension MeasurementViewModelRefactored {
                     self.capturedOriginalImageSize = processedResult.originalImageSize
                     self.capturedCropRect = processedResult.cropRect
 
-                    // Photos 앱에 최종 이미지 저장
-                    self.saveToPhotosApp(processedImage)
-
-                    // 타입 선택 화면 표시
-                    self.showingTypeSelection = true
+                    // 저장 전 미리보기 화면 진입
+                    self.prepareMeasurementPreview(with: processedImage)
 
                 case .failure(let error):
                     self.capturedOriginalImageSize = nil
@@ -130,11 +132,91 @@ extension MeasurementViewModelRefactored {
         showingTypeSelection = false
         session.clothingType = type
 
-        saveWithClothingType(type)
-        showSuccess("촬영 완료! \(type.displayName) 저장됨")
+        if saveWithClothingType(type) {
+            showSuccess("촬영 완료! \(type.displayName) 저장됨")
+        }
 
         // 메모리 해제
         currentARFrame = nil
+    }
+
+    /// 저장 전 측정 결과 미리보기 준비
+    ///
+    /// - Parameter image: 미리보기에 표시할 처리 이미지
+    func prepareMeasurementPreview(with image: UIImage) {
+        previewImage = image
+        draftMeasurements = orderedCompletedMeasurements(completedMeasurements)
+        showingMeasurementPreview = true
+    }
+
+    /// 미리보기에서 저장 확정
+    func confirmPreviewAndSave() {
+        guard let clothingType = session.clothingType else {
+            showError("의류 타입이 선택되지 않았습니다")
+            return
+        }
+
+        guard let image = previewImage else {
+            showError("미리보기 이미지가 없습니다")
+            return
+        }
+
+        guard !draftMeasurements.isEmpty else {
+            showError("저장할 측정 항목이 없습니다")
+            return
+        }
+
+        // 사용자가 저장을 확정한 시점에만 Photos 앱 저장 수행
+        saveToPhotosApp(image)
+
+        let didSave = saveWithClothingType(
+            clothingType,
+            measurementsToSave: draftMeasurements
+        )
+        if didSave {
+            showingMeasurementPreview = false
+            previewImage = nil
+            draftMeasurements.removeAll()
+        }
+    }
+
+    /// 미리보기에서 취소 - 이번 촬영 세션 전체 폐기
+    func cancelPreviewAndDiscardSession() {
+        showingMeasurementPreview = false
+        clearCurrentCaptureSession()
+        showSuccess("이번 촬영 세션이 취소되었습니다")
+    }
+
+    /// 현재 촬영 세션 데이터 정리
+    func clearCurrentCaptureSession() {
+        let currentType = session.clothingType
+
+        // 측정/세션 상태 초기화
+        measurementPoints.removeAll()
+        completedMeasurements.removeAll()
+        session = MeasurementSession(clothingType: currentType, state: .measuring)
+        currentMeasurementType = currentType?.requiredMeasurements.first
+        measurementFilter.resetAll()
+
+        // 미리보기 상태 초기화
+        draftMeasurements.removeAll()
+        previewImage = nil
+        showingMeasurementPreview = false
+
+        // 캡처/메타데이터 초기화
+        captureRequested = false
+        isLoading = false
+        capturedImage = nil
+        processedImageToSave = nil
+        capturedDepthMap = nil
+        capturedOriginalImageSize = nil
+        capturedProcessedImageSize = nil
+        capturedCropRect = nil
+        capturedCameraIntrinsics = nil
+        capturedCameraResolution = nil
+        currentARFrame = nil
+
+        cleanupTemporaryCaptureFile()
     }
 
     /// Photos 앱에 이미지 저장
@@ -231,5 +313,27 @@ extension MeasurementViewModelRefactored {
         }
 
         lastTemporaryCaptureURL = nil
+    }
+
+    /// 미리보기/저장 UI 노출용 측정 항목 정렬
+    ///
+    /// 의류 타입의 필수 항목 순서를 우선 사용하고, 그 외 항목은 표시 이름 순으로 정렬합니다.
+    func orderedCompletedMeasurements(_ measurements: [CompletedMeasurement]) -> [CompletedMeasurement] {
+        guard let clothingType = session.clothingType else {
+            return measurements.sorted { $0.type.displayName < $1.type.displayName }
+        }
+
+        let orderMap = Dictionary(
+            uniqueKeysWithValues: clothingType.requiredMeasurements.enumerated().map { ($0.element, $0.offset) }
+        )
+
+        return measurements.sorted { lhs, rhs in
+            let lhsOrder = orderMap[lhs.type] ?? Int.max
+            let rhsOrder = orderMap[rhs.type] ?? Int.max
+            if lhsOrder == rhsOrder {
+                return lhs.type.displayName < rhs.type.displayName
+            }
+            return lhsOrder < rhsOrder
+        }
     }
 }

@@ -26,6 +26,11 @@ import CoreGraphics
 ///
 struct DepthDataProcessor {
 
+    /// 근거리 깊이 필터 하한 (미터)
+    ///
+    /// 기존 0.2m 하한을 낮춰 근접 측정 시 "측정 불가" 빈도를 줄입니다.
+    private static let minimumAcceptedDepth: Float = 0.05
+
     // MARK: - Private Helpers
 
     /// ARConfidenceLevel raw value를 0.0~1.0 신뢰도 점수로 변환
@@ -78,8 +83,8 @@ struct DepthDataProcessor {
         let depth = rowData.assumingMemoryBound(to: Float32.self)[u]
 
         // 유효하지 않은 깊이 값 필터링
-        // LiDAR_SIZE_Ref.md: LiDAR 센서 유효 범위 0.2-5m
-        guard depth.isFinite && depth >= 0.2 && depth <= 5.0 else {
+        // 근거리 제한은 최소화하고, 비정상 값만 차단합니다.
+        guard depth.isFinite && depth >= minimumAcceptedDepth && depth <= 5.0 else {
             return nil
         }
 
@@ -189,7 +194,7 @@ struct DepthDataProcessor {
                 let depthRow = depthBaseAddress + v * depthBytesPerRow
                 let depth = depthRow.assumingMemoryBound(to: Float32.self)[u]
 
-                guard depth.isFinite, depth >= 0.2, depth <= 5.0 else { continue }
+                guard depth.isFinite, depth >= minimumAcceptedDepth, depth <= 5.0 else { continue }
 
                 let sampleConfidence: Float
                 if let confidenceBaseAddress = confidenceBaseAddress,

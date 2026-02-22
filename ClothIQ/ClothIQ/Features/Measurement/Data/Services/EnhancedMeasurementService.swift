@@ -39,7 +39,6 @@ final class EnhancedMeasurementService: ObservableObject {
 
     /// 샘플 버퍼
     private var measurementSamples: [MeasurementSample] = []
-    private var samplingTimer: Timer?
 
     // MARK: - Enhanced Measurement Methods
 
@@ -96,48 +95,33 @@ final class EnhancedMeasurementService: ObservableObject {
         endPoint: SIMD3<Float>,
         depthData: ARDepthData?
     ) async throws -> [MeasurementSample] {
+        measurementSamples.removeAll()
 
-        return try await withCheckedThrowingContinuation { continuation in
-            measurementSamples.removeAll()
+        let effectiveSampleCount = max(sampleCount, 1)
+        let samplingInterval = samplingDuration / Double(effectiveSampleCount)
+        let samplingIntervalNanos = UInt64(max(0.0, samplingInterval) * 1_000_000_000)
 
-            let samplingInterval = samplingDuration / Double(sampleCount)
-            var sampleIndex = 0
+        for sampleIndex in 0..<effectiveSampleCount {
+            let sample = collectSingleSample(
+                startPoint: startPoint,
+                endPoint: endPoint,
+                depthData: depthData,
+                sampleIndex: sampleIndex
+            )
 
-            samplingTimer = Timer.scheduledTimer(withTimeInterval: samplingInterval, repeats: true) { [weak self] timer in
-                guard let self = self else {
-                    timer.invalidate()
-                    return
-                }
+            measurementSamples.append(sample)
+            currentSampleProgress = Float(sampleIndex + 1) / Float(effectiveSampleCount)
 
-                Task { @MainActor in
-                    // 샘플 수집
-                    let sample = self.collectSingleSample(
-                        startPoint: startPoint,
-                        endPoint: endPoint,
-                        depthData: depthData,
-                        sampleIndex: sampleIndex
-                    )
-
-                    self.measurementSamples.append(sample)
-                    sampleIndex += 1
-
-                    // 진행률 업데이트
-                    self.currentSampleProgress = Float(sampleIndex) / Float(self.sampleCount)
-
-                    // 완료 확인
-                    if sampleIndex >= self.sampleCount {
-                        timer.invalidate()
-                        self.samplingTimer = nil
-
-                        if self.measurementSamples.isEmpty {
-                            continuation.resume(throwing: MeasurementError.insufficientSamples)
-                        } else {
-                            continuation.resume(returning: self.measurementSamples)
-                        }
-                    }
-                }
+            if sampleIndex < effectiveSampleCount - 1, samplingIntervalNanos > 0 {
+                try await Task.sleep(nanoseconds: samplingIntervalNanos)
             }
         }
+
+        guard !measurementSamples.isEmpty else {
+            throw MeasurementError.insufficientSamples
+        }
+
+        return measurementSamples
     }
 
     /// 단일 샘플 수집

@@ -56,8 +56,14 @@ final class MeasurementViewModelRefactored: ObservableObject {
     /// 성공 메시지
     @Published var successMessage: String?
 
-    /// 현재 측정 중인 항목
+    /// 현재 측정 중인 항목 (상/하단 Picker를 통해 미리 설정됨)
     @Published var currentMeasurementType: MeasurementType?
+
+    /// 화면에 유지될 완료된 연속 측정 선 데이터 목록
+    @Published var completedMeasurements: [CompletedMeasurement] = []
+
+    /// 현재 측정 항목에 대해 마지막으로 계산된 임시 측정값(적용 대기)
+    @Published var pendingMeasurement: CompletedMeasurement?
 
     /// 로딩 상태
     @Published var isLoading: Bool = false
@@ -83,7 +89,17 @@ final class MeasurementViewModelRefactored: ObservableObject {
     /// 임시 저장할 처리된 이미지
     @Published var processedImageToSave: UIImage?
 
+    /// 측정 결과 미리보기 전체화면 표시 여부
+    @Published var showingMeasurementPreview: Bool = false
+
+    /// 미리보기에 표시할 캡처 이미지
+    @Published var previewImage: UIImage?
+
+    /// 저장 전 검토용 측정 항목 목록
+    @Published var draftMeasurements: [CompletedMeasurement] = []
+
     /// 의류 타입 선택 Sheet 표시 여부
+    /// - Note: 구형 플로우와의 호환성을 위해 유지됩니다.
     @Published var showingTypeSelection: Bool = false
 
     /// 저장된 의류 아이템 (상세보기 화면 이동용)
@@ -193,11 +209,11 @@ final class MeasurementViewModelRefactored: ObservableObject {
             showError("LiDAR 센서가 지원되지 않습니다")
 
         case .insufficientDepthData:
-            // 더 구체적이고 실용적인 안내
-            showError("측정 포인트를 찾을 수 없습니다.\n\n✓ 의류를 평평한 곳에 펼쳐주세요\n✓ 30cm~2m 거리를 유지해주세요\n✓ 측정하려는 부위를 명확히 터치해주세요")
+            showError("측정 포인트를 찾을 수 없습니다.\n\n✓ 의류를 평평한 곳에 펼쳐주세요\n✓ 측정하려는 부위를 명확히 터치해주세요")
 
-        case .tooClose(let minDistance):
-            showError("너무 가깝습니다. 최소 \(Int(minDistance * 100))cm 이상 떨어져주세요")
+        case .tooClose:
+            // 근거리 제한 경고는 사용자 요청으로 비활성화
+            showError("측정 포인트를 찾을 수 없습니다. 다시 터치해주세요")
 
         case .tooFar(let maxDistance):
             showError("너무 멉니다. \(Int(maxDistance * 100))cm 이내로 가까이 다가가주세요")

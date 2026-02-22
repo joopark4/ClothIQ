@@ -252,7 +252,7 @@ struct MeasurementGuideOverlay: View {
                 VStack {
                     Spacer()
                     distanceIndicator(
-                        text: "30cm~2m",
+                        text: "거리 제한 없음",
                         subtitle: "권장 거리",
                         color: .blue
                     )
@@ -351,7 +351,7 @@ struct MeasurementChecklistGuide: View {
 
                     checklistItem(
                         icon: "ruler",
-                        text: "카메라와 30cm~2m 거리 유지",
+                        text: "카메라 거리는 자유롭게 조정",
                         color: .blue
                     )
 

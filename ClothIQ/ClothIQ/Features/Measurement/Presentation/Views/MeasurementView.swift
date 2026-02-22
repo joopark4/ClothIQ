@@ -18,6 +18,20 @@
 import ARKit
 import SwiftUI
 
+private final class PixelBufferBox: @unchecked Sendable {
+    let value: CVPixelBuffer
+    init(_ value: CVPixelBuffer) {
+        self.value = value
+    }
+}
+
+private final class OptionalPixelBufferBox: @unchecked Sendable {
+    let value: CVPixelBuffer?
+    init(_ value: CVPixelBuffer?) {
+        self.value = value
+    }
+}
+
 /// 측정 메인 뷰
 ///
 /// AR 카메라와 측정 인터페이스를 통합한 화면입니다.
@@ -33,9 +47,8 @@ struct MeasurementView: View {
     @State private var lastMaskUpdateTime: Date = .distantPast
     @State private var lastEnvironmentUpdateTime: Date = .distantPast
     @State private var showingDetailView = false
-    @State private var showingMeasurementTypeSelector = false
 
-    /// 캡처 시점의 ARFrame (타입 선택 시 전달용)
+    /// 캡처 시점의 ARFrame (저장 메타데이터용)
     @State private var capturedFrameForMeasurement: ARFrame?
 
     private let maskUpdateInterval: TimeInterval = 1.0
@@ -102,22 +115,24 @@ struct MeasurementView: View {
                             }
 
                             isUpdatingMask = true
-                            let capturedImage = frame.capturedImage
+                            let capturedImageBox = PixelBufferBox(frame.capturedImage)
                             // 센서 융합: smoothed depth 우선, 없으면 raw scene depth 사용
-                            let depthMap = frame.smoothedSceneDepth?.depthMap ?? frame.sceneDepth?.depthMap
+                            let depthMapBox = OptionalPixelBufferBox(
+                                frame.smoothedSceneDepth?.depthMap ?? frame.sceneDepth?.depthMap
+                            )
 
                             segmentationQueue.async {
-                                let mask: CVPixelBuffer? = {
+                                let maskBox = OptionalPixelBufferBox(
                                     autoreleasepool {
                                         segmentationService.generateForegroundMask(
-                                            from: capturedImage,
-                                            depthMap: depthMap
+                                            from: capturedImageBox.value,
+                                            depthMap: depthMapBox.value
                                         )
                                     }
-                                }()
+                                )
 
                                 Task { @MainActor in
-                                    self.currentForegroundMask = mask
+                                    self.currentForegroundMask = maskBox.value
                                     self.lastMaskUpdateTime = Date()
                                     self.isUpdatingMask = false
                                 }
@@ -146,6 +161,7 @@ struct MeasurementView: View {
             // 측정 포인트 오버레이
             MeasurementOverlayView(
                 points: viewModel.measurementPoints,
+                completedMeasurements: viewModel.completedMeasurements,
                 selectedIndex: viewModel.selectedPointIndex,
                 imageResolution: capturedFrameForMeasurement?.camera.imageResolution
             )
@@ -178,10 +194,23 @@ struct MeasurementView: View {
                     .padding(.horizontal)
                     .padding(.top, 20)
 
+                InCameraMeasurementPicker(
+                    clothingType: viewModel.session.clothingType ?? .shortSleeve,
+                    onClothingTypeChanged: { type in
+                        viewModel.setClothingType(type)
+                    },
+                    onMeasurementTypeSelected: { type in
+                        viewModel.startMeasurement(for: type)
+                    },
+                    activeMeasurementType: $viewModel.currentMeasurementType,
+                    completedTypes: viewModel.completedMeasurements.map { $0.type }
+                )
+                .padding(.top, 8)
+
                 Spacer()
 
                 // 측정 포인트 관리 버튼 (적용/취소)
-                if viewModel.measurementPoints.count > 0 {
+                if viewModel.measurementPoints.count > 0 || viewModel.canApplyCurrentMeasurement {
                     measurementControlButtons
                         .padding(.bottom, 16)
                 }
@@ -201,11 +230,35 @@ struct MeasurementView: View {
             }
         }
         .navigationBarBackButtonHidden(true)
-        .sheet(isPresented: $viewModel.showingTypeSelection) {
-            NavigationStack {
-                ClothingTypeSelectionView { selectedType in
-                    viewModel.handleTypeSelection(selectedType, frame: capturedFrameForMeasurement)
-                    capturedFrameForMeasurement = nil
+        .fullScreenCover(isPresented: $viewModel.showingMeasurementPreview) {
+            if let previewImage = viewModel.previewImage,
+               let clothingType = viewModel.session.clothingType {
+                MeasurementPreviewView(
+                    image: previewImage,
+                    clothingType: clothingType,
+                    measurements: viewModel.draftMeasurements,
+                    originalImageSize: viewModel.capturedOriginalImageSize,
+                    cropRect: viewModel.capturedCropRect,
+                    processedImageSize: viewModel.capturedProcessedImageSize ?? previewImage.size,
+                    cameraResolution: viewModel.capturedCameraResolution,
+                    canSave: !viewModel.draftMeasurements.isEmpty,
+                    onSave: {
+                        viewModel.confirmPreviewAndSave()
+                    },
+                    onCancel: {
+                        viewModel.cancelPreviewAndDiscardSession()
+                    }
+                )
+            } else {
+                ZStack {
+                    Color.black.ignoresSafeArea()
+                    VStack(spacing: 12) {
+                        ProgressView()
+                            .tint(.white)
+                        Text("촬영 이미지를 준비하는 중...")
+                            .font(.subheadline)
+                            .foregroundColor(.white.opacity(0.85))
+                    }
                 }
             }
         }
@@ -227,36 +280,6 @@ struct MeasurementView: View {
                     .navigationBarBackButtonHidden(false)
             }
         }
-        .sheet(isPresented: $showingMeasurementTypeSelector) {
-            MeasurementTypePickerSheet(
-                clothingType: viewModel.session.clothingType ?? .shortSleeve,
-                onSelect: { selectedType in
-                    applyMeasurement(type: selectedType)
-                }
-            )
-        }
-    }
-
-    // MARK: - Helper Methods
-
-    /// 측정 타입 선택 시트 표시
-    private func showMeasurementTypeSelector() {
-        showingMeasurementTypeSelector = true
-    }
-
-    /// 측정 적용 (교정 계수 자동 적용)
-    private func applyMeasurement(type: MeasurementType) {
-        // 측정 타입 설정
-        viewModel.currentMeasurementType = type
-
-        // 거리 계산 (교정 계수 자동 적용)
-        viewModel.calculateDistance()
-
-        // 포인트 초기화
-        viewModel.clearAllPoints()
-
-        // 시트 닫기
-        showingMeasurementTypeSelector = false
     }
 
     // MARK: - Header View
@@ -277,18 +300,18 @@ struct MeasurementView: View {
 
     // MARK: - Measurement Control Buttons
 
-    /// 측정 포인트 관리 버튼 (적용/취소)
+    /// 측정 포인트 관리 버튼 (취소/적용)
     private var measurementControlButtons: some View {
         HStack(spacing: 16) {
-            // 취소 버튼
+            // 다시 찍기(취소) 버튼
             Button(action: {
                 viewModel.clearAllPoints()
                 viewModel.showSuccess("측정 포인트가 초기화되었습니다")
             }) {
                 HStack(spacing: 8) {
-                    Image(systemName: "xmark.circle.fill")
+                    Image(systemName: "arrow.uturn.backward.circle.fill")
                         .font(.system(size: 18))
-                    Text("취소")
+                    Text("다시 찍기")
                         .font(.system(size: 16, weight: .semibold))
                 }
                 .foregroundColor(.white)
@@ -296,15 +319,15 @@ struct MeasurementView: View {
                 .padding(.vertical, 14)
                 .background(
                     RoundedRectangle(cornerRadius: 25)
-                        .fill(Color.red.opacity(0.8))
+                        .fill(Color.orange.opacity(0.8))
                 )
-                .shadow(color: Color.red.opacity(0.3), radius: 8, y: 4)
+                .shadow(color: Color.orange.opacity(0.3), radius: 8, y: 4)
             }
-
-            // 적용 버튼 (2개 이상 포인트가 있을 때만)
-            if viewModel.measurementPoints.count >= 2 {
+            
+            // 적용 버튼 (포인트 2개 또는 계산 완료 캐시가 있을 때)
+            if viewModel.canApplyCurrentMeasurement {
                 Button(action: {
-                    showMeasurementTypeSelector()
+                    viewModel.applyCurrentMeasurement()
                 }) {
                     HStack(spacing: 8) {
                         Image(systemName: "checkmark.circle.fill")
@@ -331,6 +354,7 @@ struct MeasurementView: View {
         }
         .transition(.scale.combined(with: .opacity))
         .animation(.spring(response: 0.3), value: viewModel.measurementPoints.count)
+        .animation(.spring(response: 0.3), value: viewModel.canApplyCurrentMeasurement)
     }
 
     // MARK: - Capture Controls

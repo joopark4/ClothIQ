@@ -265,7 +265,7 @@ final class MLTrainingDataCollector: ObservableObject {
         print("🎓 [MLTraining] 모델 학습 시작")
 
         // 학습 데이터 준비
-        let dataURL = try exportForCreateML()
+        _ = try exportForCreateML()
 
         // CreateML 모델 학습 (예시)
         // 실제로는 macOS에서 CreateML 앱을 사용하거나

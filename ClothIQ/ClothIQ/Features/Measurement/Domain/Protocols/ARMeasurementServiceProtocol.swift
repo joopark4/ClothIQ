@@ -142,11 +142,7 @@ extension ARMeasurementServiceProtocol {
 
     /// 포인트 유효성 검증 (기본 구현)
     func validatePoint(_ point: MeasurementPoint) -> (isValid: Bool, error: ARError?) {
-        // 깊이 범위 확인
-        if point.depth < MeasurementPoint.minimumDepth {
-            return (false, .tooClose(minimumDistance: Double(MeasurementPoint.minimumDepth * 100)))
-        }
-
+        // 원거리 측정만 제한: 근거리(<30cm) 차단은 사용자 요청으로 비활성화
         if point.depth > MeasurementPoint.maximumDepth {
             return (false, .tooFar(maximumDistance: Double(MeasurementPoint.maximumDepth * 100)))
         }

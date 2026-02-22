@@ -348,6 +348,7 @@ final class BatchAutoMeasurementViewModel: ObservableObject {
                 existing.startPointY = Double(normalizedStart.y)
                 existing.endPointX = Double(normalizedEnd.x)
                 existing.endPointY = Double(normalizedEnd.y)
+                existing.measurementMethodRaw = MeasurementMethod.photo.rawValue
             } else {
                 let measurement = MeasurementModel(
                     type: type.rawValue,
@@ -356,7 +357,8 @@ final class BatchAutoMeasurementViewModel: ObservableObject {
                     startPointX: Double(normalizedStart.x),
                     startPointY: Double(normalizedStart.y),
                     endPointX: Double(normalizedEnd.x),
-                    endPointY: Double(normalizedEnd.y)
+                    endPointY: Double(normalizedEnd.y),
+                    measurementMethodRaw: MeasurementMethod.photo.rawValue
                 )
                 item.measurements.append(measurement)
             }

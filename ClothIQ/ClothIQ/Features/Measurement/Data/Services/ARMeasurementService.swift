@@ -74,7 +74,7 @@ final class ARMeasurementService: ARMeasurementServiceProtocol {
 
     /// 활성 샘플링 세션들
     private var samplingSessions: [String: SamplingSession] = [:]
-    private let sessionQueue = DispatchQueue(label: "com.clothiq.sampling.session", qos: .userInitiated)
+    private let samplingSessionsLock = NSLock()
 
     // MARK: - Initialization
 
@@ -441,16 +441,34 @@ final class ARMeasurementService: ARMeasurementServiceProtocol {
         return nil
     }
 
+    /// 샘플링 세션 조회 (스레드 안전)
+    private func samplingSession(for id: String) -> SamplingSession? {
+        samplingSessionsLock.lock()
+        defer { samplingSessionsLock.unlock() }
+        return samplingSessions[id]
+    }
+
+    /// 샘플링 세션 저장/업데이트 (스레드 안전)
+    private func setSamplingSession(_ session: SamplingSession) {
+        samplingSessionsLock.lock()
+        samplingSessions[session.id] = session
+        samplingSessionsLock.unlock()
+    }
+
+    /// 샘플링 세션 삭제 (스레드 안전)
+    private func removeSamplingSession(for id: String) {
+        samplingSessionsLock.lock()
+        samplingSessions.removeValue(forKey: id)
+        samplingSessionsLock.unlock()
+    }
+
     // MARK: - Multi-Sampling Protocol Methods
 
     /// 포인트 샘플링 시작
     func startPointSampling(at screenPoint: CGPoint) -> String {
         let sessionID = UUID().uuidString
         let session = SamplingSession(id: sessionID, screenPoint: screenPoint)
-
-        sessionQueue.async { [weak self] in
-            self?.samplingSessions[sessionID] = session
-        }
+        setSamplingSession(session)
 
         print("🎯 [Sampling] 샘플링 시작: \(sessionID)")
         print("  - 화면 좌표: \(screenPoint)")
@@ -464,7 +482,7 @@ final class ARMeasurementService: ARMeasurementServiceProtocol {
         for samplingID: String,
         from frame: ARFrame
     ) throws -> Float? {
-        guard var session = samplingSessions[samplingID] else {
+        guard var session = samplingSession(for: samplingID) else {
             throw ARError.invalidSamplingSession
         }
 
@@ -496,9 +514,7 @@ final class ARMeasurementService: ARMeasurementServiceProtocol {
         session.timestamps.append(Date())
 
         // 세션 업데이트
-        sessionQueue.async { [weak self] in
-            self?.samplingSessions[samplingID] = session
-        }
+        setSamplingSession(session)
 
         let progress = session.progress
         print("📊 [Sampling] 샘플 수집: \(session.samples.count)/15 (\(Int(progress * 100))%)")
@@ -510,7 +526,7 @@ final class ARMeasurementService: ARMeasurementServiceProtocol {
     func finalizeSampledPoint(
         for samplingID: String
     ) throws -> MeasurementPoint {
-        guard let session = samplingSessions[samplingID] else {
+        guard let session = samplingSession(for: samplingID) else {
             throw ARError.invalidSamplingSession
         }
 
@@ -520,17 +536,24 @@ final class ARMeasurementService: ARMeasurementServiceProtocol {
 
         // 신뢰도 기반 가중 평균 계산
         let totalConfidence = session.confidences.reduce(0, +)
-        var weightedSum = SIMD3<Float>(0, 0, 0)
-
-        for (index, sample) in session.samples.enumerated() {
-            let weight = session.confidences[index] / totalConfidence
-            weightedSum += sample * weight
+        let averagePoint: SIMD3<Float>
+        if totalConfidence > 0 {
+            var weightedSum = SIMD3<Float>(0, 0, 0)
+            for (index, sample) in session.samples.enumerated() {
+                let weight = session.confidences[index] / totalConfidence
+                weightedSum += sample * weight
+            }
+            averagePoint = weightedSum
+        } else {
+            // 신뢰도 합계가 0인 드문 케이스 방어: 단순 평균으로 fallback
+            let sum = session.samples.reduce(SIMD3<Float>(0, 0, 0), +)
+            averagePoint = sum / Float(session.samples.count)
         }
 
-        let averagePoint = weightedSum
-
         // 평균 신뢰도
-        let averageConfidence = totalConfidence / Float(session.confidences.count)
+        let averageConfidence = totalConfidence > 0
+            ? totalConfidence / Float(session.confidences.count)
+            : 0.5
 
         // 표준편차 계산 (품질 평가용)
         var varianceSum: Float = 0
@@ -550,9 +573,7 @@ final class ARMeasurementService: ARMeasurementServiceProtocol {
         )
 
         // 세션 제거
-        sessionQueue.async { [weak self] in
-            self?.samplingSessions.removeValue(forKey: samplingID)
-        }
+        removeSamplingSession(for: samplingID)
 
         print("✅ [Sampling] 샘플링 완료!")
         print("  - 최종 포인트: \(refinedPoint.worldPosition)")
@@ -564,9 +585,7 @@ final class ARMeasurementService: ARMeasurementServiceProtocol {
 
     /// 샘플링 취소
     func cancelSampling(for samplingID: String) {
-        sessionQueue.async { [weak self] in
-            self?.samplingSessions.removeValue(forKey: samplingID)
-        }
+        removeSamplingSession(for: samplingID)
         print("❌ [Sampling] 샘플링 취소: \(samplingID)")
     }
 }

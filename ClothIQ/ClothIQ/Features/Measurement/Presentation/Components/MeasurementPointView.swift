@@ -36,9 +36,15 @@ struct MeasurementPointView: View {
                 .frame(width: isSelected ? 36 : 28, height: isSelected ? 36 : 28)
 
             // 포인트 번호
-            Text("\(index + 1)")
-                .font(isSelected ? .caption.bold() : .caption2)
-                .foregroundColor(.white)
+            if index >= 0 {
+                Text("\(index + 1)")
+                    .font(isSelected ? .caption.bold() : .caption2)
+                    .foregroundColor(.white)
+            } else {
+                Image(systemName: "checkmark")
+                    .font(.caption2.bold())
+                    .foregroundColor(.white)
+            }
         }
         .position(scaledPosition)
         .animation(.spring(response: 0.3), value: isSelected)
@@ -77,6 +83,8 @@ struct MeasurementLineView: View {
     let distance: Double  // 센티미터
     let viewSize: CGSize
     let imageResolution: CGSize
+    var isCompleted: Bool = false
+    var label: String? = nil
 
     var body: some View {
         ZStack {
@@ -85,16 +93,16 @@ struct MeasurementLineView: View {
                 path.move(to: scaledStartPosition)
                 path.addLine(to: scaledEndPosition)
             }
-            .stroke(Color.blue, style: StrokeStyle(lineWidth: 2, dash: [5, 3]))
+            .stroke(isCompleted ? Color.green : Color.blue, style: StrokeStyle(lineWidth: isCompleted ? 3 : 2, dash: isCompleted ? [] : [5, 3]))
 
             // 거리 표시 (중간 지점)
-            Text(String(format: "%.1f cm", distance))
+            Text(label ?? String(format: "%.1f cm", distance))
                 .font(.caption)
                 .fontWeight(.semibold)
                 .padding(.horizontal, 8)
                 .padding(.vertical, 4)
-                .background(Color.blue)
-                .foregroundColor(.white)
+                .background(isCompleted ? Color.green : Color.blue)
+                .foregroundColor(isCompleted ? .black : .white)
                 .cornerRadius(8)
                 .position(midPoint)
         }
@@ -130,6 +138,7 @@ struct MeasurementLineView: View {
 ///
 struct MeasurementOverlayView: View {
     let points: [MeasurementPoint]
+    let completedMeasurements: [CompletedMeasurement]
     let selectedIndex: Int?
     let imageResolution: CGSize?  // ARFrame의 imageResolution
 
@@ -149,12 +158,42 @@ struct MeasurementOverlayView: View {
                                 endPoint: end,
                                 distance: distance,
                                 viewSize: geometry.size,
-                                imageResolution: resolution
+                                imageResolution: resolution,
+                                isCompleted: false,
+                                label: nil
                             )
                         }
                     }
 
-                    // 측정 포인트들
+                    // 완료된 측정 항목 오버레이 (누적 선)
+                    ForEach(completedMeasurements) { completed in
+                        MeasurementLineView(
+                            startPoint: completed.startPoint,
+                            endPoint: completed.endPoint,
+                            distance: completed.distanceInCm,
+                            viewSize: geometry.size,
+                            imageResolution: resolution,
+                            isCompleted: true,
+                            label: "\(completed.type.displayName) \(String(format: "%.1f", completed.distanceInCm))cm"
+                        )
+                        
+                        MeasurementPointView(
+                            point: completed.startPoint,
+                            index: -1, // 점 표시는 숨기거나 다르게 표시할 수 있음
+                            isSelected: false,
+                            viewSize: geometry.size,
+                            imageResolution: resolution
+                        )
+                        MeasurementPointView(
+                            point: completed.endPoint,
+                            index: -1,
+                            isSelected: false,
+                            viewSize: geometry.size,
+                            imageResolution: resolution
+                        )
+                    }
+
+                    // 현재 진행 중인 측정 포인트들
                     ForEach(Array(points.enumerated()), id: \.element.id) { index, point in
                         MeasurementPointView(
                             point: point,
@@ -219,6 +258,7 @@ struct MeasurementOverlayView: View {
         Color.black.ignoresSafeArea()
         MeasurementOverlayView(
             points: points,
+            completedMeasurements: [],
             selectedIndex: 1,
             imageResolution: CGSize(width: 1920, height: 1440)
         )

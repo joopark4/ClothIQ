@@ -90,6 +90,13 @@ final class MeasurementModel {
     /// 이미지 높이에 대한 상대 비율로 저장됩니다.
     var endPointY: Double?
 
+    /// 측정 방식
+    ///
+    /// "ar": 카메라 실시간 측정에서 확정 후 저장된 값
+    /// "photo": 사진 편집/자동 측정에서 저장된 값
+    /// nil: 구버전 데이터 (기본값 photo 취급)
+    var measurementMethodRaw: String?
+
     /// 부모 의류 아이템
     ///
     /// 이 측정값이 속한 의류 아이템입니다.
@@ -107,7 +114,8 @@ final class MeasurementModel {
         startPointX: Double? = nil,
         startPointY: Double? = nil,
         endPointX: Double? = nil,
-        endPointY: Double? = nil
+        endPointY: Double? = nil,
+        measurementMethodRaw: String? = nil
     ) {
         self.id = id
         self.type = type
@@ -119,6 +127,7 @@ final class MeasurementModel {
         self.startPointY = startPointY
         self.endPointX = endPointX
         self.endPointY = endPointY
+        self.measurementMethodRaw = measurementMethodRaw
     }
 }
 
@@ -150,6 +159,15 @@ extension MeasurementModel {
     /// 측정 단위를 MeasurementUnit enum으로 반환
     var measurementUnit: MeasurementUnit? {
         MeasurementUnit(rawValue: unit)
+    }
+
+    /// 저장된 측정 방식
+    var measurementMethod: MeasurementMethod {
+        guard let raw = measurementMethodRaw,
+              let method = MeasurementMethod(rawValue: raw) else {
+            return .photo
+        }
+        return method
     }
 
     /// 신뢰도 레벨
@@ -197,6 +215,13 @@ extension MeasurementModel {
     func calibratedValue() -> Double {
         guard let measurementType = measurementType,
               let clothingType = clothingItem?.clothingType else {
+            return value
+        }
+
+        // AR 실시간 측정값은 캡처 시점에 이미 AR 교정이 적용되어 저장됩니다.
+        // 상세 화면에서 photo 보정을 다시 적용하면 값이 달라지므로 그대로 반환합니다.
+        // measurementMethodRaw가 없는 구버전 데이터는 좌표가 없으면 AR 저장값으로 간주합니다.
+        if measurementMethod == .ar || (measurementMethodRaw == nil && !hasCoordinates) {
             return value
         }
 

@@ -256,7 +256,7 @@ final class PhotoMeasurementViewModel: ObservableObject {
 
         // 교정 파라미터 준비
         let measurementType = selectedMeasurementType
-        let clothingType = ClothingType(rawValue: item.type ?? "")
+        let clothingType = ClothingType(rawValue: item.type)
 
         print("  - measurementType: \(measurementType?.displayName ?? "없음")")
         print("  - clothingType: \(clothingType?.displayName ?? "없음")")
@@ -336,6 +336,7 @@ final class PhotoMeasurementViewModel: ObservableObject {
             existingMeasurement.startPointY = Double(normalizedStart.y)
             existingMeasurement.endPointX = Double(normalizedEnd.x)
             existingMeasurement.endPointY = Double(normalizedEnd.y)
+            existingMeasurement.measurementMethodRaw = MeasurementMethod.photo.rawValue
             print("  - 기존 측정값 업데이트 완료")
         } else {
             // 새로 추가
@@ -348,7 +349,8 @@ final class PhotoMeasurementViewModel: ObservableObject {
                 startPointX: Double(normalizedStart.x),
                 startPointY: Double(normalizedStart.y),
                 endPointX: Double(normalizedEnd.x),
-                endPointY: Double(normalizedEnd.y)
+                endPointY: Double(normalizedEnd.y),
+                measurementMethodRaw: MeasurementMethod.photo.rawValue
             )
             item.measurements.append(measurement)
             measurement.clothingItem = item

@@ -355,18 +355,13 @@ struct ObjectFocusGuide: View {
         let goodCoverageMin: Float = 0.08   // 좋은 범위 최소 8%
         let goodCoverageMax: Float = 0.70   // 좋은 범위 최대 70%
 
-        // 거리 기준 (미터) - 거리 우선 판단
-        let idealDepthMin: Float = 0.3      // 최소 30cm
+        // 거리 기준 (미터) - 근거리 제한은 적용하지 않고 원거리만 경고
         let idealDepthMax: Float = 2.0      // 최대 2.0m
-        let goodDepthMin: Float = 0.4       // 좋은 범위 최소 40cm
+        let goodDepthMin: Float = 0.1       // 좋은 범위 최소 10cm
         let goodDepthMax: Float = 1.5       // 좋은 범위 최대 1.5m
 
         // 1. 깊이 우선 체크 (깊이 데이터가 있을 때)
         if depth > 0 {
-            // 너무 가까우면 커버리지 무시하고 경고
-            if depth < idealDepthMin {
-                return .tooClose
-            }
             // 너무 멀면 커버리지 무시하고 경고
             if depth > idealDepthMax {
                 return .tooFar
@@ -402,9 +397,6 @@ struct ObjectFocusGuide: View {
 
         // 기본값: 거리 기준 판단
         if depth > 0 {
-            if depth < goodDepthMin {
-                return .tooClose
-            }
             if depth > goodDepthMax {
                 return .tooFar
             }
@@ -432,9 +424,7 @@ struct ObjectFocusGuide: View {
         // 깊이 점수 (0.0 ~ 1.0) - 거리 우선
         let depthScore: Float
         if depth > 0 {
-            if depth < 0.3 {
-                depthScore = depth / 0.3
-            } else if depth > 2.0 {
+            if depth > 2.0 {
                 depthScore = max(0, 1.0 - (depth - 2.0) / 2.0)
             } else {
                 depthScore = 1.0

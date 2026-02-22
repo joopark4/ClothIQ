@@ -22,15 +22,24 @@ import SwiftData
 extension MeasurementViewModelRefactored {
     
     /// 의류 타입 선택 후 즉시 저장
-    func saveWithClothingType(_ clothingType: ClothingType) {
+    ///
+    /// - Parameters:
+    ///   - clothingType: 저장할 의류 타입
+    ///   - measurementsToSave: 저장할 측정 항목 목록 (nil이면 completedMeasurements 사용)
+    /// - Returns: 저장 성공 여부
+    @discardableResult
+    func saveWithClothingType(
+        _ clothingType: ClothingType,
+        measurementsToSave: [CompletedMeasurement]? = nil
+    ) -> Bool {
         guard let modelContext = modelContext else {
             showError("데이터 저장 환경이 준비되지 않았습니다")
-            return
+            return false
         }
 
         guard let processedImage = processedImageToSave else {
             showError("저장할 이미지가 없습니다")
-            return
+            return false
         }
 
         // 의류 타입 설정
@@ -98,12 +107,27 @@ extension MeasurementViewModelRefactored {
         }
 
         // 측정값이 있다면 추가
-        for (type, value) in session.measurements {
+        let measurements = measurementsToSave ?? completedMeasurements
+        let coordinateContext = makeSavedMeasurementCoordinateContext(
+            measurements: measurements,
+            processedImage: processedImage
+        )
+        for completed in measurements {
+            let normalizedPoints = coordinateContext.mapToNormalizedPair(
+                start: completed.startPoint.screenPosition,
+                end: completed.endPoint.screenPosition
+            )
+
             let measurement = MeasurementModel(
-                type: type.rawValue,
-                value: value,
+                type: completed.type.rawValue,
+                value: completed.distanceInCm,
                 unit: "cm",
-                confidence: Double(overallConfidence)
+                confidence: Double(overallConfidence),
+                startPointX: normalizedPoints.map { Double($0.start.x) },
+                startPointY: normalizedPoints.map { Double($0.start.y) },
+                endPointX: normalizedPoints.map { Double($0.end.x) },
+                endPointY: normalizedPoints.map { Double($0.end.y) },
+                measurementMethodRaw: MeasurementMethod.ar.rawValue
             )
             clothingItem.measurements.append(measurement)
             measurement.clothingItem = clothingItem
@@ -131,8 +155,10 @@ extension MeasurementViewModelRefactored {
                 self.successMessage = nil
                 self.processedImageToSave = nil
             }
+            return true
         } catch {
             showError("저장에 실패했습니다: \(error.localizedDescription)")
+            return false
         }
     }
 
@@ -212,7 +238,8 @@ extension MeasurementViewModelRefactored {
                 type: type.rawValue,
                 value: value,
                 unit: "cm",
-                confidence: Double(overallConfidence)
+                confidence: Double(overallConfidence),
+                measurementMethodRaw: MeasurementMethod.ar.rawValue
             )
             clothingItem.measurements.append(measurement)
         }
@@ -243,8 +270,9 @@ extension MeasurementViewModelRefactored {
     func resetSession() {
         session = MeasurementSession(clothingType: session.clothingType)
         measurementPoints.removeAll()
+        completedMeasurements.removeAll()
         capturedImage = nil
-        currentMeasurementType = nil
+        currentMeasurementType = session.clothingType?.requiredMeasurements.first
         capturedDepthMap = nil
         capturedOriginalImageSize = nil
         capturedProcessedImageSize = nil
@@ -635,8 +663,6 @@ extension MeasurementViewModelRefactored {
 
                 value = widthCm * circumferenceFactor
 
-            default:
-                continue
             }
 
             guard MeasurementValidator.isValid(
@@ -780,6 +806,179 @@ extension MeasurementViewModelRefactored {
             return (sorted[middle - 1] + sorted[middle]) / 2.0
         } else {
             return sorted[middle]
+        }
+    }
+
+    private func makeSavedMeasurementCoordinateContext(
+        measurements: [CompletedMeasurement],
+        processedImage: UIImage
+    ) -> SavedMeasurementCoordinateContext {
+        let processedSize = capturedProcessedImageSize ?? processedImageToSave?.size ?? processedImage.size
+        let originalSize = capturedOriginalImageSize ?? capturedCameraResolution ?? processedSize
+        let cropRect = capturedCropRect ?? CGRect(origin: .zero, size: originalSize)
+        let sourceSize = capturedCameraResolution ?? originalSize
+
+        let allPoints = measurements.flatMap { [$0.startPoint.screenPosition, $0.endPoint.screenPosition] }
+        let transform = SavedMeasurementCoordinateTransform.best(
+            for: allPoints,
+            sourceSize: sourceSize,
+            originalSize: originalSize,
+            cropRect: cropRect,
+            processedSize: processedSize
+        )
+
+        return SavedMeasurementCoordinateContext(
+            sourceSize: sourceSize,
+            originalSize: originalSize,
+            cropRect: cropRect,
+            processedSize: processedSize,
+            transform: transform
+        )
+    }
+
+    private enum SavedMeasurementCoordinateTransform: CaseIterable {
+        case direct
+        case rotateRight
+        case rotateLeft
+        case rotate180
+
+        static func best(
+            for points: [CGPoint],
+            sourceSize: CGSize,
+            originalSize: CGSize,
+            cropRect: CGRect,
+            processedSize: CGSize
+        ) -> SavedMeasurementCoordinateTransform {
+            guard !points.isEmpty else { return .direct }
+            var bestTransform: SavedMeasurementCoordinateTransform = .direct
+            var bestScore = Int.min
+
+            for transform in SavedMeasurementCoordinateTransform.allCases {
+                let score = points.reduce(into: 0) { partialResult, point in
+                    guard let mapped = transform.mapToProcessed(
+                        point,
+                        sourceSize: sourceSize,
+                        originalSize: originalSize,
+                        cropRect: cropRect,
+                        processedSize: processedSize,
+                        clampToBounds: false
+                    ) else {
+                        return
+                    }
+                    if mapped.x >= 0, mapped.y >= 0,
+                       mapped.x <= processedSize.width, mapped.y <= processedSize.height {
+                        partialResult += 1
+                    }
+                }
+
+                if score > bestScore {
+                    bestScore = score
+                    bestTransform = transform
+                }
+            }
+            return bestTransform
+        }
+
+        fileprivate func mapToProcessed(
+            _ point: CGPoint,
+            sourceSize: CGSize,
+            originalSize: CGSize,
+            cropRect: CGRect,
+            processedSize: CGSize,
+            clampToBounds: Bool
+        ) -> CGPoint? {
+            guard sourceSize.width > 0, sourceSize.height > 0,
+                  originalSize.width > 0, originalSize.height > 0,
+                  processedSize.width > 0, processedSize.height > 0 else {
+                return nil
+            }
+
+            let normalized = normalizedPoint(point, sourceSize: sourceSize)
+            let originalPoint = CGPoint(
+                x: normalized.x * originalSize.width,
+                y: normalized.y * originalSize.height
+            )
+
+            let validCropRect: CGRect = {
+                if cropRect.width > 0, cropRect.height > 0 {
+                    return cropRect
+                }
+                return CGRect(origin: .zero, size: originalSize)
+            }()
+
+            let scaleX = processedSize.width / max(validCropRect.width, 1)
+            let scaleY = processedSize.height / max(validCropRect.height, 1)
+
+            var mapped = CGPoint(
+                x: (originalPoint.x - validCropRect.minX) * scaleX,
+                y: (originalPoint.y - validCropRect.minY) * scaleY
+            )
+
+            if clampToBounds {
+                mapped.x = Swift.max(0, Swift.min(mapped.x, processedSize.width))
+                mapped.y = Swift.max(0, Swift.min(mapped.y, processedSize.height))
+            }
+
+            return mapped
+        }
+
+        private func normalizedPoint(_ point: CGPoint, sourceSize: CGSize) -> CGPoint {
+            let x = point.x / sourceSize.width
+            let y = point.y / sourceSize.height
+
+            switch self {
+            case .direct:
+                return CGPoint(x: x, y: y)
+            case .rotateRight:
+                return CGPoint(x: y, y: 1 - x)
+            case .rotateLeft:
+                return CGPoint(x: 1 - y, y: x)
+            case .rotate180:
+                return CGPoint(x: 1 - x, y: 1 - y)
+            }
+        }
+    }
+
+    private struct SavedMeasurementCoordinateContext {
+        let sourceSize: CGSize
+        let originalSize: CGSize
+        let cropRect: CGRect
+        let processedSize: CGSize
+        let transform: SavedMeasurementCoordinateTransform
+
+        func mapToNormalizedPair(start: CGPoint, end: CGPoint) -> (start: CGPoint, end: CGPoint)? {
+            guard
+                let mappedStart = transform.mapToProcessed(
+                    start,
+                    sourceSize: sourceSize,
+                    originalSize: originalSize,
+                    cropRect: cropRect,
+                    processedSize: processedSize,
+                    clampToBounds: true
+                ),
+                let mappedEnd = transform.mapToProcessed(
+                    end,
+                    sourceSize: sourceSize,
+                    originalSize: originalSize,
+                    cropRect: cropRect,
+                    processedSize: processedSize,
+                    clampToBounds: true
+                ),
+                processedSize.width > 0,
+                processedSize.height > 0
+            else {
+                return nil
+            }
+
+            let normalizedStart = CGPoint(
+                x: Swift.max(0, Swift.min(mappedStart.x / processedSize.width, 1)),
+                y: Swift.max(0, Swift.min(mappedStart.y / processedSize.height, 1))
+            )
+            let normalizedEnd = CGPoint(
+                x: Swift.max(0, Swift.min(mappedEnd.x / processedSize.width, 1)),
+                y: Swift.max(0, Swift.min(mappedEnd.y / processedSize.height, 1))
+            )
+            return (normalizedStart, normalizedEnd)
         }
     }
 
