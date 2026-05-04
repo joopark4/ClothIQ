@@ -140,7 +140,12 @@ enum ClothingType: String, CaseIterable, Codable {
     ///
     /// 추가로 측정할 수 있는 선택적 항목들입니다.
     var optionalMeasurements: [MeasurementType] {
-        return []
+        switch self {
+        case .shorts:
+            return [.hem]
+        default:
+            return []
+        }
     }
 
     /// 의류 카테고리 (상의/하의/외투/원피스)

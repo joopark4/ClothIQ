@@ -62,6 +62,13 @@ fastlane/screenshots/**/*.png
 fastlane/test_output
 
 DerivedData/
+DerivedData-*/
+.venv-ml/
+.codex/
+logs/
+tmp/
+tmp_crash_logs/
+scripts/__pycache__/
 Reference/
 ClothIQ/build/
 ClothIQ/build.log

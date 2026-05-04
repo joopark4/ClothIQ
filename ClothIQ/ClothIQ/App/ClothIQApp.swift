@@ -22,7 +22,12 @@ struct ClothIQApp: App {
             CalibrationProfile.self,
             CalibrationFactor.self
         ])
-        let modelConfiguration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
+        #if DEBUG
+        let isStoredInMemoryOnly = ProcessInfo.processInfo.arguments.contains("--ui-testing-in-memory")
+        #else
+        let isStoredInMemoryOnly = false
+        #endif
+        let modelConfiguration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: isStoredInMemoryOnly)
 
         do {
             return try ModelContainer(for: schema, configurations: [modelConfiguration])

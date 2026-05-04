@@ -42,6 +42,14 @@ struct MLTrainingStatisticsView: View {
         }
     }
 
+    private var typeReadinessData: [MLTrainingTypeReadiness] {
+        collector.getTypeTrainingReadiness()
+    }
+
+    private var collectionGapSummary: MLTrainingCollectionGapSummary {
+        collector.getCollectionGapSummary()
+    }
+
     var body: some View {
         NavigationStack {
             ScrollView {
@@ -49,10 +57,14 @@ struct MLTrainingStatisticsView: View {
                     // MARK: - 개요 카드
                     overviewCard
 
+                    collectionPriorityCard
+
                     // MARK: - 의류 타입별 차트
                     if !clothingTypeData.isEmpty {
                         clothingTypeChart
                     }
+
+                    typeReadinessCard
 
                     // MARK: - 측정 타입별 차트
                     if !measurementTypeData.isEmpty {
@@ -82,36 +94,38 @@ struct MLTrainingStatisticsView: View {
     // MARK: - Components
 
     private var overviewCard: some View {
-        VStack(alignment: .leading, spacing: 16) {
+        let summary = collectionGapSummary
+
+        return VStack(alignment: .leading, spacing: 16) {
             Text("전체 개요")
                 .font(.headline)
 
             HStack(spacing: 20) {
                 StatisticItem(
-                    title: "총 샘플",
-                    value: "\(collector.totalSamples)",
-                    icon: "doc.text.fill",
+                    title: "고유 촬영",
+                    value: "\(collector.usableModelTrainingSamples)",
+                    icon: "camera.fill",
                     color: .blue
                 )
 
                 StatisticItem(
-                    title: "사용자 수정",
-                    value: "\(collector.userCorrectedSamples)",
+                    title: "고유 보정",
+                    value: "\(collector.uniqueUserCorrectedModelTrainingSamples)",
                     icon: "checkmark.circle.fill",
                     color: .green
                 )
 
                 StatisticItem(
-                    title: "정확도",
-                    value: String(format: "%.1f%%", collector.averageConfidence * 100),
-                    icon: "target",
+                    title: "완료 타입",
+                    value: "\(summary.completedTypeCount)/\(ClothingType.allCases.count)",
+                    icon: "shippingbox.fill",
                     color: .orange
                 )
             }
 
             // 진행 바
             VStack(alignment: .leading, spacing: 8) {
-                Text("목표 달성도")
+                Text("학습 수집 진행도")
                     .font(.caption)
                     .foregroundColor(.secondary)
 
@@ -127,14 +141,71 @@ struct MLTrainingStatisticsView: View {
                                 startPoint: .leading,
                                 endPoint: .trailing
                             ))
-                            .frame(width: geometry.size.width * min(Double(collector.totalSamples) / 1000.0, 1.0), height: 8)
+                            .frame(width: geometry.size.width * summary.collectionProgress, height: 8)
                     }
                 }
                 .frame(height: 8)
 
-                Text("\(collector.totalSamples) / 1000 샘플 (권장)")
+                Text(
+                    "\(summary.totalSatisfiedModelTrainingSamples)/\(summary.totalRequiredModelTrainingSamples) 고유 촬영"
+                    + " · \(summary.totalSatisfiedUserCorrectedSamples)/\(summary.totalRequiredUserCorrectedSamples) 고유 보정"
+                )
                     .font(.caption)
                     .foregroundColor(.secondary)
+            }
+        }
+        .padding()
+        .background(Color(.systemBackground))
+        .cornerRadius(12)
+        .shadow(radius: 2)
+    }
+
+    private var collectionPriorityCard: some View {
+        let summary = collectionGapSummary
+
+        return VStack(alignment: .leading, spacing: 16) {
+            Text("다음 수집 우선순위")
+                .font(.headline)
+
+            HStack(spacing: 20) {
+                StatisticItem(
+                    title: "추가 촬영",
+                    value: "\(summary.totalNeededModelTrainingSamples)",
+                    icon: "camera.fill",
+                    color: .blue
+                )
+
+                StatisticItem(
+                    title: "추가 보정",
+                    value: "\(summary.totalNeededUserCorrectedSamples)",
+                    icon: "hand.draw.fill",
+                    color: .orange
+                )
+
+                StatisticItem(
+                    title: "모델 없음",
+                    value: "\(summary.missingCompiledModelCount)",
+                    icon: "shippingbox.fill",
+                    color: .purple
+                )
+            }
+
+            if summary.nextTargets.isEmpty {
+                Text("모든 의류 타입의 학습 준비가 완료되었습니다")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                    .frame(maxWidth: .infinity, alignment: .center)
+                    .padding(.vertical, 8)
+            } else {
+                VStack(spacing: 10) {
+                    ForEach(summary.nextTargets, id: \.clothingType) { readiness in
+                        CollectionTargetRow(readiness: readiness)
+
+                        if readiness.clothingType != summary.nextTargets.last?.clothingType {
+                            Divider()
+                        }
+                    }
+                }
             }
         }
         .padding()
@@ -165,6 +236,27 @@ struct MLTrainingStatisticsView: View {
                 AxisMarks(position: .bottom) { value in
                     AxisGridLine()
                     AxisValueLabel()
+                }
+            }
+        }
+        .padding()
+        .background(Color(.systemBackground))
+        .cornerRadius(12)
+        .shadow(radius: 2)
+    }
+
+    private var typeReadinessCard: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            Text("의류 타입별 학습 준비 상태")
+                .font(.headline)
+
+            VStack(spacing: 10) {
+                ForEach(typeReadinessData, id: \.clothingType) { readiness in
+                    TypeReadinessRow(readiness: readiness)
+
+                    if readiness.clothingType != typeReadinessData.last?.clothingType {
+                        Divider()
+                    }
                 }
             }
         }
@@ -211,8 +303,9 @@ struct MLTrainingStatisticsView: View {
                 )
 
                 QualityMetricRow(
-                    title: "사용자 수정 비율",
-                    value: Double(collector.userCorrectedSamples) / max(Double(collector.totalSamples), 1.0),
+                    title: "고유 보정 비율",
+                    value: Double(collector.uniqueUserCorrectedModelTrainingSamples)
+                        / max(Double(collector.usableModelTrainingSamples), 1.0),
                     threshold: 0.3,
                     format: "%.1f%%"
                 )
@@ -333,6 +426,102 @@ struct QualityMetricRow: View {
                     .frame(width: 8, height: 8)
             }
         }
+    }
+}
+
+struct TypeReadinessRow: View {
+    let readiness: MLTrainingTypeReadiness
+
+    private var statusColor: Color {
+        if readiness.modelDeploymentStatus.hasDocumentsCompiledModel || readiness.isReadyForModelTraining {
+            return .green
+        }
+
+        if readiness.hasUsableLearnedPrior {
+            return .orange
+        }
+
+        return .secondary
+    }
+
+    var body: some View {
+        HStack(spacing: 12) {
+            VStack(alignment: .leading, spacing: 4) {
+                Text(readiness.clothingType.displayName)
+                    .font(.subheadline)
+
+                Text(
+                    "\(readiness.modelTrainingSamples)/\(readiness.minimumModelTrainingSamples) 고유 촬영"
+                    + " · 보정 \(readiness.userCorrectedSamples)/\(readiness.minimumUserCorrectedSamples)"
+                    + " · 부족 \(readiness.neededModelTrainingSamples)/\(readiness.neededUserCorrectedSamples)"
+                    + " · prior \(readiness.learnedKeypointCount)/\(readiness.expectedKeypointCount)"
+                )
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+
+                if !readiness.missingKeypointTypes.isEmpty {
+                    Text("부족 키포인트: \(readiness.missingKeypointSummary)")
+                        .font(.caption2)
+                        .foregroundColor(.secondary)
+                        .lineLimit(2)
+                }
+            }
+
+            Spacer()
+
+            Text(readiness.statusMessage)
+                .font(.caption.weight(.semibold))
+                .foregroundColor(statusColor)
+                .padding(.horizontal, 8)
+                .padding(.vertical, 4)
+                .background(statusColor.opacity(0.12))
+                .clipShape(Capsule())
+        }
+        .accessibilityElement(children: .combine)
+    }
+}
+
+struct CollectionTargetRow: View {
+    let readiness: MLTrainingTypeReadiness
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            HStack {
+                Text(readiness.clothingType.displayName)
+                    .font(.subheadline)
+
+                Spacer()
+
+                Text(targetText)
+                    .font(.caption.weight(.semibold))
+                    .monospacedDigit()
+                    .foregroundColor(.orange)
+            }
+
+            if !readiness.missingKeypointTypes.isEmpty {
+                Text("부족 키포인트: \(readiness.missingKeypointSummary)")
+                    .font(.caption2)
+                    .foregroundColor(.secondary)
+                    .lineLimit(2)
+            }
+        }
+        .accessibilityElement(children: .combine)
+    }
+
+    private var targetText: String {
+        var parts: [String] = []
+        if readiness.neededModelTrainingSamples > 0 {
+            parts.append("촬영 +\(readiness.neededModelTrainingSamples)")
+        }
+        if readiness.neededUserCorrectedSamples > 0 {
+            parts.append("보정 +\(readiness.neededUserCorrectedSamples)")
+        }
+        if !readiness.modelDeploymentStatus.hasDocumentsCompiledModel,
+           readiness.neededModelTrainingSamples == 0,
+           readiness.neededUserCorrectedSamples == 0 {
+            parts.append("모델 배포")
+        }
+        return parts.joined(separator: " · ")
     }
 }
 

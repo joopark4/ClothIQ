@@ -24,12 +24,14 @@ struct ClothingLibraryView: View {
     @Query(sort: \ClothingItemModel.createdAt, order: .reverse) private var items: [ClothingItemModel]
 
     @State private var selectedItem: ClothingItemModel?
-    @State private var columnVisibility: NavigationSplitViewVisibility = .automatic
+    @State private var columnVisibility: NavigationSplitViewVisibility = .all
     @State private var searchText = ""
     @State private var showingMeasurement = false
     @State private var showingDeleteAllAlert = false
     @State private var isDeleting = false
     @State private var showingSettings = false
+    @State private var repairedBottomAnchorItemIDs: Set<UUID> = []
+    @State private var isRepairingBottomAnchors = false
 
     var body: some View {
         Group {
@@ -43,12 +45,14 @@ struct ClothingLibraryView: View {
         }
         .fullScreenCover(isPresented: $showingMeasurement) {
             NavigationStack {
-                // 테스트용 기본 타입: 반바지
-                MeasurementView(clothingType: .shorts)
+                MeasurementView()
             }
         }
         .sheet(isPresented: $showingSettings) {
             SettingsView()
+        }
+        .task(id: bottomAnchorRepairTaskID) {
+            await repairStoredBottomMeasurementAnchorsIfNeeded()
         }
     }
 
@@ -61,11 +65,10 @@ struct ClothingLibraryView: View {
                     emptyStateView
                 } else {
                     itemsListView
+                    floatingAddButton
                 }
-
-                // 플로팅 추가 버튼 (iPhone)
-                floatingAddButton
             }
+            .accessibilityIdentifier("clothing-library-root")
             .navigationTitle("내 옷장")
             .searchable(text: $searchText, prompt: "의류 검색")
             .toolbar {
@@ -131,6 +134,8 @@ struct ClothingLibraryView: View {
                             Image(systemName: "plus.circle.fill")
                                 .font(.title2)
                         }
+                        .accessibilityLabel("의류 추가")
+                        .accessibilityIdentifier("library-ipad-add-button")
                     }
 
                     // 전체 삭제 버튼 (iPad)
@@ -165,16 +170,15 @@ struct ClothingLibraryView: View {
                 NavigationStack {
                     ClothingDetailView(item: selectedItem)
                 }
+            } else if items.isEmpty {
+                iPadEmptyDetailView
             } else {
-                ContentUnavailableView(
-                    "의류 선택",
-                    systemImage: "tshirt",
-                    description: Text("왼쪽 목록에서 의류를 선택하세요")
-                )
+                iPadSelectionPlaceholderView
             }
         }
         .navigationSplitViewStyle(.balanced)
         .searchable(text: $searchText, placement: .sidebar, prompt: "의류 검색")
+        .accessibilityIdentifier("clothing-library-ipad-split-view")
     }
 
     // MARK: - Shared Components
@@ -183,11 +187,7 @@ struct ClothingLibraryView: View {
         Group {
             if filteredItems.isEmpty {
                 if searchText.isEmpty {
-                    ContentUnavailableView(
-                        "의류가 없습니다",
-                        systemImage: "tshirt",
-                        description: Text("+ 버튼을 눌러 첫 번째 의류를 추가하세요")
-                    )
+                    iPadEmptySidebarView
                 } else {
                     ContentUnavailableView.search(text: searchText)
                 }
@@ -220,6 +220,63 @@ struct ClothingLibraryView: View {
                 .listStyle(.sidebar)
             }
         }
+    }
+
+    private var iPadEmptySidebarView: some View {
+        VStack(spacing: 16) {
+            Image(systemName: "tshirt")
+                .font(.system(size: 44))
+                .foregroundColor(.gray.opacity(0.35))
+
+            VStack(spacing: 6) {
+                Text("의류가 없습니다")
+                    .font(.headline)
+                    .foregroundColor(.primary)
+                    .accessibilityIdentifier("library-ipad-empty-sidebar-title")
+
+                Text("+ 버튼을 눌러 첫 번째 의류를 추가하세요")
+                    .font(.subheadline)
+                    .foregroundColor(.secondary)
+                    .multilineTextAlignment(.center)
+                    .accessibilityIdentifier("library-ipad-empty-sidebar-message")
+            }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .padding(.horizontal, 24)
+        .accessibilityIdentifier("library-ipad-empty-sidebar")
+    }
+
+    private var iPadEmptyDetailView: some View {
+        VStack(spacing: 18) {
+            Image(systemName: "tshirt")
+                .font(.system(size: 64))
+                .foregroundColor(.gray.opacity(0.25))
+
+            VStack(spacing: 8) {
+                Text("의류가 없습니다")
+                    .font(.title3)
+                    .fontWeight(.semibold)
+                    .accessibilityIdentifier("library-ipad-empty-detail-title")
+
+                Text("상단의 + 버튼으로 첫 번째 의류를 추가하세요")
+                    .font(.subheadline)
+                    .foregroundColor(.secondary)
+                    .multilineTextAlignment(.center)
+                    .accessibilityIdentifier("library-ipad-empty-detail-message")
+            }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .padding(.horizontal, 32)
+        .accessibilityIdentifier("library-ipad-empty-detail")
+    }
+
+    private var iPadSelectionPlaceholderView: some View {
+        ContentUnavailableView(
+            "의류 선택",
+            systemImage: "tshirt",
+            description: Text("왼쪽 목록에서 의류를 선택하세요")
+        )
+        .accessibilityIdentifier("library-ipad-selection-placeholder")
     }
 
     private var itemsListView: some View {
@@ -266,7 +323,9 @@ struct ClothingLibraryView: View {
                 .foregroundColor(.white)
                 .cornerRadius(25)
             }
+            .accessibilityIdentifier("library-add-empty-button")
         }
+        .accessibilityIdentifier("library-empty-state")
     }
 
     private var floatingAddButton: some View {
@@ -290,6 +349,7 @@ struct ClothingLibraryView: View {
                         )
                         .shadow(color: .blue.opacity(0.3), radius: 8, x: 0, y: 4)
                 }
+                .accessibilityIdentifier("library-floating-add-button")
                 .padding()
             }
         }
@@ -350,7 +410,52 @@ struct ClothingLibraryView: View {
         }
     }
 
+    private var bottomAnchorRepairTaskID: String {
+        items.map(\.id.uuidString).joined(separator: "|")
+    }
+
     // MARK: - Actions
+
+    private func repairStoredBottomMeasurementAnchorsIfNeeded() async {
+        guard !isRepairingBottomAnchors else { return }
+        let candidates = items.filter { item in
+            guard !repairedBottomAnchorItemIDs.contains(item.id),
+                  let clothingType = item.clothingType,
+                  clothingType.category == .bottom else {
+                return false
+            }
+
+            return item.measurement(for: .rise) != nil ||
+                item.measurement(for: .hem) != nil ||
+                item.measurement(for: .totalLength) != nil
+        }
+        guard !candidates.isEmpty else { return }
+
+        isRepairingBottomAnchors = true
+        defer { isRepairingBottomAnchors = false }
+
+        var repairedSummary: [String] = []
+
+        for item in candidates {
+            repairedBottomAnchorItemIDs.insert(item.id)
+
+            let repairedTypes = await BottomMeasurementAnchorRepairService.repairIfNeeded(item: item)
+            guard !repairedTypes.isEmpty else { continue }
+
+            item.updatedAt = Date()
+            let repairedNames = repairedTypes.map(\.displayName).joined(separator: ", ")
+            repairedSummary.append("\(item.displayTitle): \(repairedNames)")
+        }
+
+        guard !repairedSummary.isEmpty else { return }
+
+        do {
+            try modelContext.save()
+            print("✅ [BottomAnchorRepair] 라이브러리 저장 앵커 보정 완료: \(repairedSummary.joined(separator: " / "))")
+        } catch {
+            print("❌ [BottomAnchorRepair] 라이브러리 저장 실패: \(error)")
+        }
+    }
 
     private func deleteItem(_ item: ClothingItemModel) {
         withAnimation {

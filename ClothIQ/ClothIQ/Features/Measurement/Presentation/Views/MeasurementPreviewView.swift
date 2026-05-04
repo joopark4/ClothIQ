@@ -13,7 +13,9 @@ import SwiftUI
 struct MeasurementPreviewView: View {
     let image: UIImage
     let clothingType: ClothingType
+    let classificationConfidence: Double?
     let measurements: [CompletedMeasurement]
+    let keypoints: [MeasurementKeypoint]
     let originalImageSize: CGSize?
     let cropRect: CGRect?
     let processedImageSize: CGSize?
@@ -30,6 +32,7 @@ struct MeasurementPreviewView: View {
                         MeasurementPreviewImageOverlay(
                             image: image,
                             measurements: measurements,
+                            keypoints: keypoints,
                             originalImageSize: originalImageSize,
                             cropRect: cropRect,
                             processedImageSize: processedImageSize,
@@ -49,6 +52,11 @@ struct MeasurementPreviewView: View {
                                 .foregroundColor(.secondary)
                             Text(clothingType.displayName)
                                 .font(.headline)
+                            if let classificationConfidence {
+                                Text("자동 분류 신뢰도 \(Int(classificationConfidence * 100))%")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                            }
                         }
 
                         VStack(alignment: .leading, spacing: 10) {
@@ -107,6 +115,9 @@ struct MeasurementPreviewView: View {
             Text(measurement.type.displayName)
                 .font(.body)
             Spacer()
+            Text("\(Int(measurement.confidence * 100))%")
+                .font(.caption.weight(.semibold))
+                .foregroundColor(.secondary)
             Text(String(format: "%.1f cm", measurement.distanceInCm))
                 .font(.body.weight(.semibold))
                 .monospacedDigit()
@@ -135,10 +146,12 @@ struct MeasurementPreviewView: View {
     MeasurementPreviewView(
         image: UIImage(systemName: "photo") ?? UIImage(),
         clothingType: .shortSleeve,
+        classificationConfidence: 0.86,
         measurements: [
             CompletedMeasurement(type: .shoulderWidth, startPoint: start, endPoint: end, distanceInCm: 42.3),
             CompletedMeasurement(type: .chestCircumference, startPoint: start, endPoint: end, distanceInCm: 51.4)
         ],
+        keypoints: [],
         originalImageSize: CGSize(width: 1920, height: 1440),
         cropRect: CGRect(x: 240, y: 0, width: 1440, height: 1440),
         processedImageSize: CGSize(width: 1024, height: 1024),
@@ -152,6 +165,7 @@ struct MeasurementPreviewView: View {
 private struct MeasurementPreviewImageOverlay: View {
     let image: UIImage
     let measurements: [CompletedMeasurement]
+    let keypoints: [MeasurementKeypoint]
     let originalImageSize: CGSize?
     let cropRect: CGRect?
     let processedImageSize: CGSize?
@@ -223,11 +237,13 @@ private struct MeasurementPreviewImageOverlay: View {
             guard
                 let start = mapToProcessed(
                     measurement.startPoint.screenPosition,
+                    coordinateSpace: measurement.coordinateSpace,
                     transform: transform,
                     clampToBounds: true
                 ),
                 let end = mapToProcessed(
                     measurement.endPoint.screenPosition,
+                    coordinateSpace: measurement.coordinateSpace,
                     transform: transform,
                     clampToBounds: true
                 )
@@ -256,6 +272,22 @@ private struct MeasurementPreviewImageOverlay: View {
                     .scaledToFit()
                     .frame(width: displayRect.width, height: displayRect.height)
                     .position(x: displayRect.midX, y: displayRect.midY)
+
+                ForEach(Array(keypoints.enumerated()), id: \.offset) { _, keypoint in
+                    let point = keypointInDisplay(
+                        keypoint,
+                        displayRect: displayRect,
+                        processedSize: processedSize
+                    )
+                    Circle()
+                        .fill(Color.white)
+                        .frame(width: 10, height: 10)
+                        .position(point)
+                    Circle()
+                        .stroke(Color.purple, lineWidth: 2)
+                        .frame(width: 10, height: 10)
+                        .position(point)
+                }
 
                 ForEach(convertedMeasurements) { measurement in
                     let lineColor = color(for: measurement.type)
@@ -312,6 +344,7 @@ private struct MeasurementPreviewImageOverlay: View {
         for measurement in measurements {
             if let start = mapToProcessed(
                 measurement.startPoint.screenPosition,
+                coordinateSpace: measurement.coordinateSpace,
                 transform: transform,
                 clampToBounds: false
             ), isInside(start, in: processedSize) {
@@ -320,6 +353,7 @@ private struct MeasurementPreviewImageOverlay: View {
 
             if let end = mapToProcessed(
                 measurement.endPoint.screenPosition,
+                coordinateSpace: measurement.coordinateSpace,
                 transform: transform,
                 clampToBounds: false
             ), isInside(end, in: processedSize) {
@@ -332,12 +366,39 @@ private struct MeasurementPreviewImageOverlay: View {
 
     private func mapToProcessed(
         _ point: CGPoint,
+        coordinateSpace: MeasurementCoordinateSpace,
         transform: CoordinateTransform,
         clampToBounds: Bool
     ) -> CGPoint? {
         let processedSize = resolvedProcessedSize
         guard processedSize.width > 0, processedSize.height > 0 else {
             return nil
+        }
+
+        switch coordinateSpace {
+        case .processedImagePixels:
+            if clampToBounds {
+                return CGPoint(
+                    x: clamp(point.x, min: 0, max: processedSize.width),
+                    y: clamp(point.y, min: 0, max: processedSize.height)
+                )
+            }
+            return point
+
+        case .processedImageNormalized:
+            let normalized = clampToBounds
+                ? CGPoint(
+                    x: clamp(point.x, min: 0, max: 1),
+                    y: clamp(point.y, min: 0, max: 1)
+                )
+                : point
+            return CGPoint(
+                x: normalized.x * processedSize.width,
+                y: normalized.y * processedSize.height
+            )
+
+        case .cameraImagePixels:
+            break
         }
 
         let sourceSize: CGSize
@@ -424,6 +485,20 @@ private struct MeasurementPreviewImageOverlay: View {
             x: displayRect.minX + (point.x / processedSize.width) * displayRect.width,
             y: displayRect.minY + (point.y / processedSize.height) * displayRect.height
         )
+    }
+
+    private func keypointInDisplay(
+        _ keypoint: MeasurementKeypoint,
+        displayRect: CGRect,
+        processedSize: CGSize
+    ) -> CGPoint {
+        let clampedX = clamp(keypoint.position.x, min: 0, max: 1)
+        let clampedY = clamp(keypoint.position.y, min: 0, max: 1)
+        let imagePoint = CGPoint(
+            x: clampedX * processedSize.width,
+            y: (1.0 - clampedY) * processedSize.height
+        )
+        return pointInDisplay(imagePoint, displayRect: displayRect, processedSize: processedSize)
     }
 
     private func labelPosition(

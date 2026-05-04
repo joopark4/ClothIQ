@@ -31,8 +31,8 @@ extension MeasurementViewModelRefactored {
     /// 3. 측정 결과 미리보기 화면 표시
     /// 4. 사용자 저장/취소 확정 대기
     func captureImage() {
-        guard !completedMeasurements.isEmpty else {
-            showError("최소 1개 측정 항목을 적용한 뒤 촬영해주세요")
+        guard !isLoading else {
+            showError("이미 촬영 이미지를 처리하고 있습니다")
             return
         }
 
@@ -75,8 +75,6 @@ extension MeasurementViewModelRefactored {
             guard let self = self else { return }
 
             Task { @MainActor in
-                self.isLoading = false
-
                 switch result {
                 case .success(let processedResult):
                     let processedImage = processedResult.finalImage
@@ -95,10 +93,24 @@ extension MeasurementViewModelRefactored {
                     self.capturedOriginalImageSize = processedResult.originalImageSize
                     self.capturedCropRect = processedResult.cropRect
 
+                    self.successMessage = "의류 정보와 측정값을 자동 분석 중입니다"
+                    let analysis = await self.analyzeCapturedClothing(
+                        processedImage: processedImage,
+                        depthMap: depthMap
+                    )
+                    self.session.clothingType = analysis.clothingType
+                    self.currentMeasurementType = analysis.clothingType.requiredMeasurements.first
+                    self.draftClassificationConfidence = analysis.classificationConfidence
+
                     // 저장 전 미리보기 화면 진입
-                    self.prepareMeasurementPreview(with: processedImage)
+                    self.prepareMeasurementPreview(
+                        with: processedImage,
+                        measurements: analysis.measurements,
+                        keypoints: analysis.keypoints
+                    )
 
                 case .failure(let error):
+                    self.isLoading = false
                     self.capturedOriginalImageSize = nil
                     self.capturedProcessedImageSize = nil
                     self.capturedCropRect = nil
@@ -108,6 +120,7 @@ extension MeasurementViewModelRefactored {
                 }
 
                 self.captureRequested = false
+                self.isLoading = false
             }
         }
     }
@@ -140,12 +153,203 @@ extension MeasurementViewModelRefactored {
         currentARFrame = nil
     }
 
+    /// 캡처된 처리 이미지와 LiDAR depth를 사용해 의류 타입, 키포인트, 측정값을 자동 생성합니다.
+    private func analyzeCapturedClothing(
+        processedImage: UIImage,
+        depthMap: CVPixelBuffer?
+    ) async -> AutomaticCaptureAnalysis {
+        let classifierResult = VisionClothingClassifier().classify(image: processedImage)
+        let preferredClothingType = lockedClothingType
+        var clothingType = preferredClothingType ?? classifierResult.type
+        var classificationConfidence = preferredClothingType == nil ? classifierResult.confidence : 1.0
+        var keypoints: [MeasurementKeypoint] = []
+        var measurementResults: [MeasurementType: AutoMeasurementResult] = [:]
+
+        guard let depthMap else {
+            showError("Depth map이 없어 자동 사이즈 측정을 완료할 수 없습니다")
+            return AutomaticCaptureAnalysis(
+                clothingType: clothingType,
+                classificationConfidence: classificationConfidence,
+                keypoints: keypoints,
+                measurements: []
+            )
+        }
+
+        guard let pixelBuffer = processedImage.pixelBuffer() else {
+            showError("촬영 이미지를 분석할 수 없습니다")
+            return AutomaticCaptureAnalysis(
+                clothingType: clothingType,
+                classificationConfidence: classificationConfidence,
+                keypoints: keypoints,
+                measurements: []
+            )
+        }
+
+        let autoService = AutoMeasurementService()
+        do {
+            guard let contour = try await autoService.detectClothingContour(
+                from: pixelBuffer,
+                depthMap: depthMap
+            ) else {
+                showError("의류 윤곽선을 감지할 수 없습니다")
+                return AutomaticCaptureAnalysis(
+                    clothingType: clothingType,
+                    classificationConfidence: classificationConfidence,
+                    keypoints: keypoints,
+                    measurements: []
+                )
+            }
+
+            let contourFeatures = autoService.featureAnalyzer.extractFeatures(from: contour)
+            let contourType = autoService.featureAnalyzer.detectClothingCategory(from: contourFeatures)
+            if let preferredClothingType {
+                clothingType = preferredClothingType
+                classificationConfidence = 1.0
+            } else {
+                let resolvedClassification = AutomaticClothingTypeResolver.resolve(
+                    classifierResult: classifierResult,
+                    contourType: contourType,
+                    contourFeatures: contourFeatures
+                )
+                clothingType = resolvedClassification.type
+                classificationConfidence = resolvedClassification.confidence
+            }
+
+            print("🏷️ [AutoCapture] 타입 분류 결과:")
+            print("  - 윤곽선 기반: \(contourType.displayName) (\(String(format: "%.1f%%", contourFeatures.confidence * 100)))")
+            print("  - 종횡비 기반: \(classifierResult.type.displayName) (\(String(format: "%.1f%%", classifierResult.confidence * 100)))")
+            if let preferredClothingType {
+                print("  - 진입 타입 유지: \(preferredClothingType.displayName)")
+            }
+            print("  - 최종 선택: \(clothingType.displayName) (\(String(format: "%.1f%%", classificationConfidence * 100)))")
+
+            let contourFeaturePoints = autoService.extractFeaturePoints(
+                from: contour,
+                clothingType: clothingType
+            )
+            let featurePoints = autoService.extractForegroundFeaturePoints(
+                from: processedImage,
+                clothingType: clothingType
+            ) ?? contourFeaturePoints
+
+            keypoints = autoService.keypointDetector.detectKeypoints(
+                from: contour,
+                clothingType: clothingType,
+                featurePoints: featurePoints
+            )
+
+            let imageSize = capturedProcessedImageSize ?? processedImage.size
+            let depthImageSize = capturedOriginalImageSize ?? capturedCameraResolution ?? imageSize
+
+            let keypointResults = autoService.performKeypointBasedMeasurement(
+                contour: contour,
+                clothingType: clothingType,
+                depthMap: depthMap,
+                imageSize: imageSize,
+                cameraIntrinsics: capturedCameraIntrinsics,
+                cameraResolution: capturedCameraResolution,
+                depthImageSize: depthImageSize,
+                cropRect: capturedCropRect,
+                featurePointsOverride: featurePoints
+            )
+            measurementResults.merge(keypointResults) { existing, _ in existing }
+
+            let contourResults = autoService.performAutoMeasurement(
+                contour: contour,
+                clothingType: clothingType,
+                depthMap: depthMap,
+                imageSize: imageSize,
+                cameraIntrinsics: capturedCameraIntrinsics,
+                cameraResolution: capturedCameraResolution,
+                depthImageSize: depthImageSize,
+                cropRect: capturedCropRect,
+                featurePointsOverride: featurePoints
+            )
+            measurementResults.merge(contourResults) { existing, _ in existing }
+        } catch {
+            showError("자동 분석 실패: \(error.localizedDescription)")
+        }
+
+        let completed = makeAutomaticCompletedMeasurements(
+            from: measurementResults,
+            clothingType: clothingType
+        )
+        if completed.isEmpty {
+            showError("자동 측정값을 생성하지 못했습니다. 의류가 화면 중앙에 평평하게 보이도록 다시 촬영해주세요")
+        } else {
+            showSuccess("\(clothingType.displayName) 자동 분석 완료: \(completed.count)개 측정")
+        }
+
+        return AutomaticCaptureAnalysis(
+            clothingType: clothingType,
+            classificationConfidence: classificationConfidence,
+            keypoints: keypoints,
+            measurements: completed
+        )
+    }
+
+    private func makeAutomaticCompletedMeasurements(
+        from results: [MeasurementType: AutoMeasurementResult],
+        clothingType: ClothingType
+    ) -> [CompletedMeasurement] {
+        let allowedMeasurementTypes = Set(clothingType.requiredMeasurements + clothingType.optionalMeasurements)
+        let measurements = results.compactMap { type, result -> CompletedMeasurement? in
+            guard allowedMeasurementTypes.contains(type) else {
+                return nil
+            }
+
+            let confidence = max(0.0, min(result.confidence, 1.0))
+            let pointConfidence = Float(confidence)
+            let startPoint = MeasurementPoint(
+                worldPosition: SIMD3<Float>(0, 0, 0),
+                screenPosition: result.point1,
+                depth: 0,
+                confidence: pointConfidence,
+                cameraPitchAngle: cameraPitchAngle
+            )
+            let endPoint = MeasurementPoint(
+                worldPosition: SIMD3<Float>(0, 0, 0),
+                screenPosition: result.point2,
+                depth: 0,
+                confidence: pointConfidence,
+                cameraPitchAngle: cameraPitchAngle
+            )
+
+            return CompletedMeasurement(
+                type: type,
+                startPoint: startPoint,
+                endPoint: endPoint,
+                distanceInCm: result.distance,
+                confidence: confidence,
+                coordinateSpace: .processedImagePixels,
+                measurementMethod: .photo
+            )
+        }
+
+        let orderMap = Dictionary(
+            uniqueKeysWithValues: clothingType.requiredMeasurements.enumerated().map { ($0.element, $0.offset) }
+        )
+        return measurements.sorted { lhs, rhs in
+            let lhsOrder = orderMap[lhs.type] ?? Int.max
+            let rhsOrder = orderMap[rhs.type] ?? Int.max
+            if lhsOrder == rhsOrder {
+                return lhs.type.displayName < rhs.type.displayName
+            }
+            return lhsOrder < rhsOrder
+        }
+    }
+
     /// 저장 전 측정 결과 미리보기 준비
     ///
     /// - Parameter image: 미리보기에 표시할 처리 이미지
-    func prepareMeasurementPreview(with image: UIImage) {
+    func prepareMeasurementPreview(
+        with image: UIImage,
+        measurements: [CompletedMeasurement]? = nil,
+        keypoints: [MeasurementKeypoint] = []
+    ) {
         previewImage = image
-        draftMeasurements = orderedCompletedMeasurements(completedMeasurements)
+        draftMeasurements = orderedCompletedMeasurements(measurements ?? completedMeasurements)
+        draftKeypoints = keypoints
         showingMeasurementPreview = true
     }
 
@@ -177,6 +381,8 @@ extension MeasurementViewModelRefactored {
             showingMeasurementPreview = false
             previewImage = nil
             draftMeasurements.removeAll()
+            draftKeypoints.removeAll()
+            draftClassificationConfidence = nil
         }
     }
 
@@ -189,17 +395,17 @@ extension MeasurementViewModelRefactored {
 
     /// 현재 촬영 세션 데이터 정리
     func clearCurrentCaptureSession() {
-        let currentType = session.clothingType
-
         // 측정/세션 상태 초기화
         measurementPoints.removeAll()
         completedMeasurements.removeAll()
-        session = MeasurementSession(clothingType: currentType, state: .measuring)
-        currentMeasurementType = currentType?.requiredMeasurements.first
+        session = MeasurementSession(clothingType: lockedClothingType, state: .measuring)
+        currentMeasurementType = lockedClothingType?.requiredMeasurements.first
         measurementFilter.resetAll()
 
         // 미리보기 상태 초기화
         draftMeasurements.removeAll()
+        draftKeypoints.removeAll()
+        draftClassificationConfidence = nil
         previewImage = nil
         showingMeasurementPreview = false
 
@@ -336,4 +542,11 @@ extension MeasurementViewModelRefactored {
             return lhsOrder < rhsOrder
         }
     }
+}
+
+private struct AutomaticCaptureAnalysis {
+    let clothingType: ClothingType
+    let classificationConfidence: Double
+    let keypoints: [MeasurementKeypoint]
+    let measurements: [CompletedMeasurement]
 }

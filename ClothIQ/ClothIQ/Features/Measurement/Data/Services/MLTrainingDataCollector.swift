@@ -16,7 +16,8 @@
 //
 
 import Foundation
-import SwiftUI
+import UIKit
+import ImageIO
 import CoreML
 import Combine
 #if os(macOS)
@@ -45,6 +46,12 @@ struct TrainingSample: Codable {
 
     /// 신뢰도 점수
     let confidence: Float
+
+    /// 증강 데이터 여부. 실제 촬영 원본 완료 기준에는 포함하지 않습니다.
+    var isAugmented: Bool? = nil
+
+    /// 증강 데이터의 원본 샘플 ID
+    var sourceSampleID: String? = nil
 }
 
 /// 키포인트 레이블
@@ -79,14 +86,26 @@ final class MLTrainingDataCollector: ObservableObject {
     /// 이미지 디렉토리
     private let imagesDirectory: URL
 
+    /// 외부 학습 후 컴파일된 모델 배포 디렉토리
+    private let modelsDirectory: URL
+
     /// 레이블 파일
     private let labelsFile: URL
+
+    /// CreateML 내보내기 파일
+    private let createMLExportFile: URL
 
     /// 최대 샘플 수
     private let maxSamples = 10000
 
     /// 최소 샘플 수 (모델 학습용)
     private let minSamplesForTraining = 100
+
+    /// 타입별 모델 학습 최소 샘플 수
+    let minimumSamplesPerTypeForModelTraining = 20
+
+    /// 타입별 모델 학습 최소 사용자 보정 샘플 수
+    let minimumUserCorrectedSamplesPerTypeForModelTraining = 3
 
     // MARK: - Published Properties
 
@@ -102,6 +121,12 @@ final class MLTrainingDataCollector: ObservableObject {
     /// 사용자 수정 샘플 수
     @Published var userCorrectedSamples: Int = 0
 
+    /// 모델 학습에 사용할 수 있는 고유 원본 촬영 수
+    @Published var usableModelTrainingSamples: Int = 0
+
+    /// 모델 학습에 사용할 수 있는 고유 사용자 보정 원본 촬영 수
+    @Published var uniqueUserCorrectedModelTrainingSamples: Int = 0
+
     /// 평균 신뢰도
     @Published var averageConfidence: Float = 0.0
 
@@ -111,7 +136,9 @@ final class MLTrainingDataCollector: ObservableObject {
         documentsDirectory = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!
         trainingDataDirectory = documentsDirectory.appendingPathComponent("MLTrainingData")
         imagesDirectory = trainingDataDirectory.appendingPathComponent("images")
+        modelsDirectory = trainingDataDirectory.appendingPathComponent("Models")
         labelsFile = trainingDataDirectory.appendingPathComponent("labels.json")
+        createMLExportFile = trainingDataDirectory.appendingPathComponent("createml_data.json")
 
         setupDirectories()
         updateStatistics()
@@ -155,7 +182,7 @@ final class MLTrainingDataCollector: ObservableObject {
         // 키포인트를 레이블 형식으로 변환
         let labels = keypoints.map { keypoint in
             KeypointLabel(
-                identifier: getIdentifier(for: keypoint.type),
+                identifier: keypoint.type.trainingIdentifier,
                 x: Float(keypoint.position.x),
                 y: Float(keypoint.position.y),
                 visibility: keypoint.confidence > 0.5 ? 1.0 : 0.0
@@ -170,7 +197,9 @@ final class MLTrainingDataCollector: ObservableObject {
             keypoints: labels,
             timestamp: Date(),
             isUserCorrected: isUserCorrected,
-            confidence: calculateAverageConfidence(keypoints)
+            confidence: calculateAverageConfidence(keypoints),
+            isAugmented: nil,
+            sourceSampleID: nil
         )
 
         // 샘플 저장
@@ -186,6 +215,8 @@ final class MLTrainingDataCollector: ObservableObject {
         let samples = loadAllSamples()
 
         let totalSamples = samples.count
+        let usableModelTrainingSamples = Self.uniqueUsableModelTrainingImageCount(in: samples)
+        let uniqueUserCorrectedModelTrainingSamples = Self.uniqueUserCorrectedModelTrainingImageCount(in: samples)
         let userCorrectedSamples = samples.filter { $0.isUserCorrected }.count
 
         // 의류 타입별 통계
@@ -196,10 +227,165 @@ final class MLTrainingDataCollector: ObservableObject {
 
         return TrainingDataStatistics(
             totalSamples: totalSamples,
+            usableModelTrainingSamples: usableModelTrainingSamples,
+            uniqueUserCorrectedModelTrainingSamples: uniqueUserCorrectedModelTrainingSamples,
             userCorrectedSamples: userCorrectedSamples,
             clothingTypeDistribution: clothingTypeStats,
             averageConfidence: calculateAverageConfidence(from: samples),
-            isReadyForTraining: totalSamples >= minSamplesForTraining
+            isReadyForTraining: usableModelTrainingSamples >= minSamplesForTraining
+        )
+    }
+
+    /// 외부 모델 학습에 실제로 사용할 수 있는 샘플인지 확인
+    nonisolated static func isUsableForModelTraining(_ sample: TrainingSample) -> Bool {
+        guard !sample.isAugmentedSample,
+              !sample.clothingType.isEmpty,
+              !sample.keypoints.isEmpty,
+              let imageData = Data(base64Encoded: sample.imageData),
+              !imageData.isEmpty,
+              let imageSource = CGImageSourceCreateWithData(imageData as CFData, nil),
+              CGImageSourceGetCount(imageSource) > 0 else {
+            return false
+        }
+
+        return true
+    }
+
+    /// 모델 학습 완료 기준에 사용할 고유 촬영 원본 수입니다.
+    ///
+    /// 같은 촬영 이미지가 여러 측정 라벨로 저장될 수 있으므로 레코드 수가 아닌
+    /// 이미지 데이터 기준 고유 개수를 사용합니다.
+    nonisolated static func uniqueUsableModelTrainingImageCount(in samples: [TrainingSample]) -> Int {
+        Set(samples.filter(isUsableForModelTraining).map(\.imageData)).count
+    }
+
+    /// 모델 학습 완료 기준에 사용할 고유 사용자 보정 촬영 원본 수입니다.
+    nonisolated static func uniqueUserCorrectedModelTrainingImageCount(in samples: [TrainingSample]) -> Int {
+        Set(samples.filter { isUsableForModelTraining($0) && $0.isUserCorrected }.map(\.imageData)).count
+    }
+
+    /// 앱 내부 학습 대신 사용하는 외부 학습 워크플로우 안내
+    var trainingNotSupportedMessage: String {
+        "iOS 앱 내부에서는 TensorFlow/CreateML 학습을 실행하지 않습니다. 앱에서 데이터를 수집한 뒤 \(createMLExportPathDescription)로 내보내고, Mac에서 scripts/ml_training_workflow.sh --per-type를 실행해 의류 타입별 \(VisionMLModelLoader.genericModelResourceName)_<type>.mlmodelc 또는 공통 \(VisionMLModelLoader.genericModelResourceName).mlmodelc를 배포하세요."
+    }
+
+    /// 학습 데이터 루트 경로 설명
+    var trainingDataDirectoryDescription: String {
+        "Documents/MLTrainingData"
+    }
+
+    /// 원본 레이블 JSON 경로 설명
+    var labelsFileDescription: String {
+        "Documents/MLTrainingData/labels.json"
+    }
+
+    /// CreateML/Python 학습 입력 JSON 경로 설명
+    var createMLExportPathDescription: String {
+        "Documents/MLTrainingData/createml_data.json"
+    }
+
+    /// 앱 Documents에 배포할 컴파일된 모델 경로 설명
+    var documentsModelDeploymentPathDescription: String {
+        "Documents/MLTrainingData/Models/ClothingKeypointDetector.mlmodelc"
+    }
+
+    /// 앱 번들에 포함할 컴파일된 모델 경로 설명
+    var bundledModelDeploymentPathDescription: String {
+        "앱 번들/CoreML/ClothingKeypointDetector.mlmodelc"
+    }
+
+    /// Documents 모델 배포 상태
+    func getModelDeploymentStatus() -> MLTrainingModelDeploymentStatus {
+        getModelDeploymentStatus(for: nil)
+    }
+
+    /// Documents 모델 배포 상태
+    func getModelDeploymentStatus(for clothingType: ClothingType?) -> MLTrainingModelDeploymentStatus {
+        let resourceName = VisionMLModelLoader.modelResourceName(for: clothingType)
+        let compiledModelURL = modelsDirectory.appendingPathComponent("\(resourceName).mlmodelc")
+        let sourceModelURL = modelsDirectory.appendingPathComponent("\(resourceName).mlmodel")
+
+        return MLTrainingModelDeploymentStatus(
+            hasDocumentsCompiledModel: directoryExists(at: compiledModelURL),
+            hasDocumentsSourceModel: FileManager.default.fileExists(atPath: sourceModelURL.path),
+            compiledModelPathDescription: documentsModelDeploymentPathDescription(for: clothingType),
+            sourceModelPathDescription: "Documents/MLTrainingData/Models/\(resourceName).mlmodel"
+        )
+    }
+
+    func documentsModelDeploymentPathDescription(for clothingType: ClothingType?) -> String {
+        let resourceName = VisionMLModelLoader.modelResourceName(for: clothingType)
+        return "Documents/MLTrainingData/Models/\(resourceName).mlmodelc"
+    }
+
+    /// 의류 타입별 학습/prior 준비 상태
+    func getTypeTrainingReadiness() -> [MLTrainingTypeReadiness] {
+        let samples = loadAllSamples()
+        return ClothingType.allCases.map { clothingType in
+            typeTrainingReadiness(
+                for: clothingType,
+                samples: samples,
+                deploymentStatus: getModelDeploymentStatus(for: clothingType)
+            )
+        }
+    }
+
+    /// 전체 타입 기준 수집 부족분 요약
+    func getCollectionGapSummary() -> MLTrainingCollectionGapSummary {
+        MLTrainingCollectionGapSummary(readiness: getTypeTrainingReadiness())
+    }
+
+    /// 특정 의류 타입의 학습/prior 준비 상태
+    func getTypeTrainingReadiness(for clothingType: ClothingType) -> MLTrainingTypeReadiness {
+        typeTrainingReadiness(
+            for: clothingType,
+            samples: loadAllSamples(),
+            deploymentStatus: getModelDeploymentStatus(for: clothingType)
+        )
+    }
+
+    /// 수집된 촬영/수정 샘플 기반 의류 타입별 prior 키포인트
+    func learnedMeasurementPriorKeypoints(
+        for clothingType: ClothingType,
+        featurePoints: ClothingFeaturePoints,
+        minimumVisibleSamples: Int = ClothingTypeLearnedMeasurementPrior.minimumVisibleSamples
+    ) -> [KeypointType: MeasurementKeypoint] {
+        ClothingTypeLearnedMeasurementPrior.projectedKeypoints(
+            from: loadAllSamples(),
+            clothingType: clothingType,
+            featurePoints: featurePoints,
+            minimumVisibleSamples: minimumVisibleSamples
+        )
+    }
+
+    private func typeTrainingReadiness(
+        for clothingType: ClothingType,
+        samples: [TrainingSample],
+        deploymentStatus: MLTrainingModelDeploymentStatus
+    ) -> MLTrainingTypeReadiness {
+        let typeSamples = samples.filter { $0.clothingType == clothingType.rawValue }
+        let uniqueModelTrainingSampleCount = Self.uniqueUsableModelTrainingImageCount(in: typeSamples)
+        let uniqueUserCorrectedSampleCount = Self.uniqueUserCorrectedModelTrainingImageCount(in: typeSamples)
+        let learnedProfile = ClothingTypeLearnedMeasurementPrior.relativeProfile(
+            from: samples,
+            clothingType: clothingType
+        )
+        let expectedKeypoints = ClothingTypeMeasurementPrior.expectedKeypointTypes(for: clothingType)
+        let missingKeypoints = expectedKeypoints
+            .subtracting(Set(learnedProfile.keys))
+            .sorted { $0.displayName < $1.displayName }
+
+        return MLTrainingTypeReadiness(
+            clothingType: clothingType,
+            totalSamples: typeSamples.count,
+            modelTrainingSamples: uniqueModelTrainingSampleCount,
+            userCorrectedSamples: uniqueUserCorrectedSampleCount,
+            learnedKeypointCount: learnedProfile.count,
+            expectedKeypointCount: expectedKeypoints.count,
+            missingKeypointTypes: missingKeypoints,
+            minimumModelTrainingSamples: minimumSamplesPerTypeForModelTraining,
+            minimumUserCorrectedSamples: minimumUserCorrectedSamplesPerTypeForModelTraining,
+            modelDeploymentStatus: deploymentStatus
         )
     }
 
@@ -208,6 +394,9 @@ final class MLTrainingDataCollector: ObservableObject {
     /// - Returns: 내보낸 파일 URL
     func exportForCreateML() throws -> URL {
         print("🚀 [MLTraining] CreateML 형식으로 내보내기 시작")
+        print("  - 원본 레이블: \(labelsFileDescription)")
+        print("  - 내보내기 경로: \(createMLExportPathDescription)")
+        print("  - 모델 배포 경로: \(documentsModelDeploymentPathDescription)")
 
         let samples = loadAllSamples()
 
@@ -248,21 +437,21 @@ final class MLTrainingDataCollector: ObservableObject {
         }
 
         // JSON 파일로 저장
-        let outputURL = trainingDataDirectory.appendingPathComponent("createml_data.json")
         let jsonData = try JSONSerialization.data(withJSONObject: createMLData, options: .prettyPrinted)
-        try jsonData.write(to: outputURL)
+        try jsonData.write(to: createMLExportFile)
 
         print("✅ [MLTraining] CreateML 내보내기 완료")
         print("  - 샘플 수: \(samples.count)")
-        print("  - 출력 경로: \(outputURL.path)")
+        print("  - 출력 경로: \(createMLExportPathDescription)")
 
-        return outputURL
+        return createMLExportFile
     }
 
     /// 모델 학습 (CreateML 사용)
     @available(iOS 15.0, macOS 12.0, *)
     func trainModel() async throws -> MLModel {
         print("🎓 [MLTraining] 모델 학습 시작")
+        print("🚫 [MLTraining] \(trainingNotSupportedMessage)")
 
         // 학습 데이터 준비
         _ = try exportForCreateML()
@@ -342,6 +531,8 @@ final class MLTrainingDataCollector: ObservableObject {
         DispatchQueue.main.async {
             self.totalSamples = stats.totalSamples
             self.userCorrectedSamples = stats.userCorrectedSamples
+            self.usableModelTrainingSamples = stats.usableModelTrainingSamples
+            self.uniqueUserCorrectedModelTrainingSamples = stats.uniqueUserCorrectedModelTrainingSamples
             self.averageConfidence = stats.averageConfidence
         }
     }
@@ -357,6 +548,12 @@ final class MLTrainingDataCollector: ObservableObject {
             return ["neckline", "hem_center"]
         case .sleeveLength:
             return ["left_shoulder", "left_sleeve", "right_shoulder", "right_sleeve"]
+        case .armCircumference:
+            return ["left_sleeve", "right_sleeve", "left_shoulder", "right_shoulder"]
+        case .neckCircumference:
+            return ["neckline", "left_shoulder", "right_shoulder"]
+        case .cuffCircumference:
+            return ["left_sleeve", "right_sleeve"]
         case .waistCircumference:
             return ["waist_left", "waist_right"]
         case .hipCircumference:
@@ -367,8 +564,6 @@ final class MLTrainingDataCollector: ObservableObject {
             return ["hem_left", "hem_right"]
         case .thighCircumference:
             return ["crotch", "hip_left", "hip_right"]
-        default:
-            return []
         }
     }
 
@@ -379,9 +574,16 @@ final class MLTrainingDataCollector: ObservableObject {
         do {
             try FileManager.default.createDirectory(at: trainingDataDirectory, withIntermediateDirectories: true)
             try FileManager.default.createDirectory(at: imagesDirectory, withIntermediateDirectories: true)
+            try FileManager.default.createDirectory(at: modelsDirectory, withIntermediateDirectories: true)
         } catch {
             print("❌ [MLTraining] 디렉토리 생성 실패: \(error)")
         }
+    }
+
+    private func directoryExists(at url: URL) -> Bool {
+        var isDirectory: ObjCBool = false
+        let exists = FileManager.default.fileExists(atPath: url.path, isDirectory: &isDirectory)
+        return exists && isDirectory.boolValue
     }
 
     /// 샘플 저장
@@ -430,29 +632,6 @@ final class MLTrainingDataCollector: ObservableObject {
         }
     }
 
-    /// 키포인트 타입을 식별자로 변환
-    private func getIdentifier(for type: KeypointType) -> String {
-        switch type {
-        case .leftShoulder: return "left_shoulder"
-        case .rightShoulder: return "right_shoulder"
-        case .leftArmpit: return "left_armpit"
-        case .rightArmpit: return "right_armpit"
-        case .leftSleeveEnd: return "left_sleeve"
-        case .rightSleeveEnd: return "right_sleeve"
-        case .neckline: return "neckline"
-        case .hemCenter: return "hem_center"
-        case .chestLeft: return "chest_left"
-        case .chestRight: return "chest_right"
-        case .waistLeft: return "waist_left"
-        case .waistRight: return "waist_right"
-        case .hipLeft: return "hip_left"
-        case .hipRight: return "hip_right"
-        case .crotch: return "crotch"
-        case .leftHem: return "hem_left"
-        case .rightHem: return "hem_right"
-        }
-    }
-
     /// 평균 신뢰도 계산
     private func calculateAverageConfidence(_ keypoints: [MeasurementKeypoint]) -> Float {
         guard !keypoints.isEmpty else { return 0 }
@@ -468,40 +647,8 @@ final class MLTrainingDataCollector: ObservableObject {
     }
 }
 
-// MARK: - Supporting Types
-
-/// 학습 데이터 통계
-struct TrainingDataStatistics {
-    /// 총 샘플 수
-    let totalSamples: Int
-
-    /// 사용자 수정 샘플 수
-    let userCorrectedSamples: Int
-
-    /// 의류 타입별 분포
-    let clothingTypeDistribution: [String: Int]
-
-    /// 평균 신뢰도
-    let averageConfidence: Float
-
-    /// 학습 준비 상태
-    let isReadyForTraining: Bool
-}
-
-/// ML 학습 에러
-enum MLTrainingError: LocalizedError {
-    case insufficientData(current: Int, required: Int)
-    case trainingNotSupported
-    case exportFailed
-
-    var errorDescription: String? {
-        switch self {
-        case .insufficientData(let current, let required):
-            return "학습 데이터 부족 (현재: \(current), 필요: \(required))"
-        case .trainingNotSupported:
-            return "iOS 기기에서는 모델 학습이 지원되지 않습니다"
-        case .exportFailed:
-            return "데이터 내보내기 실패"
-        }
+private extension TrainingSample {
+    nonisolated var isAugmentedSample: Bool {
+        isAugmented == true || !(sourceSampleID?.isEmpty ?? true)
     }
 }

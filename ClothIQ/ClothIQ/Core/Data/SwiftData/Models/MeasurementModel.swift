@@ -15,6 +15,7 @@
 //
 
 import Foundation
+import CoreGraphics
 import SwiftData
 
 /// 측정값 데이터 모델
@@ -97,6 +98,9 @@ final class MeasurementModel {
     /// nil: 구버전 데이터 (기본값 photo 취급)
     var measurementMethodRaw: String?
 
+    /// 구버전 폴리라인 측정 경로 데이터 (신규 측정에서는 사용하지 않음)
+    var pathPointsJSON: String?
+
     /// 부모 의류 아이템
     ///
     /// 이 측정값이 속한 의류 아이템입니다.
@@ -115,6 +119,7 @@ final class MeasurementModel {
         startPointY: Double? = nil,
         endPointX: Double? = nil,
         endPointY: Double? = nil,
+        pathPointsJSON: String? = nil,
         measurementMethodRaw: String? = nil
     ) {
         self.id = id
@@ -127,6 +132,7 @@ final class MeasurementModel {
         self.startPointY = startPointY
         self.endPointX = endPointX
         self.endPointY = endPointY
+        self.pathPointsJSON = pathPointsJSON
         self.measurementMethodRaw = measurementMethodRaw
     }
 }
@@ -154,6 +160,16 @@ extension MeasurementModel {
     /// 측정 포인트가 있는지 확인
     var hasCoordinates: Bool {
         startPoint != nil && endPoint != nil
+    }
+
+    /// 구버전 폴리라인 측정 경로 (정규화 좌표)
+    var pathPoints: [CGPoint]? {
+        get {
+            Self.decodePathPoints(from: pathPointsJSON)
+        }
+        set {
+            pathPointsJSON = Self.encodePathPoints(newValue)
+        }
     }
 
     /// 측정 단위를 MeasurementUnit enum으로 반환
@@ -251,6 +267,37 @@ extension MeasurementModel {
         let displayUnit = targetUnit ?? (measurementUnit ?? .centimeter)
         let displayValue = convertedCalibratedValue(to: displayUnit)
         return String(format: "%.1f %@", displayValue, displayUnit.symbol)
+    }
+}
+
+private struct StoredMeasurementPathPoint: Codable {
+    let x: Double
+    let y: Double
+}
+
+private extension MeasurementModel {
+    static func encodePathPoints(_ points: [CGPoint]?) -> String? {
+        guard let points, points.count >= 2 else {
+            return nil
+        }
+
+        let stored = points.map {
+            StoredMeasurementPathPoint(x: Double($0.x), y: Double($0.y))
+        }
+        guard let data = try? JSONEncoder().encode(stored) else {
+            return nil
+        }
+        return String(data: data, encoding: .utf8)
+    }
+
+    static func decodePathPoints(from json: String?) -> [CGPoint]? {
+        guard let json, let data = json.data(using: .utf8),
+              let stored = try? JSONDecoder().decode([StoredMeasurementPathPoint].self, from: data),
+              stored.count >= 2 else {
+            return nil
+        }
+
+        return stored.map { CGPoint(x: $0.x, y: $0.y) }
     }
 }
 

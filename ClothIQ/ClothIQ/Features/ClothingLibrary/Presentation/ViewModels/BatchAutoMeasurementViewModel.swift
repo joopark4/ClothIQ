@@ -156,7 +156,7 @@ final class BatchAutoMeasurementViewModel: ObservableObject {
 
     /// 특정 측정 타입의 기존 값 조회
     func existingValue(for type: MeasurementType) -> Double? {
-        item.measurements.first { $0.type == type.rawValue }?.calibratedValue()
+        item.measurement(for: type)?.calibratedValue()
     }
 
     // MARK: - Private Methods
@@ -179,16 +179,13 @@ final class BatchAutoMeasurementViewModel: ObservableObject {
         // 방법 2: 종횡비 기반 분류
         let classifierResult = classifier.classify(image: image)
 
-        // 높은 신뢰도 결과 선택
-        let bestType: ClothingType
-        let bestConfidence: Float
-        if contourConfidence > Float(classifierResult.confidence) {
-            bestType = contourType
-            bestConfidence = contourConfidence
-        } else {
-            bestType = classifierResult.type
-            bestConfidence = Float(classifierResult.confidence)
-        }
+        let resolvedClassification = AutomaticClothingTypeResolver.resolve(
+            classifierResult: classifierResult,
+            contourType: contourType,
+            contourFeatures: features
+        )
+        let bestType = resolvedClassification.type
+        let bestConfidence = Float(resolvedClassification.confidence)
 
         detectedType = bestType
         detectedTypeConfidence = bestConfidence
@@ -223,8 +220,14 @@ final class BatchAutoMeasurementViewModel: ObservableObject {
         }
 
         let imageSize = item.processedImageSize ?? image.size
+        let depthImageSize = item.originalImageSize ?? image.size
+        let cropRect = item.cropRect
         let cameraIntrinsics = item.cameraIntrinsicsMatrix
         let cameraResolution = item.cameraResolutionSize
+        let featurePoints = autoService.extractForegroundFeaturePoints(
+            from: image,
+            clothingType: clothingType
+        )
 
         // 키포인트 기반 일괄 측정
         let results = autoService.performKeypointBasedMeasurement(
@@ -233,7 +236,10 @@ final class BatchAutoMeasurementViewModel: ObservableObject {
             depthMap: depthMap,
             imageSize: imageSize,
             cameraIntrinsics: cameraIntrinsics,
-            cameraResolution: cameraResolution
+            cameraResolution: cameraResolution,
+            depthImageSize: depthImageSize,
+            cropRect: cropRect,
+            featurePointsOverride: featurePoints
         )
 
         if results.isEmpty {
@@ -249,44 +255,32 @@ final class BatchAutoMeasurementViewModel: ObservableObject {
 
                 // saliency 키포인트로 측정 라인 생성
                 let keypointDetector = ClothingKeypointDetector()
+                let allowedMeasurementTypes = Set(clothingType.requiredMeasurements + clothingType.optionalMeasurements)
                 let lines = keypointDetector.generateMeasurementLines(
                     from: saliencyKeypoints,
                     clothingType: clothingType
-                )
+                ).filter { allowedMeasurementTypes.contains($0.type) }
 
                 if !lines.isEmpty {
                     // 각 라인에 대한 거리 측정
                     for line in lines {
-                        // 정규화 좌표 → 픽셀 좌표
-                        let pixelStart = CGPoint(
-                            x: line.start.x * imageSize.width,
-                            y: (1.0 - line.start.y) * imageSize.height
-                        )
-                        let pixelEnd = CGPoint(
-                            x: line.end.x * imageSize.width,
-                            y: (1.0 - line.end.y) * imageSize.height
-                        )
+                        let lineLength = hypot(line.end.x - line.start.x, line.end.y - line.start.y)
+                        guard lineLength > 0.005 else { continue }
 
-                        // 라인 길이 체크 (너무 짧으면 스킵)
-                        let lineLength = hypot(pixelEnd.x - pixelStart.x, pixelEnd.y - pixelStart.y)
-                        guard lineLength > 5 else { continue }
-
-                        if let result = PhotoMeasurementCalculator.calculateDistance(
-                            from: pixelStart,
-                            to: pixelEnd,
+                        if let result = autoService.measureDistance(
+                            from: line.start,
+                            to: line.end,
                             depthMap: depthMap,
                             imageSize: imageSize,
+                            confidence: 0.7,
                             cameraIntrinsics: cameraIntrinsics,
                             cameraResolution: cameraResolution,
                             measurementType: line.type,
-                            clothingType: clothingType
+                            clothingType: clothingType,
+                            depthImageSize: depthImageSize,
+                            cropRect: cropRect
                         ) {
-                            measurementResults[line.type] = AutoMeasurementResult(
-                                distance: result.distance,
-                                confidence: result.confidence * 0.7,  // saliency 기반이므로 신뢰도 감쇠
-                                point1: pixelStart,
-                                point2: pixelEnd
-                            )
+                            measurementResults[line.type] = result
                         }
                     }
                     print("  - Saliency 측정 결과: \(measurementResults.count)개")
@@ -303,7 +297,10 @@ final class BatchAutoMeasurementViewModel: ObservableObject {
                     depthMap: depthMap,
                     imageSize: imageSize,
                     cameraIntrinsics: cameraIntrinsics,
-                    cameraResolution: cameraResolution
+                    cameraResolution: cameraResolution,
+                    depthImageSize: depthImageSize,
+                    cropRect: cropRect,
+                    featurePointsOverride: featurePoints
                 )
                 measurementResults = fallbackResults
             }
@@ -339,29 +336,15 @@ final class BatchAutoMeasurementViewModel: ObservableObject {
             let normalizedStart = normalizeToSwiftUICoords(result.point1, imageSize: imageSize)
             let normalizedEnd = normalizeToSwiftUICoords(result.point2, imageSize: imageSize)
 
-            // 기존 측정값이 있으면 업데이트, 없으면 새로 생성
-            if let existing = item.measurements.first(where: { $0.type == type.rawValue }) {
-                existing.value = result.distance
-                existing.confidence = result.confidence
-                existing.measuredAt = Date()
-                existing.startPointX = Double(normalizedStart.x)
-                existing.startPointY = Double(normalizedStart.y)
-                existing.endPointX = Double(normalizedEnd.x)
-                existing.endPointY = Double(normalizedEnd.y)
-                existing.measurementMethodRaw = MeasurementMethod.photo.rawValue
-            } else {
-                let measurement = MeasurementModel(
-                    type: type.rawValue,
-                    value: result.distance,
-                    confidence: result.confidence,
-                    startPointX: Double(normalizedStart.x),
-                    startPointY: Double(normalizedStart.y),
-                    endPointX: Double(normalizedEnd.x),
-                    endPointY: Double(normalizedEnd.y),
-                    measurementMethodRaw: MeasurementMethod.photo.rawValue
-                )
-                item.measurements.append(measurement)
-            }
+            item.upsertMeasurement(
+                type: type,
+                value: result.distance,
+                confidence: result.confidence,
+                startPoint: normalizedStart,
+                endPoint: normalizedEnd,
+                method: .photo,
+                modelContext: modelContext
+            )
         }
 
         item.updatedAt = Date()

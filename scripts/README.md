@@ -70,6 +70,101 @@ ClothIQ 개발 워크플로우를 더욱 간소화하는 추가 자동화 스크
 
 ## 추가 스크립트 목록
 
+### 0. ML 학습/수집 워크플로우
+
+실제 촬영 데이터로 의류 타입별 키포인트 모델을 학습하고 Core ML 모델을 앱에 배포하는 흐름입니다.
+
+촬영 데이터 저장 위치와 수동 데이터 형식은 `DOC/ML_DATA_COLLECTION_GUIDE.md`를 먼저 확인하세요.
+
+앱 컨테이너 기준 핵심 저장 위치:
+
+- 촬영 원본: `Documents/clothing_images/*.jpg`
+- 깊이맵: `Documents/depth_maps/*.png`
+- 의류/측정 저장소: `Library/Application Support/default.store`
+- ML 학습 라벨: `Documents/MLTrainingData/labels.json`
+- 학습 모델 배포: `Documents/MLTrainingData/Models/*.mlmodelc`
+
+수동으로 외부 데이터를 넣을 때는 `tmp/manual-training-data/labels.json` 형태로 두고 `--data-path tmp/manual-training-data`를 지정합니다.
+
+**환경 준비/검증**:
+```bash
+cd ..
+scripts/setup_ml_training_env.sh --verify-only --smoke-conversion
+```
+
+처음 설정하거나 `.venv-ml`이 없는 경우:
+```bash
+cd ..
+scripts/setup_ml_training_env.sh
+```
+
+**기기 데이터 준비 상태 확인**:
+```bash
+cd ..
+bash scripts/ml_training_workflow.sh \
+  --pull-device-data \
+  --device-id <device-id> \
+  --pulled-data-path tmp/latest-device-training-data \
+  --readiness-only \
+  --skip-export
+```
+
+**기기 스냅샷 전체 추출 + SwiftData 복구 + 병합**:
+```bash
+cd ..
+bash scripts/pull_training_snapshot.sh \
+  --device-id <device-id> \
+  --output-dir tmp/latest-training-snapshot \
+  --completion-audit \
+  --collection-plan tmp/ml-training-collection-plan-current-audit.md \
+  --capture-checklist tmp/ml-training-required-capture-checklist.md
+```
+
+이 명령은 `Documents/MLTrainingData`, `Documents`, `Library/Application Support`를 함께 복사하고 `default.store`에서 복구 가능한 측정 라벨을 병합합니다. 앱에서 촬영/보정한 뒤에는 이 명령을 우선 사용하세요.
+
+**현재 보류 상태와 재개 순서**:
+
+실제 촬영 데이터 수집에는 시간이 걸리므로, 타입별 ML 학습/배포는 촬영 데이터가 기준을 충족할 때까지 보류합니다.
+
+새로 촬영한 뒤에는 아래 순서로 이어서 진행합니다.
+
+1. 기기 스냅샷 추출
+2. 완료 감사 실행
+3. 타입별 학습 실행
+4. `ClothingKeypointDetector_<type>.mlmodelc` 컴파일
+5. `Documents/MLTrainingData/Models/*.mlmodelc` 배포
+
+**완료 감사 및 수집 계획 생성**:
+```bash
+cd ..
+bash scripts/ml_training_workflow.sh \
+  --data-path tmp/latest-device-training-data \
+  --completion-audit \
+  --collection-plan tmp/ml-training-collection-plan-current.md \
+  --capture-checklist tmp/ml-training-required-capture-checklist.md \
+  --skip-export
+```
+
+**여러 기기 데이터 병합**:
+```bash
+cd ..
+python3 scripts/merge_training_data.py \
+  --input tmp/latest-device-training-data-ipad \
+  --input tmp/latest-device-training-data-iphone \
+  --output-dir tmp/latest-device-training-data-merged
+```
+
+**타입별 학습/컴파일/배포**:
+```bash
+cd ..
+bash scripts/ml_training_workflow.sh \
+  --data-path tmp/latest-device-training-data-merged \
+  --per-type \
+  --skip-export
+```
+
+학습 완료 기준은 의류 타입별 고유 실제 원본 촬영 20개 이상, 고유 사용자 보정 원본 촬영 3개 이상, 컴파일된 `ClothingKeypointDetector_<type>.mlmodelc` 생성입니다. 증강 샘플과 같은 이미지의 중복 라벨 레코드는 완료 기준의 실제 원본 촬영 수로 계산하지 않습니다.
+
 ### 1. `quick_deploy.sh` - 빠른 빌드 및 배포
 
 빌드 → 설치 → 실행 → 로그 스트리밍을 한 번에 수행합니다.
@@ -174,14 +269,14 @@ Timestamp: 20251106_230000
 
 ```bash
 # ClothIQ 개발 환경 변수
-export CLOTHIQ_DEVICE_ID="00008027-001A65243499802E"
-export CLOTHIQ_BUNDLE_ID="com.eunyeon.ClothIQ"
-export CLOTHIQ_PROJECT_DIR="/Users/cauca/Projects/ClothIQ-ClaudeCode/ClothIQ"
+export CLOTHIQ_DEVICE_ID="<device-id>"
+export CLOTHIQ_BUNDLE_ID="<bundle-id>"
+export CLOTHIQ_PROJECT_DIR="<repo>/ClothIQ"
 
 # 단축 명령어 (aliases)
-alias ciq-deploy='cd /Users/cauca/Projects/ClothIQ-ClaudeCode/scripts && ./quick_deploy.sh'
-alias ciq-logs='cd /Users/cauca/Projects/ClothIQ-ClaudeCode/scripts && ./collect_logs.sh'
-alias ciq-test='cd /Users/cauca/Projects/ClothIQ-ClaudeCode/scripts && ./automated_test.sh'
+alias ciq-deploy='cd <repo>/scripts && ./quick_deploy.sh'
+alias ciq-logs='cd <repo>/scripts && ./collect_logs.sh'
+alias ciq-test='cd <repo>/scripts && ./automated_test.sh'
 ```
 
 설정 후:

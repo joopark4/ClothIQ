@@ -18,11 +18,16 @@ struct PhotoMeasurementView: View {
     // MARK: - Properties
 
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
 
     @StateObject private var viewModel: PhotoMeasurementViewModel
     @State private var showingSaveConfirmation = false
     @State private var showingDepthMapWarning = false
     @State private var refreshID = UUID()  // 뷰 강제 업데이트용
+
+    private var isCompactWidth: Bool {
+        horizontalSizeClass == .compact
+    }
 
     // MARK: - Initialization
 
@@ -47,12 +52,24 @@ struct PhotoMeasurementView: View {
                     // Depth map이 있으면 첫 번째 측정 항목 자동 선택
                     print("📱 [PhotoMeasurementView] onAppear - Depth map 있음, 자동 선택 시작")
                     print("  - item.measurements.count: \(viewModel.item.measurements.count)")
+                    print("  - item.displayMeasurements.count: \(viewModel.item.displayMeasurements.count)")
                     print("  - selectedMeasurementType: \(viewModel.selectedMeasurementType?.displayName ?? "nil")")
+
+                    let removedDuplicates = viewModel.item.deduplicateMeasurements(modelContext: viewModel.modelContext)
+                    if removedDuplicates > 0 {
+                        viewModel.item.updatedAt = Date()
+                        do {
+                            try viewModel.modelContext.save()
+                            print("✅ [PhotoMeasurementView] 중복 측정값 \(removedDuplicates)개 정리 완료")
+                        } catch {
+                            print("❌ [PhotoMeasurementView] 중복 측정값 정리 저장 실패: \(error)")
+                        }
+                    }
 
                     if viewModel.selectedMeasurementType == nil {
                         DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
                             // 기존 측정값이 있으면 첫 번째 측정값 선택
-                            if let firstMeasurement = viewModel.item.measurements.first,
+                            if let firstMeasurement = viewModel.preferredInitialMeasurement,
                                let measurementType = MeasurementType(rawValue: firstMeasurement.type) {
                                 print("✅ [PhotoMeasurementView] 기존 측정값 자동 선택: \(measurementType.displayName)")
                                 print("  - startPoint: \(firstMeasurement.startPoint?.debugDescription ?? "nil")")
@@ -60,6 +77,7 @@ struct PhotoMeasurementView: View {
 
                                 viewModel.selectedMeasurementType = measurementType
                                 viewModel.loadAnchors(for: measurementType)
+                                viewModel.refreshDetectedAnchorsForCurrentSelectionIfNeeded()
 
                                 // 앵커 로드 후 확인
                                 print("  - measurementAnchors.count after loadAnchors: \(viewModel.measurementAnchors.count)")
@@ -75,6 +93,11 @@ struct PhotoMeasurementView: View {
                                 refreshID = UUID()
                             } else {
                                 print("⚠️ [PhotoMeasurementView] 자동 선택 실패 - 측정값도 없고 의류 타입도 없음")
+                            }
+
+                            if viewModel.detectedKeypoints.isEmpty {
+                                viewModel.showKeypoints = true
+                                viewModel.detectKeypoints()
                             }
                         }
                     }
@@ -151,7 +174,10 @@ struct PhotoMeasurementView: View {
                 },
                 onAnchorSelected: { id in
                     viewModel.activeAnchorID = id
-                }
+                },
+                clothingType: viewModel.item.clothingType,
+                keypoints: viewModel.detectedKeypoints,
+                showKeypoints: viewModel.showKeypoints
             )
             .id("\(refreshID)-\(viewModel.anchorsVersion)")
             .onChange(of: viewModel.measurementAnchors.count) { oldValue, newValue in
@@ -246,93 +272,227 @@ struct PhotoMeasurementView: View {
     /// 상단 툴바
     @ViewBuilder
     private var topToolbar: some View {
-        HStack {
-            // 닫기 버튼
-            Button {
-                closeView()
-            } label: {
-                HStack(spacing: 4) {
-                    Image(systemName: "xmark")
-                    Text("닫기")
-                }
-                .foregroundStyle(.white)
-                .padding(.horizontal, 12)
-                .padding(.vertical, 8)
-                .background(Color.black.opacity(0.6))
-                .clipShape(Capsule())
-            }
-
-            Spacer()
+        HStack(spacing: 8) {
+            closeButton
 
             Spacer()
 
             // 측정 항목 선택 또는 선택된 항목 표시
-            if viewModel.hasDepthMap {
-                if let selectedType = viewModel.selectedMeasurementType {
-                    // 선택된 측정 항목 표시
-                    HStack(spacing: 8) {
-                        Text(selectedType.displayName)
-                            .font(.headline)
-                            .foregroundStyle(.white)
-
-                        Button {
-                            viewModel.selectedMeasurementType = nil
-                            viewModel.resetPoints()
-                            refreshID = UUID()
-                        } label: {
-                            Image(systemName: "xmark.circle.fill")
-                                .foregroundStyle(.white.opacity(0.7))
-                        }
-                    }
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 8)
-                    .background(Color.blue)
-                    .clipShape(Capsule())
-                } else {
-                    // 측정 항목 선택
-                    MeasurementTypePickerView(
-                        clothingType: viewModel.item.clothingType ?? .shortSleeve,
-                        existingMeasurements: viewModel.existingMeasurementTypes,
-                        selectedType: Binding(
-                            get: {
-                                self.viewModel.selectedMeasurementType
-                            },
-                            set: { newValue in
-                                self.viewModel.selectedMeasurementType = newValue
-                                self.viewModel.activeAnchorID = nil
-                                if let type = newValue {
-                                    self.viewModel.loadAnchors(for: type)
-                                    // 뷰 강제 업데이트
-                                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                                        self.refreshID = UUID()
-                                    }
-                                } else {
-                                    self.viewModel.resetPoints()
-                                    self.refreshID = UUID()
-                                }
-                            }
-                        )
-                    )
-                }
-            } else {
-                Text("Depth Map 없음")
-                    .foregroundStyle(.red)
-            }
+            measurementSelectionControl
+                .layoutPriority(1)
 
             Spacer()
 
-            // 회전 버튼
-            Button {
-                viewModel.rotateImage()
-            } label: {
-                Image(systemName: "rotate.right")
+            if isCompactWidth {
+                compactToolsMenu
+            } else {
+                HStack(spacing: 8) {
+                    if viewModel.hasDepthMap {
+                        expandedMeasurementTools
+                    }
+                    rotateButton
+                }
+            }
+        }
+        .padding()
+    }
+
+    private var closeButton: some View {
+        Button {
+            closeView()
+        } label: {
+            if isCompactWidth {
+                Image(systemName: "xmark")
                     .foregroundStyle(.white)
                     .padding(12)
                     .background(Color.black.opacity(0.6))
                     .clipShape(Circle())
+            } else {
+                Label("닫기", systemImage: "xmark")
+                    .foregroundStyle(.white)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 8)
+                    .background(Color.black.opacity(0.6))
+                    .clipShape(Capsule())
             }
         }
-        .padding()
+        .accessibilityLabel("닫기")
+    }
+
+    @ViewBuilder
+    private var measurementSelectionControl: some View {
+        if viewModel.hasDepthMap {
+            if let selectedType = viewModel.selectedMeasurementType {
+                HStack(spacing: 8) {
+                    Text(selectedType.displayName)
+                        .font(.headline)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.8)
+                        .foregroundStyle(.white)
+
+                    Button {
+                        viewModel.selectedMeasurementType = nil
+                        viewModel.resetPoints()
+                        refreshID = UUID()
+                    } label: {
+                        Image(systemName: "xmark.circle.fill")
+                            .foregroundStyle(.white.opacity(0.7))
+                    }
+                    .accessibilityLabel("측정 항목 선택 해제")
+                }
+                .padding(.horizontal, isCompactWidth ? 12 : 16)
+                .padding(.vertical, 8)
+                .background(Color.blue)
+                .clipShape(Capsule())
+            } else {
+                MeasurementTypePickerView(
+                    clothingType: viewModel.item.clothingType ?? .shortSleeve,
+                    existingMeasurements: viewModel.existingMeasurementTypes,
+                    selectedType: Binding(
+                        get: {
+                            self.viewModel.selectedMeasurementType
+                        },
+                        set: { newValue in
+                            self.viewModel.selectedMeasurementType = newValue
+                            self.viewModel.activeAnchorID = nil
+                            if let type = newValue {
+                                self.viewModel.loadAnchors(for: type)
+                                self.viewModel.refreshDetectedAnchorsForCurrentSelectionIfNeeded()
+                                // 뷰 강제 업데이트
+                                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                                    self.refreshID = UUID()
+                                }
+                            } else {
+                                self.viewModel.resetPoints()
+                                self.refreshID = UUID()
+                            }
+                        }
+                    )
+                )
+            }
+        } else {
+            Text("Depth Map 없음")
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(.red)
+                .padding(.horizontal, 12)
+                .padding(.vertical, 8)
+                .background(Color.black.opacity(0.6))
+                .clipShape(Capsule())
+        }
+    }
+
+    @ViewBuilder
+    private var expandedMeasurementTools: some View {
+        if viewModel.isMLProcessing {
+            ProgressView()
+                .tint(.white)
+                .frame(width: 36, height: 36)
+                .background(Color.black.opacity(0.6))
+                .clipShape(Circle())
+        }
+
+        keypointButton
+        autoMeasurementButton
+        mlModeButton
+    }
+
+    private var compactToolsMenu: some View {
+        Menu {
+            if viewModel.hasDepthMap {
+                Button {
+                    viewModel.toggleKeypointDisplay()
+                } label: {
+                    Label(
+                        viewModel.showKeypoints ? "키포인트 숨기기" : "키포인트 보기",
+                        systemImage: viewModel.showKeypoints ? "point.3.connected.trianglepath.dotted" : "point.3.filled.connected.trianglepath.dotted"
+                    )
+                }
+
+                Button {
+                    viewModel.toggleAutoMeasurementMode()
+                } label: {
+                    Label(
+                        viewModel.isAutoMeasurementMode ? "자동 측정 끄기" : "자동 측정 켜기",
+                        systemImage: viewModel.isAutoMeasurementMode ? "wand.and.stars.inverse" : "wand.and.stars"
+                    )
+                }
+
+                Button {
+                    viewModel.toggleMLMode()
+                } label: {
+                    Label(
+                        viewModel.isMLModeEnabled ? "ML 끄기" : "ML 켜기",
+                        systemImage: "cpu"
+                    )
+                }
+            }
+
+            Button {
+                viewModel.rotateImage()
+            } label: {
+                Label("회전", systemImage: "rotate.right")
+            }
+        } label: {
+            Image(systemName: "ellipsis.circle")
+                .foregroundStyle(.white)
+                .padding(12)
+                .background(Color.black.opacity(0.6))
+                .clipShape(Circle())
+        }
+        .accessibilityLabel("측정 도구")
+    }
+
+    private var keypointButton: some View {
+        Button {
+            viewModel.toggleKeypointDisplay()
+        } label: {
+            Image(systemName: viewModel.showKeypoints ? "point.3.connected.trianglepath.dotted" : "point.3.filled.connected.trianglepath.dotted")
+                .foregroundStyle(viewModel.showKeypoints ? .yellow : .white)
+                .padding(12)
+                .background(Color.black.opacity(0.6))
+                .clipShape(Circle())
+        }
+        .accessibilityLabel(viewModel.showKeypoints ? "키포인트 숨기기" : "키포인트 보기")
+    }
+
+    private var autoMeasurementButton: some View {
+        Button {
+            viewModel.toggleAutoMeasurementMode()
+        } label: {
+            Image(systemName: viewModel.isAutoMeasurementMode ? "wand.and.stars.inverse" : "wand.and.stars")
+                .foregroundStyle(viewModel.isAutoMeasurementMode ? .yellow : .white)
+                .padding(12)
+                .background(Color.black.opacity(0.6))
+                .clipShape(Circle())
+        }
+        .accessibilityLabel(viewModel.isAutoMeasurementMode ? "자동 측정 끄기" : "자동 측정 켜기")
+    }
+
+    private var mlModeButton: some View {
+        Button {
+            viewModel.toggleMLMode()
+        } label: {
+            Text("ML")
+                .font(.caption.bold())
+                .foregroundStyle(viewModel.isMLModeEnabled ? .black : .white)
+                .frame(width: 36, height: 36)
+                .background(viewModel.isMLModeEnabled ? Color.yellow : Color.black.opacity(0.6))
+                .clipShape(Circle())
+        }
+        .accessibilityLabel(viewModel.isMLModeEnabled ? "ML 끄기" : "ML 켜기")
+    }
+
+    private var rotateButton: some View {
+        Button {
+            viewModel.rotateImage()
+        } label: {
+            Image(systemName: "rotate.right")
+                .foregroundStyle(.white)
+                .padding(12)
+                .background(Color.black.opacity(0.6))
+                .clipShape(Circle())
+        }
+        .accessibilityLabel("회전")
     }
 
     /// 하단 컨트롤
@@ -340,18 +500,7 @@ struct PhotoMeasurementView: View {
     private var bottomControls: some View {
         if viewModel.selectedMeasurementType != nil {
             HStack(spacing: 16) {
-                // 측정값 표시
-                if let result = viewModel.currentMeasurementResult {
-                    Text("\(String(format: "%.1f", result.distance)) cm")
-                        .font(.title2)
-                        .fontWeight(.bold)
-                        .foregroundStyle(.blue)
-                } else if let storedValue = viewModel.selectedMeasurementType.flatMap({ viewModel.existingMeasurementValue(for: $0) }) {
-                    Text("\(String(format: "%.1f", storedValue)) cm")
-                        .font(.title2)
-                        .fontWeight(.semibold)
-                        .foregroundStyle(.secondary)
-                }
+                measurementSummary
 
                 Spacer()
 
@@ -386,6 +535,38 @@ struct PhotoMeasurementView: View {
             }
             .padding()
             .background(Color(.systemBackground))
+        }
+    }
+
+    @ViewBuilder
+    private var measurementSummary: some View {
+        if let result = viewModel.currentMeasurementResult {
+            measurementValue(
+                result.distance,
+                confidence: result.confidence,
+                isCurrentResult: true
+            )
+        } else if let storedMeasurement = viewModel.selectedMeasurementType.flatMap({ viewModel.existingMeasurement(for: $0) }) {
+            measurementValue(
+                storedMeasurement.value,
+                confidence: storedMeasurement.confidence,
+                isCurrentResult: false
+            )
+        }
+    }
+
+    private func measurementValue(
+        _ value: Double,
+        confidence: Double,
+        isCurrentResult: Bool
+    ) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text("\(String(format: "%.1f", value)) cm")
+                .font(.title2)
+                .fontWeight(isCurrentResult ? .bold : .semibold)
+                .foregroundStyle(isCurrentResult ? .blue : .secondary)
+
+            ConfidenceIndicator(confidence: confidence)
         }
     }
 

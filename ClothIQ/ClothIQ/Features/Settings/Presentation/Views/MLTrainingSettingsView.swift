@@ -16,6 +16,8 @@ struct MLTrainingSettingsView: View {
     @State private var exportProgress: Double = 0.0
     @State private var isExporting = false
     @State private var exportMessage: String = ""
+    @State private var modelStatus = VisionMLModelLoader.shared.currentModelStatus()
+    @State private var deploymentStatus = MLTrainingDataCollector.shared.getModelDeploymentStatus()
 
     var body: some View {
         List {
@@ -62,7 +64,7 @@ struct MLTrainingSettingsView: View {
                 HStack {
                     Label("저장 위치", systemImage: "folder.fill")
                     Spacer()
-                    Text("Documents/MLTrainingData")
+                    Text(collector.trainingDataDirectoryDescription)
                         .font(.caption)
                         .foregroundColor(.secondary)
                 }
@@ -79,6 +81,43 @@ struct MLTrainingSettingsView: View {
                 }
             } header: {
                 Text("데이터 통계")
+            }
+
+            // MARK: - 수집 기준
+            Section {
+                HStack {
+                    Label("타입별 원본", systemImage: "camera.fill")
+                    Spacer()
+                    Text("\(collector.minimumSamplesPerTypeForModelTraining)장")
+                        .foregroundColor(.secondary)
+                }
+
+                HStack {
+                    Label("타입별 보정", systemImage: "hand.draw.fill")
+                    Spacer()
+                    Text("\(collector.minimumUserCorrectedSamplesPerTypeForModelTraining)장")
+                        .foregroundColor(.secondary)
+                }
+
+                HStack {
+                    Label("학습 라벨", systemImage: "doc.text.fill")
+                    Spacer()
+                    Text(collector.labelsFileDescription)
+                        .font(.caption)
+                        .multilineTextAlignment(.trailing)
+                        .foregroundColor(.secondary)
+                }
+
+                HStack {
+                    Label("촬영 원본", systemImage: "photo.fill")
+                    Spacer()
+                    Text("Documents/clothing_images/*.jpg")
+                        .font(.caption)
+                        .multilineTextAlignment(.trailing)
+                        .foregroundColor(.secondary)
+                }
+            } header: {
+                Text("학습 수집 기준")
             }
 
             // MARK: - 데이터 관리
@@ -129,22 +168,40 @@ struct MLTrainingSettingsView: View {
             // MARK: - 모델 정보
             Section {
                 HStack {
-                    Label("현재 모델 버전", systemImage: "cube.box.fill")
+                    Label("모델 로드 상태", systemImage: "cube.box.fill")
                     Spacer()
-                    Text("v1.0.0")
+                    Text(modelStatus.isLoaded ? "로드됨" : "미탑재")
+                        .foregroundColor(modelStatus.isLoaded ? .green : .orange)
+                }
+
+                HStack {
+                    Label("로드 경로", systemImage: "location.fill")
+                    Spacer()
+                    Text(modelStatus.sourceDescription)
+                        .font(.caption)
+                        .multilineTextAlignment(.trailing)
                         .foregroundColor(.secondary)
                 }
 
                 HStack {
-                    Label("마지막 학습", systemImage: "clock.fill")
+                    Label("Documents 배포", systemImage: "externaldrive.fill")
                     Spacer()
-                    Text("2025.11.10")
+                    Text(deploymentStatus.hasDocumentsCompiledModel ? "있음" : "없음")
+                        .foregroundColor(deploymentStatus.hasDocumentsCompiledModel ? .green : .secondary)
+                }
+
+                HStack {
+                    Label("배포 경로", systemImage: "folder.badge.gearshape")
+                    Spacer()
+                    Text(collector.documentsModelDeploymentPathDescription)
+                        .font(.caption)
+                        .multilineTextAlignment(.trailing)
                         .foregroundColor(.secondary)
                 }
 
-                Button(action: checkForModelUpdates) {
+                Button(action: refreshModelStatus) {
                     HStack {
-                        Label("모델 업데이트 확인", systemImage: "arrow.triangle.2.circlepath")
+                        Label("모델 로드 상태 새로고침", systemImage: "arrow.triangle.2.circlepath")
                             .foregroundColor(.blue)
                         Spacer()
                     }
@@ -163,10 +220,16 @@ struct MLTrainingSettingsView: View {
                 #endif
             } header: {
                 Text("모델 정보")
+            } footer: {
+                Text(collector.trainingNotSupportedMessage)
+                    .font(.caption)
             }
         }
         .navigationTitle("ML 학습 설정")
         .navigationBarTitleDisplayMode(.inline)
+        .onAppear {
+            refreshModelStatus()
+        }
         .sheet(isPresented: $showingStatisticsView) {
             MLTrainingStatisticsView()
         }
@@ -221,9 +284,10 @@ struct MLTrainingSettingsView: View {
         }
     }
 
-    private func checkForModelUpdates() {
-        // TODO: 서버에서 모델 업데이트 확인
-        exportMessage = "최신 버전을 사용 중입니다"
+    private func refreshModelStatus() {
+        modelStatus = VisionMLModelLoader.shared.reloadCustomModel()
+        deploymentStatus = collector.getModelDeploymentStatus()
+        exportMessage = modelStatus.message
 
         Task {
             try? await Task.sleep(nanoseconds: 3_000_000_000)

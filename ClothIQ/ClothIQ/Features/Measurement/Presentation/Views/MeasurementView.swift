@@ -17,6 +17,7 @@
 
 import ARKit
 import SwiftUI
+import SwiftData
 
 private final class PixelBufferBox: @unchecked Sendable {
     let value: CVPixelBuffer
@@ -58,7 +59,7 @@ struct MeasurementView: View {
     private let segmentationService = ForegroundSegmentationService()
     private let segmentationQueue = DispatchQueue(label: "com.clothiq.segmentation", qos: .userInitiated)
 
-    init(clothingType: ClothingType? = .shortSleeve) {
+    init(clothingType: ClothingType? = nil) {
         // ModelContext를 나중에 설정하기 위해 일단 nil로 초기화
         _viewModel = StateObject(wrappedValue: MeasurementViewModelRefactored(
             clothingType: clothingType,
@@ -194,19 +195,6 @@ struct MeasurementView: View {
                     .padding(.horizontal)
                     .padding(.top, 20)
 
-                InCameraMeasurementPicker(
-                    clothingType: viewModel.session.clothingType ?? .shortSleeve,
-                    onClothingTypeChanged: { type in
-                        viewModel.setClothingType(type)
-                    },
-                    onMeasurementTypeSelected: { type in
-                        viewModel.startMeasurement(for: type)
-                    },
-                    activeMeasurementType: $viewModel.currentMeasurementType,
-                    completedTypes: viewModel.completedMeasurements.map { $0.type }
-                )
-                .padding(.top, 8)
-
                 Spacer()
 
                 // 측정 포인트 관리 버튼 (적용/취소)
@@ -236,7 +224,9 @@ struct MeasurementView: View {
                 MeasurementPreviewView(
                     image: previewImage,
                     clothingType: clothingType,
+                    classificationConfidence: viewModel.draftClassificationConfidence,
                     measurements: viewModel.draftMeasurements,
+                    keypoints: viewModel.draftKeypoints,
                     originalImageSize: viewModel.capturedOriginalImageSize,
                     cropRect: viewModel.capturedCropRect,
                     processedImageSize: viewModel.capturedProcessedImageSize ?? previewImage.size,
