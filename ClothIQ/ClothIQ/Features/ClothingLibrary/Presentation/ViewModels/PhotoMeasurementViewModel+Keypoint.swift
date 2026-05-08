@@ -193,7 +193,6 @@ extension PhotoMeasurementViewModel {
         guard
             let clothingType = item.clothingType,
             !detectedKeypoints.isEmpty,
-            measurementAnchors.isEmpty,
             shouldPreferDetectedBottomAnchors(clothingType: clothingType)
         else {
             return

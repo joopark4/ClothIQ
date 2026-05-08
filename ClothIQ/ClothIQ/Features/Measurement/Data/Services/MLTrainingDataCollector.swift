@@ -20,6 +20,7 @@ import UIKit
 import ImageIO
 import CoreML
 import Combine
+import CryptoKit
 #if os(macOS)
 import CreateML
 #endif
@@ -215,8 +216,9 @@ final class MLTrainingDataCollector: ObservableObject {
         let samples = loadAllSamples()
 
         let totalSamples = samples.count
-        let usableModelTrainingSamples = Self.uniqueUsableModelTrainingImageCount(in: samples)
-        let uniqueUserCorrectedModelTrainingSamples = Self.uniqueUserCorrectedModelTrainingImageCount(in: samples)
+        let uniqueCounts = Self.uniqueModelTrainingImageCounts(in: samples)
+        let usableModelTrainingSamples = uniqueCounts.usable
+        let uniqueUserCorrectedModelTrainingSamples = uniqueCounts.userCorrected
         let userCorrectedSamples = samples.filter { $0.isUserCorrected }.count
 
         // 의류 타입별 통계
@@ -238,17 +240,8 @@ final class MLTrainingDataCollector: ObservableObject {
 
     /// 외부 모델 학습에 실제로 사용할 수 있는 샘플인지 확인
     nonisolated static func isUsableForModelTraining(_ sample: TrainingSample) -> Bool {
-        guard !sample.isAugmentedSample,
-              !sample.clothingType.isEmpty,
-              !sample.keypoints.isEmpty,
-              let imageData = Data(base64Encoded: sample.imageData),
-              !imageData.isEmpty,
-              let imageSource = CGImageSourceCreateWithData(imageData as CFData, nil),
-              CGImageSourceGetCount(imageSource) > 0 else {
-            return false
-        }
-
-        return true
+        var cache = TrainingSampleUsabilityCache()
+        return cache.usableImageHash(for: sample) != nil
     }
 
     /// 모델 학습 완료 기준에 사용할 고유 촬영 원본 수입니다.
@@ -256,12 +249,35 @@ final class MLTrainingDataCollector: ObservableObject {
     /// 같은 촬영 이미지가 여러 측정 라벨로 저장될 수 있으므로 레코드 수가 아닌
     /// 이미지 데이터 기준 고유 개수를 사용합니다.
     nonisolated static func uniqueUsableModelTrainingImageCount(in samples: [TrainingSample]) -> Int {
-        Set(samples.filter(isUsableForModelTraining).map(\.imageData)).count
+        uniqueModelTrainingImageCounts(in: samples).usable
     }
 
     /// 모델 학습 완료 기준에 사용할 고유 사용자 보정 촬영 원본 수입니다.
     nonisolated static func uniqueUserCorrectedModelTrainingImageCount(in samples: [TrainingSample]) -> Int {
-        Set(samples.filter { isUsableForModelTraining($0) && $0.isUserCorrected }.map(\.imageData)).count
+        uniqueModelTrainingImageCounts(in: samples).userCorrected
+    }
+
+    /// 모델 학습 완료 기준에 사용할 고유 원본/사용자 보정 원본 수입니다.
+    nonisolated private static func uniqueModelTrainingImageCounts(
+        in samples: [TrainingSample]
+    ) -> (usable: Int, userCorrected: Int) {
+        var cache = TrainingSampleUsabilityCache()
+        var usableImageHashes = Set<String>()
+        var userCorrectedImageHashes = Set<String>()
+
+        for sample in samples {
+            guard let imageHash = cache.usableImageHash(for: sample) else {
+                continue
+            }
+
+            usableImageHashes.insert(imageHash)
+
+            if sample.isUserCorrected {
+                userCorrectedImageHashes.insert(imageHash)
+            }
+        }
+
+        return (usableImageHashes.count, userCorrectedImageHashes.count)
     }
 
     /// 앱 내부 학습 대신 사용하는 외부 학습 워크플로우 안내
@@ -364,8 +380,9 @@ final class MLTrainingDataCollector: ObservableObject {
         deploymentStatus: MLTrainingModelDeploymentStatus
     ) -> MLTrainingTypeReadiness {
         let typeSamples = samples.filter { $0.clothingType == clothingType.rawValue }
-        let uniqueModelTrainingSampleCount = Self.uniqueUsableModelTrainingImageCount(in: typeSamples)
-        let uniqueUserCorrectedSampleCount = Self.uniqueUserCorrectedModelTrainingImageCount(in: typeSamples)
+        let uniqueCounts = Self.uniqueModelTrainingImageCounts(in: typeSamples)
+        let uniqueModelTrainingSampleCount = uniqueCounts.usable
+        let uniqueUserCorrectedSampleCount = uniqueCounts.userCorrected
         let learnedProfile = ClothingTypeLearnedMeasurementPrior.relativeProfile(
             from: samples,
             clothingType: clothingType
@@ -650,5 +667,59 @@ final class MLTrainingDataCollector: ObservableObject {
 private extension TrainingSample {
     nonisolated var isAugmentedSample: Bool {
         isAugmented == true || !(sourceSampleID?.isEmpty ?? true)
+    }
+}
+
+private enum TrainingSampleUsability {
+    case usable(imageHash: String)
+    case unusable
+}
+
+private struct TrainingSampleUsabilityCache {
+    private var validationBySampleID: [UUID: TrainingSampleUsability]
+
+    nonisolated init() {
+        validationBySampleID = [:]
+    }
+
+    nonisolated mutating func usableImageHash(for sample: TrainingSample) -> String? {
+        if let cached = validationBySampleID[sample.id] {
+            return cached.imageHash
+        }
+
+        let validation = Self.validate(sample)
+        validationBySampleID[sample.id] = validation
+        return validation.imageHash
+    }
+
+    nonisolated private static func validate(_ sample: TrainingSample) -> TrainingSampleUsability {
+        guard !sample.isAugmentedSample,
+              !sample.clothingType.isEmpty,
+              !sample.keypoints.isEmpty,
+              let imageData = Data(base64Encoded: sample.imageData),
+              !imageData.isEmpty,
+              let imageSource = CGImageSourceCreateWithData(imageData as CFData, nil),
+              CGImageSourceGetCount(imageSource) > 0 else {
+            return .unusable
+        }
+
+        return .usable(imageHash: sha256Hex(for: imageData))
+    }
+
+    nonisolated private static func sha256Hex(for data: Data) -> String {
+        SHA256.hash(data: data)
+            .map { String(format: "%02x", $0) }
+            .joined()
+    }
+}
+
+private extension TrainingSampleUsability {
+    nonisolated var imageHash: String? {
+        switch self {
+        case .usable(let imageHash):
+            return imageHash
+        case .unusable:
+            return nil
+        }
     }
 }

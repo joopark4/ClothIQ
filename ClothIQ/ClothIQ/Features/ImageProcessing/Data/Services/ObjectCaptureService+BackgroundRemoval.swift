@@ -14,6 +14,9 @@ import CoreImage
 import CoreVideo
 import CoreGraphics
 
+private let colorThresholdFilterName = "CIColorThreshold"
+private let colorThresholdInputKey = "inputThreshold"
+
 extension ObjectCaptureService {
 
     // MARK: - Background Removal
@@ -617,6 +620,39 @@ extension ObjectCaptureService {
     func hardenMaskForCompositing(
         _ mask: CGImage,
         threshold: UInt8 = Constants.compositingMaskThreshold
+    ) -> CGImage? {
+        if let hardenedMask = hardenMaskForCompositingWithCoreImage(mask, threshold: threshold) {
+            return hardenedMask
+        }
+
+        print("⚠️ [BackgroundRemoval] Core Image 마스크 이진화 실패, CPU fallback 사용")
+        return hardenMaskForCompositingCPUFallback(mask, threshold: threshold)
+    }
+
+    private func hardenMaskForCompositingWithCoreImage(
+        _ mask: CGImage,
+        threshold: UInt8
+    ) -> CGImage? {
+        guard let thresholdFilter = CIFilter(name: colorThresholdFilterName) else {
+            return nil
+        }
+
+        let inputImage = CIImage(cgImage: mask)
+        let normalizedThreshold = CGFloat(threshold) / 255.0
+        thresholdFilter.setValue(inputImage, forKey: kCIInputImageKey)
+        thresholdFilter.setValue(normalizedThreshold, forKey: colorThresholdInputKey)
+
+        guard let outputImage = thresholdFilter.outputImage?.cropped(to: inputImage.extent) else {
+            return nil
+        }
+
+        let context = CIContext(options: [.useSoftwareRenderer: false])
+        return context.createCGImage(outputImage, from: outputImage.extent)
+    }
+
+    private func hardenMaskForCompositingCPUFallback(
+        _ mask: CGImage,
+        threshold: UInt8
     ) -> CGImage? {
         let width = mask.width
         let height = mask.height

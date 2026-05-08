@@ -81,6 +81,7 @@ COCOA_EPOCH = datetime(2001, 1, 1, tzinfo=timezone.utc)
 @dataclass(frozen=True)
 class MeasurementRow:
     item_pk: int
+    measurement_pk: int
     clothing_type: str
     image_path: str
     measured_at: float | None
@@ -142,6 +143,7 @@ def load_rows(store: Path) -> list[MeasurementRow]:
     query = """
         select
             i.Z_PK,
+            m.Z_PK,
             i.ZTYPE,
             i.ZIMAGEPATH,
             m.ZMEASUREDAT,
@@ -160,7 +162,7 @@ def load_rows(store: Path) -> list[MeasurementRow]:
           and m.ZSTARTPOINTY is not null
           and m.ZENDPOINTX is not null
           and m.ZENDPOINTY is not null
-        order by i.Z_PK, m.ZTYPE
+        order by i.Z_PK, m.ZTYPE, m.ZMEASUREDAT desc, m.Z_PK desc
     """
     with sqlite3.connect(store) as connection:
         rows = connection.execute(query).fetchall()
@@ -168,15 +170,16 @@ def load_rows(store: Path) -> list[MeasurementRow]:
     return [
         MeasurementRow(
             item_pk=int(row[0]),
-            clothing_type=str(row[1]),
-            image_path=str(row[2]),
-            measured_at=float(row[3]) if row[3] is not None else None,
-            confidence=float(row[4]),
-            measurement_type=str(row[5]),
-            start_x=float(row[6]),
-            start_y=float(row[7]),
-            end_x=float(row[8]),
-            end_y=float(row[9]),
+            measurement_pk=int(row[1]),
+            clothing_type=str(row[2]),
+            image_path=str(row[3]),
+            measured_at=float(row[4]) if row[4] is not None else None,
+            confidence=float(row[5]),
+            measurement_type=str(row[6]),
+            start_x=float(row[7]),
+            start_y=float(row[8]),
+            end_x=float(row[9]),
+            end_y=float(row[10]),
         )
         for row in rows
     ]
@@ -316,9 +319,24 @@ def measurement_to_keypoints(row: MeasurementRow) -> list[KeypointCandidate]:
     return []
 
 
+def measurement_row_preference(row: MeasurementRow) -> tuple[float, float, int]:
+    measured_at = row.measured_at if row.measured_at is not None else float("-inf")
+    return (measured_at, clamp_unit(row.confidence), row.measurement_pk)
+
+
+def preferred_measurement_rows(rows: list[MeasurementRow]) -> list[MeasurementRow]:
+    best_by_type: dict[str, MeasurementRow] = {}
+    for row in rows:
+        existing = best_by_type.get(row.measurement_type)
+        if existing is None or measurement_row_preference(row) > measurement_row_preference(existing):
+            best_by_type[row.measurement_type] = row
+
+    return list(best_by_type.values())
+
+
 def merged_keypoints(rows: list[MeasurementRow]) -> list[dict[str, float | str]]:
     best_by_identifier: dict[str, KeypointCandidate] = {}
-    for row in rows:
+    for row in preferred_measurement_rows(rows):
         for keypoint in measurement_to_keypoints(row):
             existing = best_by_identifier.get(keypoint.identifier)
             if existing is None:
@@ -375,20 +393,22 @@ def recovered_samples(store: Path, documents_dir: Path, rows: list[MeasurementRo
             print(f"[WARN] 이미지 파일을 찾을 수 없어 건너뜀: {first.image_path}", file=sys.stderr)
             continue
 
-        keypoints = merged_keypoints(item_rows)
+        preferred_rows = preferred_measurement_rows(item_rows)
+        keypoints = merged_keypoints(preferred_rows)
         visible_count = sum(1 for keypoint in keypoints if keypoint["visibility"] >= 0.5)
         if visible_count < min_keypoints:
             print(f"[WARN] 키포인트 부족으로 건너뜀: item {item_pk}", file=sys.stderr)
             continue
 
-        average_confidence = sum(row.confidence for row in item_rows) / len(item_rows)
+        average_confidence = sum(row.confidence for row in preferred_rows) / len(preferred_rows)
+        latest_row = max(preferred_rows, key=measurement_row_preference)
         samples.append(
             {
                 "id": stable_sample_id(first.clothing_type, encoded_image),
                 "imageData": encoded_image,
                 "clothingType": first.clothing_type,
                 "keypoints": keypoints,
-                "timestamp": swift_timestamp_to_iso(first.measured_at),
+                "timestamp": swift_timestamp_to_iso(latest_row.measured_at),
                 "isUserCorrected": False,
                 "confidence": round(clamp_unit(average_confidence), 7),
             }

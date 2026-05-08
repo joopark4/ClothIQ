@@ -191,11 +191,7 @@ extension ClothingItemModel {
     /// - Parameter measurementType: 조회할 측정 타입
     /// - Returns: 해당 타입의 측정값, 없으면 nil
     func measurement(for measurementType: MeasurementType) -> MeasurementModel? {
-        measurements
-            .filter { $0.type == measurementType.rawValue }
-            .max { lhs, rhs in
-                rhs.isPreferred(over: lhs)
-            }
+        MeasurementSelectionService.preferredMeasurement(for: measurementType, in: measurements)
     }
 
     /// 화면과 저장 로직에서 사용할 타입별 최신 측정값 목록
@@ -203,33 +199,7 @@ extension ClothingItemModel {
     /// 과거 버전에서 같은 측정 타입이 중복 저장된 데이터가 있어도
     /// 사용자에게는 타입별 최신/최상 측정값 하나만 노출합니다.
     var displayMeasurements: [MeasurementModel] {
-        var latestByType: [String: MeasurementModel] = [:]
-
-        for measurement in measurements {
-            if let current = latestByType[measurement.type] {
-                if measurement.isPreferred(over: current) {
-                    latestByType[measurement.type] = measurement
-                }
-            } else {
-                latestByType[measurement.type] = measurement
-            }
-        }
-
-        let order = measurementDisplayOrder
-        return latestByType.values.sorted { lhs, rhs in
-            let lhsOrder = order[lhs.type] ?? Int.max
-            let rhsOrder = order[rhs.type] ?? Int.max
-
-            if lhsOrder != rhsOrder {
-                return lhsOrder < rhsOrder
-            }
-
-            if lhs.measuredAt != rhs.measuredAt {
-                return lhs.measuredAt < rhs.measuredAt
-            }
-
-            return lhs.id.uuidString < rhs.id.uuidString
-        }
+        MeasurementSelectionService.displayMeasurements(from: measurements, clothingType: clothingType)
     }
 
     /// 기존 중복 측정값을 실제 데이터에서도 정리합니다.
@@ -237,20 +207,7 @@ extension ClothingItemModel {
     /// - Returns: 삭제한 중복 측정값 개수
     @discardableResult
     func deduplicateMeasurements(modelContext: ModelContext? = nil) -> Int {
-        var latestByType: [String: MeasurementModel] = [:]
-
-        for measurement in measurements {
-            if let current = latestByType[measurement.type] {
-                if measurement.isPreferred(over: current) {
-                    latestByType[measurement.type] = measurement
-                }
-            } else {
-                latestByType[measurement.type] = measurement
-            }
-        }
-
-        let keepIDs = Set(latestByType.values.map { $0.id })
-        let duplicates = measurements.filter { !keepIDs.contains($0.id) }
+        let duplicates = MeasurementSelectionService.duplicateMeasurements(in: measurements)
 
         for duplicate in duplicates {
             measurements.removeAll { $0.id == duplicate.id }
@@ -408,31 +365,5 @@ extension ClothingItemModel {
             return nil
         }
         return CGSize(width: width, height: height)
-    }
-
-    private var measurementDisplayOrder: [String: Int] {
-        let preferredOrder = (clothingType?.requiredMeasurements ?? []) +
-            (clothingType?.optionalMeasurements ?? [])
-        return Dictionary(uniqueKeysWithValues: preferredOrder.enumerated().map { index, type in
-            (type.rawValue, index)
-        })
-    }
-}
-
-private extension MeasurementModel {
-    func isPreferred(over other: MeasurementModel) -> Bool {
-        if measuredAt != other.measuredAt {
-            return measuredAt > other.measuredAt
-        }
-
-        if hasCoordinates != other.hasCoordinates {
-            return hasCoordinates
-        }
-
-        if confidence != other.confidence {
-            return confidence > other.confidence
-        }
-
-        return id.uuidString > other.id.uuidString
     }
 }

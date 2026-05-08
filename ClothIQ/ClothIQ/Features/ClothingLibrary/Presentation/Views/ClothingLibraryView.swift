@@ -17,6 +17,8 @@
 import SwiftUI
 import SwiftData
 
+private let bottomAnchorRepairSaveInterval = 4
+
 /// 의류 라이브러리 메인 화면 (iPhone/iPad 적응형)
 struct ClothingLibraryView: View {
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
@@ -435,16 +437,32 @@ struct ClothingLibraryView: View {
         defer { isRepairingBottomAnchors = false }
 
         var repairedSummary: [String] = []
+        var repairedSinceLastSave = 0
 
         for item in candidates {
             repairedBottomAnchorItemIDs.insert(item.id)
 
             let repairedTypes = await BottomMeasurementAnchorRepairService.repairIfNeeded(item: item)
-            guard !repairedTypes.isEmpty else { continue }
+            guard !repairedTypes.isEmpty else {
+                await Task.yield()
+                continue
+            }
 
             item.updatedAt = Date()
             let repairedNames = repairedTypes.map(\.displayName).joined(separator: ", ")
             repairedSummary.append("\(item.displayTitle): \(repairedNames)")
+            repairedSinceLastSave += 1
+
+            if repairedSinceLastSave >= bottomAnchorRepairSaveInterval {
+                do {
+                    try modelContext.save()
+                    repairedSinceLastSave = 0
+                } catch {
+                    print("❌ [BottomAnchorRepair] 라이브러리 중간 저장 실패: \(error)")
+                }
+            }
+
+            await Task.yield()
         }
 
         guard !repairedSummary.isEmpty else { return }

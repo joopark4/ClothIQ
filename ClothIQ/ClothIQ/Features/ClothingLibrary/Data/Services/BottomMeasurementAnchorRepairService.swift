@@ -10,49 +10,46 @@
 
 import Foundation
 import UIKit
+import CoreVideo
+import simd
 
 enum BottomMeasurementAnchorRepairService {
     static func repairIfNeeded(
         item: ClothingItemModel,
         measuredAt: Date = Date()
     ) async -> [MeasurementType] {
-        guard let clothingType = item.clothingType,
-              clothingType.category == .bottom,
-              item.measurement(for: .rise) != nil ||
-                item.measurement(for: .hem) != nil ||
-                item.measurement(for: .totalLength) != nil,
-              let image = item.loadImage()?.normalizedOrientation(),
-              let depthMapPath = item.depthMapPath,
-              let depthMap = DepthDataProcessor.loadDepthMap(from: depthMapPath),
-              let pixelBuffer = image.pixelBuffer() else {
+        guard let inputs = makeRepairInputs(for: item) else {
             return []
         }
 
         let autoService = AutoMeasurementService()
         guard let contour = try? await autoService.detectClothingContour(
-            from: pixelBuffer,
-            depthMap: depthMap
+            from: inputs.pixelBuffer,
+            depthMap: inputs.depthMap
         ) else {
             return []
         }
 
-        let imageSize = item.processedImageSize ?? image.size
-        let featurePoints = autoService.extractForegroundFeaturePoints(
-            from: image,
-            clothingType: clothingType
-        ) ?? autoService.extractFeaturePoints(from: contour, clothingType: clothingType)
+        let featurePoints = autoreleasepool {
+            autoService.extractForegroundFeaturePoints(
+                from: inputs.image,
+                clothingType: inputs.clothingType
+            ) ?? autoService.extractFeaturePoints(from: contour, clothingType: inputs.clothingType)
+        }
 
-        let results = autoService.performKeypointBasedMeasurement(
-            contour: contour,
-            clothingType: clothingType,
-            depthMap: depthMap,
-            imageSize: imageSize,
-            cameraIntrinsics: item.cameraIntrinsicsMatrix,
-            cameraResolution: item.cameraResolutionSize,
-            depthImageSize: item.originalImageSize ?? image.size,
-            cropRect: item.cropRect,
-            featurePointsOverride: featurePoints
-        )
+        let results = autoreleasepool {
+            autoService.performKeypointBasedMeasurement(
+                contour: contour,
+                clothingType: inputs.clothingType,
+                depthMap: inputs.depthMap,
+                imageSize: inputs.imageSize,
+                cameraIntrinsics: inputs.cameraIntrinsics,
+                cameraResolution: inputs.cameraResolution,
+                depthImageSize: inputs.depthImageSize,
+                cropRect: inputs.cropRect,
+                featurePointsOverride: featurePoints
+            )
+        }
 
         var repairedTypes: [MeasurementType] = []
 
@@ -61,7 +58,7 @@ enum BottomMeasurementAnchorRepairService {
                   let result = results[measurementType],
                   let normalizedPoints = BottomMeasurementAnchorRepairPolicy.normalizedPoints(
                     from: result,
-                    imageSize: imageSize
+                    imageSize: inputs.imageSize
                   ),
                   BottomMeasurementAnchorRepairPolicy.shouldRepair(
                     measurement: measurement,
@@ -75,7 +72,7 @@ enum BottomMeasurementAnchorRepairService {
             if BottomMeasurementAnchorRepairPolicy.apply(
                 result: result,
                 to: measurement,
-                imageSize: imageSize,
+                imageSize: inputs.imageSize,
                 measuredAt: measuredAt
             ) {
                 repairedTypes.append(measurementType)
@@ -84,4 +81,44 @@ enum BottomMeasurementAnchorRepairService {
 
         return repairedTypes
     }
+
+    private static func makeRepairInputs(for item: ClothingItemModel) -> BottomMeasurementRepairInputs? {
+        autoreleasepool {
+            guard let clothingType = item.clothingType,
+                  clothingType.category == .bottom,
+                  item.measurement(for: .rise) != nil ||
+                    item.measurement(for: .hem) != nil ||
+                    item.measurement(for: .totalLength) != nil,
+                  let image = item.loadImage()?.normalizedOrientation(),
+                  let depthMapPath = item.depthMapPath,
+                  let depthMap = DepthDataProcessor.loadDepthMap(from: depthMapPath),
+                  let pixelBuffer = image.pixelBuffer() else {
+                return nil
+            }
+
+            return BottomMeasurementRepairInputs(
+                clothingType: clothingType,
+                image: image,
+                depthMap: depthMap,
+                pixelBuffer: pixelBuffer,
+                imageSize: item.processedImageSize ?? image.size,
+                depthImageSize: item.originalImageSize ?? image.size,
+                cameraIntrinsics: item.cameraIntrinsicsMatrix,
+                cameraResolution: item.cameraResolutionSize,
+                cropRect: item.cropRect
+            )
+        }
+    }
+}
+
+private struct BottomMeasurementRepairInputs {
+    let clothingType: ClothingType
+    let image: UIImage
+    let depthMap: CVPixelBuffer
+    let pixelBuffer: CVPixelBuffer
+    let imageSize: CGSize
+    let depthImageSize: CGSize
+    let cameraIntrinsics: simd_float3x3?
+    let cameraResolution: CGSize?
+    let cropRect: CGRect?
 }
