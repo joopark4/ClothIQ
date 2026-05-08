@@ -72,6 +72,8 @@ scripts/__pycache__/
 Reference/
 ClothIQ/build/
 ClothIQ/build.log
+DOC/
+ISSUE/
 .vscode/
 .claude/
 CLAUDE.md

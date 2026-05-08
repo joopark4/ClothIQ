@@ -35,7 +35,7 @@ nano ios_device_config.sh
 
 ## 상세 가이드
 
-전체 사용 가이드는 **[DOC/IOS_DEVICE_GUIDE.md](../DOC/IOS_DEVICE_GUIDE.md)** 를 참조하세요.
+이 문서는 원격에 포함되는 스크립트 사용 기준입니다. 로컬 전용 상세 문서가 있는 경우에는 저장소에 올리지 않습니다.
 
 ## 다른 프로젝트에 적용하기
 
@@ -44,7 +44,7 @@ nano ios_device_config.sh
 3. 프로젝트 정보 입력 (프로젝트 경로, 스킴, 번들 ID)
 4. `./ios_device_tools.sh full-deploy` 실행
 
-자세한 내용은 [DOC/IOS_DEVICE_GUIDE.md](../DOC/IOS_DEVICE_GUIDE.md)의 "다른 프로젝트에 적용하기" 섹션을 참조하세요.
+프로젝트별 설정 파일은 원격에 올리지 말고 로컬에서만 관리하세요.
 
 ## 파일 설명
 
@@ -73,8 +73,6 @@ ClothIQ 개발 워크플로우를 더욱 간소화하는 추가 자동화 스크
 ### 0. ML 학습/수집 워크플로우
 
 실제 촬영 데이터로 의류 타입별 키포인트 모델을 학습하고 Core ML 모델을 앱에 배포하는 흐름입니다. 현재 타입별 학습/배포는 실제 촬영 원본과 사용자 보정 원본이 기준을 충족할 때까지 보류합니다.
-
-촬영 데이터 저장 위치와 수동 데이터 형식은 `DOC/ML_DATA_COLLECTION_GUIDE.md`를 먼저 확인하세요.
 
 앱 컨테이너 기준 핵심 저장 위치:
 
@@ -291,6 +289,6 @@ ciq-deploy  # 원클릭 배포!
 
 ## 상세 개발 워크플로우
 
-전체 개발 워크플로우는 루트 [README.md](../README.md), 진행 상황은 [ClothIQ/PROGRESS.md](../ClothIQ/PROGRESS.md), iOS 디바이스 가이드는 [DOC/IOS_DEVICE_GUIDE.md](../DOC/IOS_DEVICE_GUIDE.md)를 참조하세요.
+전체 개발 워크플로우는 루트 [README.md](../README.md)와 진행 상황 [ClothIQ/PROGRESS.md](../ClothIQ/PROGRESS.md)를 기준으로 확인하세요.
 
 **마지막 업데이트**: 2026년 5월 8일
