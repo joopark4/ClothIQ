@@ -73,6 +73,9 @@ final class ObjectCaptureService {
         /// 마스크 이진화 임계값 (0-255)
         static let maskThreshold: UInt8 = 100
 
+        /// 배경 합성 직전 낮은 신뢰도 마스크 픽셀을 배경으로 확정하는 임계값
+        static let compositingMaskThreshold: UInt8 = 128
+
         /// Morphological Dilation 반경
         static let morphologyDilationRadius: CGFloat = 10.0
 

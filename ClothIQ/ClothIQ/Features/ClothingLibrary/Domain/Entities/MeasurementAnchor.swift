@@ -10,7 +10,7 @@
 //
 
 import Foundation
-import SwiftUI
+import CoreGraphics
 
 /// 측정 앵커 포인트
 public struct MeasurementAnchor: Identifiable, Equatable {
@@ -66,7 +66,7 @@ public struct MeasurementLineUI: Identifiable {
     public let end: CGPoint
     public let type: MeasurementType
     public let value: Double
-    public let color: Color
+    public let colorName: String
 
     public init(
         id: UUID = UUID(),
@@ -74,13 +74,13 @@ public struct MeasurementLineUI: Identifiable {
         end: CGPoint,
         type: MeasurementType,
         value: Double,
-        color: Color = .blue
+        colorName: String = "blue"
     ) {
         self.id = id
         self.start = start
         self.end = end
         self.type = type
         self.value = value
-        self.color = color
+        self.colorName = colorName
     }
 }

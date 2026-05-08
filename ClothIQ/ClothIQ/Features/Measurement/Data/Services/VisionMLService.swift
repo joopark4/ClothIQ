@@ -41,7 +41,7 @@ struct MLKeypoint {
     /// 키포인트 식별자
     let identifier: String
 
-    /// 정규화된 위치 (0.0 ~ 1.0)
+    /// 정규화된 위치 (0.0 ~ 1.0, Vision 좌표계: Y=0 하단)
     let position: CGPoint
 
     /// 신뢰도 (0.0 ~ 1.0)
@@ -62,11 +62,11 @@ final class VisionMLService {
     /// 싱글톤 인스턴스
     static let shared = VisionMLService()
 
+    /// 학습 데이터는 전체 이미지를 0...1 좌표로 저장하므로 추론도 중앙 크롭 없이 전체 이미지를 모델 입력에 맞춥니다.
+    static let keypointModelCropAndScaleOption: VNImageCropAndScaleOption = .scaleFill
+
     /// Vision 요청 큐
     private let requestQueue = DispatchQueue(label: "com.clothiq.vision.ml", qos: .userInitiated)
-
-    /// 캐시된 모델
-    private var cachedModel: VNCoreMLModel?
 
     /// 최소 신뢰도 임계값
     private let minConfidence: Float = 0.6
@@ -119,7 +119,7 @@ final class VisionMLService {
         }
 
         // Vision 요청 생성
-        let request = try createVisionRequest()
+        let request = try createVisionRequest(clothingType: clothingType)
 
         // 요청 실행
         let keypoints = try await performVisionRequest(request, on: processedImage)
@@ -209,7 +209,8 @@ final class VisionMLService {
     func detectKeypointsHybrid(
         from image: UIImage,
         contour: VNContoursObservation?,
-        clothingType: ClothingType
+        clothingType: ClothingType,
+        featurePointsOverride: ClothingFeaturePoints? = nil
     ) async throws -> [MeasurementKeypoint] {
 
         print("🤖 [VisionML] 하이브리드 키포인트 감지 시작")
@@ -226,8 +227,10 @@ final class VisionMLService {
 
         // 2. 휴리스틱 기반 감지 (기존 ClothingKeypointDetector 사용)
         var heuristicKeypoints: [MeasurementKeypoint] = []
+        var featurePointsForPrior: ClothingFeaturePoints? = featurePointsOverride
         if let contour = contour {
-            let featurePoints = extractFeaturePoints(from: contour)
+            let featurePoints = featurePointsOverride ?? extractFeaturePoints(from: contour, clothingType: clothingType)
+            featurePointsForPrior = featurePoints
             let detector = ClothingKeypointDetector()
             heuristicKeypoints = detector.detectKeypoints(
                 from: contour,
@@ -235,26 +238,46 @@ final class VisionMLService {
                 featurePoints: featurePoints
             )
             print("  - 휴리스틱 키포인트: \(heuristicKeypoints.count)개 감지")
+        } else if featurePointsOverride != nil {
+            print("  - 휴리스틱 키포인트: contour 없음, 전경 특징점 기반 prior만 사용")
         }
 
-        // 3. Saliency 기반 감지 (NEW)
+        // 3. Saliency 기반 감지 (보조 후보)
+        // 모델 또는 윤곽선 기반 키포인트가 없으면 saliency 단독 후보는 측정 앵커로 쓰기에는 불안정합니다.
         var saliencyKeypoints: [MeasurementKeypoint] = []
-        do {
-            saliencyKeypoints = try await detectKeypointsUsingSaliency(
-                from: image,
-                clothingType: clothingType
-            )
-            print("  - Saliency 키포인트: \(saliencyKeypoints.count)개 감지")
-        } catch {
-            print("⚠️ Saliency 감지 실패: \(error)")
+        if !mlKeypoints.isEmpty || !heuristicKeypoints.isEmpty {
+            do {
+                saliencyKeypoints = try await detectKeypointsUsingSaliency(
+                    from: image,
+                    clothingType: clothingType
+                )
+                print("  - Saliency 키포인트: \(saliencyKeypoints.count)개 감지")
+            } catch {
+                print("⚠️ Saliency 감지 실패: \(error)")
+            }
+        } else {
+            print("  - Saliency 건너뜀: 신뢰 가능한 기본 키포인트 없음")
         }
 
         // 4. 3-way 병합: ML > Saliency > 휴리스틱 우선순위
-        let mergedKeypoints = mergeKeypointsThreeWay(
+        var mergedKeypoints = mergeKeypointsThreeWay(
             mlKeypoints: mlKeypoints,
             saliencyKeypoints: saliencyKeypoints,
             heuristicKeypoints: heuristicKeypoints
         )
+
+        if let featurePointsForPrior {
+            let learnedKeypoints = MLTrainingDataCollector.shared.learnedMeasurementPriorKeypoints(
+                for: clothingType,
+                featurePoints: featurePointsForPrior
+            )
+            mergedKeypoints = ClothingTypeMeasurementPrior.refine(
+                mergedKeypoints,
+                clothingType: clothingType,
+                featurePoints: featurePointsForPrior,
+                learnedKeypoints: learnedKeypoints
+            )
+        }
 
         print("✅ [VisionML] 하이브리드 감지 완료: \(mergedKeypoints.count)개 키포인트")
 
@@ -265,40 +288,29 @@ final class VisionMLService {
 
     /// 모델 초기화
     private func setupModel() {
-        // 현재는 내장 Vision 모델 사용
-        // 추후 커스텀 Core ML 모델로 교체 가능
+        let status = VisionMLModelLoader.shared.currentModelStatus()
         print("🤖 [VisionML] Vision ML 서비스 초기화")
+        print("  - 모델 상태: \(status.message)")
     }
 
     /// Vision 요청 생성
-    private func createVisionRequest() throws -> VNRequest {
-        // 옵션 1: 커스텀 Core ML 모델 사용 (있는 경우)
-        if let customModel = loadCustomModel() {
-            let request = VNCoreMLRequest(model: customModel) { request, error in
-                if let error = error {
-                    print("❌ [VisionML] ML 모델 실행 실패: \(error)")
-                }
-            }
-            request.imageCropAndScaleOption = .centerCrop
-            return request
+    private func createVisionRequest(clothingType: ClothingType?) throws -> VNRequest {
+        guard let customModel = loadCustomModel(for: clothingType) else {
+            throw VisionMLError.modelNotFound
         }
 
-        // 옵션 2: 윤곽선 감지 (평면 의류에 적합)
-        // VNDetectHumanBodyPoseRequest는 사람 포즈 전용이라 평면 의류에는 무용
-        let request = VNDetectContoursRequest()
-        request.contrastAdjustment = 2.0
-        request.detectsDarkOnLight = true
-        request.maximumImageDimension = 512
+        let request = VNCoreMLRequest(model: customModel) { request, error in
+            if let error = error {
+                print("❌ [VisionML] ML 모델 실행 실패: \(error)")
+            }
+        }
+        request.imageCropAndScaleOption = Self.keypointModelCropAndScaleOption
         return request
     }
 
     /// 커스텀 Core ML 모델 로드
-    private func loadCustomModel() -> VNCoreMLModel? {
-        // 커스텀 모델이 있다면 여기서 로드
-        // 예: ClothingKeypoints.mlmodel
-
-        // 현재는 nil 반환 (커스텀 모델 없음)
-        return nil
+    private func loadCustomModel(for clothingType: ClothingType?) -> VNCoreMLModel? {
+        VisionMLModelLoader.shared.loadCustomModel(for: clothingType)
     }
 
     // MARK: - Private Methods - Image Processing
@@ -374,7 +386,7 @@ final class VisionMLService {
            leftShoulder.confidence > minConfidence {
             keypoints.append(MLKeypoint(
                 identifier: "left_shoulder",
-                position: CGPoint(x: leftShoulder.location.x, y: 1.0 - leftShoulder.location.y),
+                position: leftShoulder.location,
                 confidence: Float(leftShoulder.confidence),
                 type: .leftShoulder,
                 depth: nil
@@ -385,7 +397,7 @@ final class VisionMLService {
            rightShoulder.confidence > minConfidence {
             keypoints.append(MLKeypoint(
                 identifier: "right_shoulder",
-                position: CGPoint(x: rightShoulder.location.x, y: 1.0 - rightShoulder.location.y),
+                position: rightShoulder.location,
                 confidence: Float(rightShoulder.confidence),
                 type: .rightShoulder,
                 depth: nil
@@ -397,7 +409,7 @@ final class VisionMLService {
            leftElbow.confidence > minConfidence {
             keypoints.append(MLKeypoint(
                 identifier: "left_sleeve",
-                position: CGPoint(x: leftElbow.location.x, y: 1.0 - leftElbow.location.y),
+                position: leftElbow.location,
                 confidence: Float(leftElbow.confidence) * 0.8, // 신뢰도 보정
                 type: .leftSleeveEnd,
                 depth: nil
@@ -411,7 +423,7 @@ final class VisionMLService {
 
             keypoints.append(MLKeypoint(
                 identifier: "waist_left",
-                position: CGPoint(x: leftHip.location.x, y: 1.0 - leftHip.location.y),
+                position: leftHip.location,
                 confidence: Float(leftHip.confidence),
                 type: .waistLeft,
                 depth: nil
@@ -419,7 +431,7 @@ final class VisionMLService {
 
             keypoints.append(MLKeypoint(
                 identifier: "waist_right",
-                position: CGPoint(x: rightHip.location.x, y: 1.0 - rightHip.location.y),
+                position: rightHip.location,
                 confidence: Float(rightHip.confidence),
                 type: .waistRight,
                 depth: nil
@@ -463,8 +475,15 @@ final class VisionMLService {
 
     /// Core ML 모델 결과 파싱
     private func parseMLResults(_ results: [VNCoreMLFeatureValueObservation]) -> [MLKeypoint] {
-        // 커스텀 모델 결과 파싱 (추후 구현)
-        return []
+        let keypoints = VisionMLModelOutputParser.parse(
+            results,
+            minConfidence: minConfidence,
+            keypointMapping: keypointMapping
+        )
+        if !keypoints.isEmpty {
+            print("✅ [VisionML] Core ML 키포인트 \(keypoints.count)개 파싱 완료")
+        }
+        return keypoints
     }
 
     // MARK: - Private Methods - Helper Functions
@@ -732,34 +751,6 @@ final class VisionMLService {
         return merged
     }
 
-    /// 특징점 추출 (간단한 버전)
-    private func extractFeaturePoints(from contour: VNContoursObservation) -> ClothingFeaturePoints {
-        guard contour.contourCount > 0,
-              let mainContour = try? contour.contour(at: 0) else {
-            return ClothingFeaturePoints(
-                topPoint: CGPoint(x: 0.5, y: 1.0),
-                bottomPoint: CGPoint(x: 0.5, y: 0.0),
-                leftmostPoint: CGPoint(x: 0.0, y: 0.5),
-                rightmostPoint: CGPoint(x: 1.0, y: 0.5),
-                allPoints: []
-            )
-        }
-
-        let points = mainContour.normalizedPath.points()
-
-        let topPoint = points.max(by: { $0.y < $1.y }) ?? CGPoint(x: 0.5, y: 1.0)
-        let bottomPoint = points.min(by: { $0.y < $1.y }) ?? CGPoint(x: 0.5, y: 0.0)
-        let leftmostPoint = points.min(by: { $0.x < $1.x }) ?? CGPoint(x: 0.0, y: 0.5)
-        let rightmostPoint = points.max(by: { $0.x < $1.x }) ?? CGPoint(x: 1.0, y: 0.5)
-
-        return ClothingFeaturePoints(
-            topPoint: topPoint,
-            bottomPoint: bottomPoint,
-            leftmostPoint: leftmostPoint,
-            rightmostPoint: rightmostPoint,
-            allPoints: points
-        )
-    }
 }
 
 // MARK: - Supporting Types

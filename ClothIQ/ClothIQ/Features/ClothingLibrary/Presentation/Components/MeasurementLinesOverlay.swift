@@ -204,7 +204,6 @@ struct MeasurementOverlayLineView: View {
                    let startPoint = measurement.startPoint,
                    let endPoint = measurement.endPoint {
 
-                    // 정규화 좌표 (0~1) → 표시 좌표 변환 (SwiftUI top-left origin)
                     let start = CGPoint(
                         x: displayRect.minX + startPoint.x * displayRect.width,
                         y: displayRect.minY + startPoint.y * displayRect.height
@@ -246,10 +245,7 @@ struct MeasurementOverlayLineView: View {
 
                     // 레이블
                     if animationProgress > 0.5 {
-                        let midPoint = CGPoint(
-                            x: (start.x + end.x) / 2,
-                            y: (start.y + end.y) / 2
-                        )
+                        let midPoint = CGPoint(x: (start.x + end.x) / 2, y: (start.y + end.y) / 2)
 
                         MeasurementLabel(
                             position: midPoint,

@@ -19,27 +19,29 @@ struct KeypointOverlayView: View {
     /// 감지된 키포인트들
     let keypoints: [MeasurementKeypoint]
 
+    /// 키포인트가 속한 의류 타입
+    var clothingType: ClothingType? = nil
+
     /// 이미지 크기
     let imageSize: CGSize
+
+    /// 실제 화면에 그려지는 이미지 크기
+    var renderedImageSize: CGSize? = nil
 
     /// 표시 영역 크기 (GeometryReader로 전달받음)
     let displaySize: CGSize
 
-    /// 스케일 팩터
-    private var scale: CGFloat {
-        min(displaySize.width / imageSize.width,
-            displaySize.height / imageSize.height)
-    }
+    /// 이미지 회전 각도
+    var rotation: Double = 0
 
-    /// 오프셋
-    private var offset: CGSize {
-        let scaledWidth = imageSize.width * scale
-        let scaledHeight = imageSize.height * scale
-        return CGSize(
-            width: (displaySize.width - scaledWidth) / 2,
-            height: (displaySize.height - scaledHeight) / 2
-        )
-    }
+    /// ZoomableImageView와 동일하게 적용할 이미지 여백
+    var padding: CGFloat = 0
+
+    /// ZoomableImageView의 확대 배율
+    var scale: CGFloat = 1
+
+    /// ZoomableImageView의 이동 오프셋
+    var offset: CGSize = .zero
 
     // MARK: - Body
 
@@ -72,15 +74,43 @@ struct KeypointOverlayView: View {
 
     /// 정규화된 좌표를 디스플레이 좌표로 변환
     private func convertToDisplayPoint(_ normalizedPoint: CGPoint) -> CGPoint {
-        // Vision 좌표계 (Y=0이 하단) → SwiftUI 좌표계 (Y=0이 상단) 변환
-        let x = normalizedPoint.x * imageSize.width * scale + offset.width
-        let y = (1.0 - normalizedPoint.y) * imageSize.height * scale + offset.height
-
-        return CGPoint(x: x, y: y)
+        // MeasurementKeypoint는 Vision 정규화 좌표계(Y=0 하단)를 사용한다.
+        // 이미지 픽셀 좌표계(Y=0 상단)로 바꾼 뒤, 실제 aspectFit/패딩/회전 변환을 공유한다.
+        let clampedX = max(0, min(normalizedPoint.x, 1))
+        let clampedY = max(0, min(normalizedPoint.y, 1))
+        let imagePoint = CGPoint(
+            x: clampedX * imageSize.width,
+            y: (1.0 - clampedY) * imageSize.height
+        )
+        let converter = CoordinateConverter(
+            imageSize: imageSize,
+            renderedImageSize: renderedImageSize,
+            rotation: rotation
+        )
+        return converter.imageToView(
+            imagePoint,
+            in: displaySize,
+            scale: scale,
+            offset: offset,
+            padding: padding
+        )
     }
 
     /// 키포인트 쌍으로 측정 라인 생성
     private var measurementLines: [KeypointMeasurementLine] {
+        if let clothingType {
+            return ClothingKeypointDetector()
+                .generateMeasurementLines(from: keypoints, clothingType: clothingType)
+                .map { line in
+                    KeypointMeasurementLine(
+                        id: line.type.rawValue,
+                        start: line.start,
+                        end: line.end,
+                        color: colorForMeasurementType(line.type)
+                    )
+                }
+        }
+
         var lines: [KeypointMeasurementLine] = []
 
         // 어깨너비
@@ -150,6 +180,29 @@ struct KeypointOverlayView: View {
         }
 
         return lines
+    }
+
+    private func colorForMeasurementType(_ type: MeasurementType) -> Color {
+        switch type {
+        case .shoulderWidth:
+            return .blue
+        case .chestCircumference:
+            return .green
+        case .sleeveLength:
+            return .orange
+        case .totalLength:
+            return .purple
+        case .waistCircumference:
+            return .red
+        case .hipCircumference:
+            return .pink
+        case .rise:
+            return .indigo
+        case .hem:
+            return .brown
+        default:
+            return .gray
+        }
     }
 }
 
@@ -237,7 +290,8 @@ struct KeypointOverlayView_Previews: PreviewProvider {
             KeypointOverlayView(
                 keypoints: sampleKeypoints,
                 imageSize: CGSize(width: 1000, height: 1500),
-                displaySize: geometry.size
+                displaySize: geometry.size,
+                padding: 20
             )
             .background(Color.gray.opacity(0.1))
         }

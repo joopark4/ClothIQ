@@ -79,10 +79,10 @@ struct TrainingStatsView: View {
 
                 // 사용자 수정 샘플
                 VStack {
-                    Text("\(statistics.userCorrectedSamples)")
+                    Text("\(statistics.usableModelTrainingSamples)")
                         .font(.system(size: 32, weight: .bold))
                         .foregroundStyle(.green)
-                    Text("사용자 수정")
+                    Text("학습 유효")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
@@ -127,7 +127,7 @@ struct TrainingStatsView: View {
                     Spacer()
                 }
 
-                Text("macOS의 CreateML을 사용하여 모델을 학습할 수 있습니다.")
+                Text("Mac의 외부 학습 워크플로우로 모델을 학습할 수 있습니다.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -140,7 +140,7 @@ struct TrainingStatsView: View {
                     Spacer()
                 }
 
-                Text("최소 100개의 샘플이 필요합니다. 현재: \(statistics.totalSamples)개")
+                Text("최소 100개의 학습 유효 샘플이 필요합니다. 현재: \(statistics.usableModelTrainingSamples)개")
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -279,6 +279,8 @@ struct TrainingStatsView_Previews: PreviewProvider {
         TrainingStatsView(
             statistics: TrainingDataStatistics(
                 totalSamples: 156,
+                usableModelTrainingSamples: 156,
+                uniqueUserCorrectedModelTrainingSamples: 42,
                 userCorrectedSamples: 42,
                 clothingTypeDistribution: [
                     "short_sleeve": 45,

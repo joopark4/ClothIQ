@@ -11,6 +11,16 @@
 
 import Foundation
 
+/// 완료 측정선의 2D 좌표 기준
+enum MeasurementCoordinateSpace: Equatable {
+    /// ARFrame.camera.imageResolution 기준 픽셀 좌표
+    case cameraImagePixels
+    /// 캡처 후 처리/크롭된 저장 이미지 기준 픽셀 좌표
+    case processedImagePixels
+    /// 캡처 후 처리/크롭된 저장 이미지 기준 정규화 좌표
+    case processedImageNormalized
+}
+
 /// AR 화면에서 완료된 한 쌍의 측정선(2개 포인트)과 그 결과를 담는 모델
 struct CompletedMeasurement: Identifiable, Equatable {
     let id: UUID
@@ -18,12 +28,27 @@ struct CompletedMeasurement: Identifiable, Equatable {
     let startPoint: MeasurementPoint
     let endPoint: MeasurementPoint
     let distanceInCm: Double
+    let confidence: Double
+    let coordinateSpace: MeasurementCoordinateSpace
+    let measurementMethod: MeasurementMethod
     
-    init(id: UUID = UUID(), type: MeasurementType, startPoint: MeasurementPoint, endPoint: MeasurementPoint, distanceInCm: Double) {
+    init(
+        id: UUID = UUID(),
+        type: MeasurementType,
+        startPoint: MeasurementPoint,
+        endPoint: MeasurementPoint,
+        distanceInCm: Double,
+        confidence: Double? = nil,
+        coordinateSpace: MeasurementCoordinateSpace = .cameraImagePixels,
+        measurementMethod: MeasurementMethod = .ar
+    ) {
         self.id = id
         self.type = type
         self.startPoint = startPoint
         self.endPoint = endPoint
         self.distanceInCm = distanceInCm
+        self.confidence = confidence ?? Double((startPoint.confidence + endPoint.confidence) / 2.0)
+        self.coordinateSpace = coordinateSpace
+        self.measurementMethod = measurementMethod
     }
 }

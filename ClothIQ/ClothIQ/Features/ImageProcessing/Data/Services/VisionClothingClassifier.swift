@@ -49,7 +49,7 @@ struct ClothingClassificationResult {
 ///   - 소매가 짧은 경우 반팔, 긴 경우 긴팔로 추가 구분 (향후 Vision 활용)
 ///
 /// - **하의 (Bottoms)**
-///   - 반바지: 0.8 ~ 1.6 (정사각형 ~ 약간 세로로 긴 형태)
+///   - 반바지: 0.4 ~ 1.6 (가로로 넓은 쇼츠 ~ 약간 세로로 긴 형태)
 ///   - 긴바지: 1.8 ~ 2.5 (세로로 긴 형태)
 ///   - 치마: 1.6 ~ 1.8 (중간 길이)
 ///
@@ -109,6 +109,15 @@ final class VisionClothingClassifier {
     private func classifyByAspectRatio(_ aspectRatio: CGFloat) -> (ClothingType, Double) {
         // 분류 로직
         switch aspectRatio {
+        // 반바지: 0.25 ~ 0.8 (가로로 넓게 펼친 쇼츠)
+        case 0.25..<0.8:
+            let confidence = calculateConfidence(
+                aspectRatio: aspectRatio,
+                idealRatio: 0.55,
+                tolerance: 0.30
+            )
+            return (.shorts, confidence)
+
         // 반바지: 0.8 ~ 1.6 (정사각형 ~ 약간 세로로 긴 형태)
         case 0.8...1.6:
             let confidence = calculateConfidence(
@@ -142,10 +151,9 @@ final class VisionClothingClassifier {
 
         // 상의 (기본값: 반팔)
         default:
-            // 0.8 미만 또는 비정상적인 비율은 반팔로 분류
+            // 극단적으로 납작한 비율은 분류 신뢰도를 낮게 둔다.
             let confidence: Double
-            if aspectRatio < 0.8 {
-                // 너무 넓은 이미지는 신뢰도 낮음
+            if aspectRatio < 0.25 {
                 confidence = 0.5
             } else {
                 confidence = 0.7
@@ -223,6 +231,112 @@ final class VisionClothingClassifier {
         // TODO: Vision Framework로 소매 길이 감지
         // 현재는 기본값으로 반팔 반환
         return .shortSleeve
+    }
+}
+
+// MARK: - Classification Resolution
+
+/// 이미지 종횡비 분류와 윤곽선 기반 분류가 충돌할 때 최종 타입을 결정합니다.
+struct AutomaticClothingTypeResolver {
+    static func resolve(
+        classifierResult: ClothingClassificationResult,
+        contourType: ClothingType,
+        contourFeatures: ClothingFeatures
+    ) -> ClothingClassificationResult {
+        let classifierType = classifierResult.type
+        let classifierConfidence = classifierResult.confidence
+        let contourConfidence = Double(contourFeatures.confidence)
+
+        if classifierType == contourType {
+            return ClothingClassificationResult(
+                type: classifierType,
+                confidence: max(classifierConfidence, contourConfidence),
+                method: .hybrid
+            )
+        }
+
+        if shouldKeepBottomClassification(
+            classifierResult: classifierResult,
+            contourType: contourType,
+            contourFeatures: contourFeatures
+        ) {
+            return ClothingClassificationResult(
+                type: classifierType,
+                confidence: classifierConfidence,
+                method: .hybrid
+            )
+        }
+
+        if classifierType.category == contourType.category {
+            return higherConfidenceResult(
+                classifierResult: classifierResult,
+                contourType: contourType,
+                contourConfidence: contourConfidence
+            )
+        }
+
+        // 카테고리가 충돌하면 윤곽선 결과가 명확히 더 강할 때만 덮어쓴다.
+        // 반바지처럼 가로로 넓은 하의는 허리선/다리 입구 때문에 상의 윤곽으로 오판될 수 있다.
+        if contourConfidence >= classifierConfidence + 0.15 {
+            return ClothingClassificationResult(
+                type: contourType,
+                confidence: contourConfidence,
+                method: .hybrid
+            )
+        }
+
+        return ClothingClassificationResult(
+            type: classifierType,
+            confidence: classifierConfidence,
+            method: .hybrid
+        )
+    }
+
+    private static func shouldKeepBottomClassification(
+        classifierResult: ClothingClassificationResult,
+        contourType: ClothingType,
+        contourFeatures: ClothingFeatures
+    ) -> Bool {
+        guard classifierResult.type.category == .bottom,
+              contourType.category != .bottom,
+              classifierResult.confidence >= 0.72 else {
+            return false
+        }
+
+        let contourConfidence = Double(contourFeatures.confidence)
+        let contourMargin = contourConfidence - classifierResult.confidence
+        let shortBottomSilhouette = contourFeatures.aspectRatio <= 0.90
+        let narrowTopRegion = contourFeatures.topRegionShape.isNarrow ||
+            contourFeatures.topRegionShape.topWidthRatio <= 0.60
+        let sleevelessTopConflict = !contourFeatures.sleeveDetection.hasSleeves &&
+            narrowTopRegion
+        let landscapeShortsConflict = classifierResult.type == .shorts &&
+            shortBottomSilhouette &&
+            narrowTopRegion
+
+        return shortBottomSilhouette &&
+            (sleevelessTopConflict || landscapeShortsConflict) &&
+            contourMargin < 0.35
+    }
+
+    private static func higherConfidenceResult(
+        classifierResult: ClothingClassificationResult,
+        contourType: ClothingType,
+        contourConfidence: Double
+    ) -> ClothingClassificationResult {
+        if contourConfidence > classifierResult.confidence {
+            return ClothingClassificationResult(
+                type: contourType,
+                confidence: contourConfidence,
+                method: .hybrid
+            )
+        }
+
+        return ClothingClassificationResult(
+            type: classifierResult.type,
+            confidence: classifierResult.confidence,
+            method: .hybrid
+        )
     }
 }
 

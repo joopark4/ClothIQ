@@ -22,95 +22,98 @@ struct CameraPermissionView: View {
     let onPermissionGranted: () -> Void
 
     var body: some View {
-        VStack(spacing: 24) {
-            // 카메라 아이콘
-            Image(systemName: "camera.fill")
-                .font(.system(size: 72))
-                .foregroundColor(.blue)
-                .padding(.top, 60)
+        ScrollView {
+            VStack(spacing: 22) {
+                // 카메라 아이콘
+                Image(systemName: "camera.fill")
+                    .font(.system(size: 60))
+                    .foregroundColor(.blue)
+                    .padding(.top, 44)
 
-            // 제목
-            Text("카메라 접근 권한 필요")
-                .font(.title)
-                .fontWeight(.bold)
-
-            // 설명
-            VStack(spacing: 16) {
-                Text("ClothIQ는 의류를 측정하기 위해\n카메라와 LiDAR 센서를 사용합니다.")
-                    .font(.body)
-                    .foregroundColor(.secondary)
+                // 제목
+                Text("카메라 접근 권한 필요")
+                    .font(.title2)
+                    .fontWeight(.bold)
                     .multilineTextAlignment(.center)
+                    .accessibilityIdentifier("camera-permission-title")
 
-                // 기능 설명
-                VStack(alignment: .leading, spacing: 12) {
-                    FeatureRow(
-                        icon: "ruler",
-                        title: "정밀 측정",
-                        description: "LiDAR로 정확한 사이즈 측정"
-                    )
+                // 설명
+                VStack(spacing: 16) {
+                    Text("ClothIQ는 의류를 측정하기 위해\n카메라와 LiDAR 센서를 사용합니다.")
+                        .font(.body)
+                        .foregroundColor(.secondary)
+                        .multilineTextAlignment(.center)
 
-                    FeatureRow(
-                        icon: "camera.viewfinder",
-                        title: "실시간 프리뷰",
-                        description: "측정 과정을 실시간으로 확인"
-                    )
+                    // 기능 설명
+                    VStack(alignment: .leading, spacing: 12) {
+                        FeatureRow(
+                            icon: "ruler",
+                            title: "정밀 측정",
+                            description: "LiDAR로 정확한 사이즈 측정"
+                        )
 
-                    FeatureRow(
-                        icon: "photo",
-                        title: "이미지 저장",
-                        description: "측정한 의류 사진 보관"
-                    )
-                }
-                .padding(.horizontal, 32)
-                .padding(.vertical, 16)
-            }
+                        FeatureRow(
+                            icon: "camera.viewfinder",
+                            title: "실시간 프리뷰",
+                            description: "측정 과정을 실시간으로 확인"
+                        )
 
-            Spacer()
-
-            // 권한 요청 버튼
-            Button(action: requestPermission) {
-                HStack {
-                    if isRequestingPermission {
-                        ProgressView()
-                            .progressViewStyle(CircularProgressViewStyle(tint: .white))
-                    } else {
-                        Image(systemName: "camera.fill")
-                        Text("카메라 권한 허용")
+                        FeatureRow(
+                            icon: "photo",
+                            title: "이미지 저장",
+                            description: "측정한 의류 사진 보관"
+                        )
                     }
+                    .padding(.vertical, 8)
                 }
-                .frame(maxWidth: .infinity)
-                .padding()
-                .background(Color.blue)
-                .foregroundColor(.white)
-                .cornerRadius(12)
-                .padding(.horizontal, 32)
-            }
-            .disabled(isRequestingPermission)
 
-            // 설정으로 이동 버튼 (권한이 이미 거부된 경우)
-            if AVCaptureDevice.authorizationStatus(for: .video) == .denied {
-                Button(action: openSettings) {
+                // 권한 요청 버튼
+                Button(action: requestPermission) {
                     HStack {
-                        Image(systemName: "gear")
-                        Text("설정에서 권한 허용")
+                        if isRequestingPermission {
+                            ProgressView()
+                                .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                        } else {
+                            Image(systemName: "camera.fill")
+                            Text("카메라 권한 허용")
+                        }
                     }
                     .frame(maxWidth: .infinity)
                     .padding()
-                    .background(Color.gray.opacity(0.2))
-                    .foregroundColor(.blue)
+                    .background(Color.blue)
+                    .foregroundColor(.white)
                     .cornerRadius(12)
-                    .padding(.horizontal, 32)
                 }
-            }
+                .disabled(isRequestingPermission)
+                .accessibilityIdentifier("camera-permission-request-button")
 
-            // 안내 메시지
-            Text("카메라 접근 권한은 측정 기능에만 사용되며,\n다른 목적으로 사용되지 않습니다.")
-                .font(.caption)
-                .foregroundColor(.secondary)
-                .multilineTextAlignment(.center)
-                .padding(.horizontal, 32)
-                .padding(.bottom, 32)
+                // 설정으로 이동 버튼 (권한이 이미 거부된 경우)
+                if AVCaptureDevice.authorizationStatus(for: .video) == .denied {
+                    Button(action: openSettings) {
+                        HStack {
+                            Image(systemName: "gear")
+                            Text("설정에서 권한 허용")
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding()
+                        .background(Color.gray.opacity(0.2))
+                        .foregroundColor(.blue)
+                        .cornerRadius(12)
+                    }
+                }
+
+                // 안내 메시지
+                Text("카메라 접근 권한은 측정 기능에만 사용되며,\n다른 목적으로 사용되지 않습니다.")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                    .multilineTextAlignment(.center)
+                    .padding(.bottom, 32)
+            }
+            .padding(.horizontal, 32)
+            .frame(maxWidth: 520)
+            .frame(maxWidth: .infinity)
         }
+        .accessibilityIdentifier("camera-permission-scroll-view")
     }
 
     // MARK: - Actions

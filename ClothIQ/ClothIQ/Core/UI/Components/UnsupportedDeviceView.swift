@@ -21,107 +21,107 @@ struct UnsupportedDeviceView: View {
     let iOSVersion: String
 
     var body: some View {
-        VStack(spacing: 24) {
-            // 아이콘
-            Image(systemName: "exclamationmark.triangle.fill")
-                .font(.system(size: 72))
-                .foregroundColor(.orange)
-                .padding(.top, 40)
+        ScrollView {
+            VStack(spacing: 20) {
+                // 아이콘
+                Image(systemName: "exclamationmark.triangle.fill")
+                    .font(.system(size: 56))
+                    .foregroundColor(.orange)
+                    .padding(.top, 32)
 
-            // 제목
-            Text("기기가 지원되지 않습니다")
-                .font(.title)
-                .fontWeight(.bold)
+                // 제목
+                Text("기기가 지원되지 않습니다")
+                    .font(.title2)
+                    .fontWeight(.bold)
+                    .multilineTextAlignment(.center)
+                    .accessibilityIdentifier("unsupported-device-title")
 
-            // 에러 메시지
-            Text(errorMessage)
-                .font(.body)
-                .foregroundColor(.secondary)
-                .multilineTextAlignment(.center)
-                .padding(.horizontal, 32)
+                // 에러 메시지
+                Text(errorMessage)
+                    .font(.body)
+                    .foregroundColor(.secondary)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, 24)
 
-            Divider()
-                .padding(.horizontal, 32)
+                Divider()
+                    .padding(.horizontal, 24)
 
-            // 현재 기기 정보
-            VStack(spacing: 12) {
-                Text("현재 기기 정보")
-                    .font(.headline)
+                // 현재 기기 정보
+                VStack(spacing: 12) {
+                    Text("현재 기기 정보")
+                        .font(.headline)
 
-                HStack {
-                    Text("기기 모델:")
-                        .foregroundColor(.secondary)
-                    Spacer()
-                    Text(deviceModel)
-                        .fontWeight(.medium)
-                }
-                .padding(.horizontal, 32)
+                    HStack {
+                        Text("기기 모델:")
+                            .foregroundColor(.secondary)
+                        Spacer()
+                        Text(deviceModel)
+                            .fontWeight(.medium)
+                            .multilineTextAlignment(.trailing)
+                    }
 
-                HStack {
-                    Text("iOS 버전:")
-                        .foregroundColor(.secondary)
-                    Spacer()
-                    Text(iOSVersion)
-                        .fontWeight(.medium)
-                }
-                .padding(.horizontal, 32)
-            }
-
-            Divider()
-                .padding(.horizontal, 32)
-
-            // 지원 기기 목록
-            VStack(spacing: 16) {
-                Text("지원되는 기기")
-                    .font(.headline)
-
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("iPhone")
-                        .font(.subheadline)
-                        .fontWeight(.semibold)
-
-                    ForEach(DeviceCapability.lidarSupportedIPhones, id: \.self) { model in
-                        HStack {
-                            Image(systemName: "checkmark.circle.fill")
-                                .foregroundColor(.green)
-                                .font(.caption)
-                            Text(model)
-                                .font(.caption)
-                        }
+                    HStack {
+                        Text("iOS 버전:")
+                            .foregroundColor(.secondary)
+                        Spacer()
+                        Text(iOSVersion)
+                            .fontWeight(.medium)
                     }
                 }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.horizontal, 32)
+                .padding(.horizontal, 24)
 
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("iPad")
-                        .font(.subheadline)
-                        .fontWeight(.semibold)
+                Divider()
+                    .padding(.horizontal, 24)
 
-                    ForEach(DeviceCapability.lidarSupportediPads, id: \.self) { model in
-                        HStack {
-                            Image(systemName: "checkmark.circle.fill")
-                                .foregroundColor(.green)
-                                .font(.caption)
-                            Text(model)
-                                .font(.caption)
-                        }
-                    }
+                // 지원 기기 목록
+                VStack(spacing: 16) {
+                    Text("지원되는 기기")
+                        .font(.headline)
+
+                    supportedDeviceGroup(
+                        title: "iPhone",
+                        models: DeviceCapability.lidarSupportedIPhones
+                    )
+
+                    supportedDeviceGroup(
+                        title: "iPad",
+                        models: DeviceCapability.lidarSupportediPads
+                    )
                 }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.horizontal, 32)
+
+                // 안내 메시지
+                Text("ClothIQ는 LiDAR 센서가 탑재된 기기에서만 사용할 수 있습니다.")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, 24)
+                    .padding(.bottom, 32)
             }
-
-            Spacer()
-
-            // 안내 메시지
-            Text("ClothIQ는 LiDAR 센서가 탑재된 기기에서만 사용할 수 있습니다.")
-                .font(.caption)
-                .foregroundColor(.secondary)
-                .multilineTextAlignment(.center)
-                .padding(.horizontal, 32)
-                .padding(.bottom, 24)
+            .frame(maxWidth: 520)
+            .frame(maxWidth: .infinity)
         }
+        .accessibilityIdentifier("unsupported-device-scroll-view")
+    }
+
+    private func supportedDeviceGroup(title: String, models: [String]) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(title)
+                .font(.subheadline)
+                .fontWeight(.semibold)
+
+            ForEach(models, id: \.self) { model in
+                HStack(alignment: .firstTextBaseline, spacing: 8) {
+                    Image(systemName: "checkmark.circle.fill")
+                        .foregroundColor(.green)
+                        .font(.caption)
+                    Text(model)
+                        .font(.caption)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.horizontal, 24)
     }
 }
 

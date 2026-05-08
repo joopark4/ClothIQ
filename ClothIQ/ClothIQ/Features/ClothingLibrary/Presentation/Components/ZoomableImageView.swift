@@ -27,6 +27,9 @@ struct ZoomableImageView: View {
     let onAnchorDragChanged: (UUID, CGPoint) -> Void
     let onAnchorDragEnded: (UUID, CGPoint) -> Void
     let onAnchorSelected: (UUID) -> Void
+    var clothingType: ClothingType? = nil
+    var keypoints: [MeasurementKeypoint] = []
+    var showKeypoints: Bool = false
 
     @State private var currentScale: CGFloat = 1.0
     @State private var finalScale: CGFloat = 1.0
@@ -56,11 +59,27 @@ struct ZoomableImageView: View {
                     .rotationEffect(.degrees(rotation))
                     .padding(imagePadding)  // 이미지 주변 여백
 
+                if showKeypoints && !keypoints.isEmpty {
+                    KeypointOverlayView(
+                        keypoints: keypoints,
+                        clothingType: clothingType,
+                        imageSize: imageSize,
+                        renderedImageSize: image.size,
+                        displaySize: geometry.size,
+                        rotation: rotation,
+                        padding: imagePadding,
+                        scale: 1.0,
+                        offset: .zero
+                    )
+                    .allowsHitTesting(false)
+                }
+
                 // 오버레이 - 항상 표시 (내부에서 empty 체크)
                 MeasurementAnchorsOverlay(
                     anchors: $measurementAnchors,
                     isEditingAnchors: $isEditingAnchors,
                     imageSize: imageSize,  // 전달받은 effectiveImageSize 사용
+                    renderedImageSize: image.size,
                     rotation: rotation,  // 회전 각도 전달 (좌표 변환에 필요)
                     scale: 1.0,  // 확대 비활성화
                     offset: .zero,  // 이동 비활성화
@@ -146,7 +165,11 @@ struct ZoomableImageView: View {
             width: finalOffset.width + currentOffset.width,
             height: finalOffset.height + currentOffset.height
         )
-        let converter = CoordinateConverter(imageSize: imageSize, rotation: rotation)
+        let converter = CoordinateConverter(
+            imageSize: imageSize,
+            renderedImageSize: image.size,
+            rotation: rotation
+        )
         return converter.viewToImage(location, in: viewSize, scale: scale, offset: offset, padding: imagePadding)
     }
 
@@ -218,8 +241,19 @@ struct CoordinateConverter {
 
     // MARK: - Properties
 
+    /// 저장/계산 좌표계 크기
     let imageSize: CGSize
+
+    /// 실제 화면에 그려지는 이미지 크기
+    let renderedImageSize: CGSize
+
     let rotation: Double
+
+    init(imageSize: CGSize, renderedImageSize: CGSize? = nil, rotation: Double) {
+        self.imageSize = imageSize
+        self.renderedImageSize = renderedImageSize ?? imageSize
+        self.rotation = rotation
+    }
 
     private var normalizedRotation: Int {
         ((Int(rotation) % 360) + 360) % 360
@@ -240,13 +274,13 @@ struct CoordinateConverter {
     ) -> (size: CGSize, origin: CGPoint) {
         // padding을 고려한 실제 이미지 표시 가능 영역
         let availableSize = CGSize(
-            width: viewSize.width - padding * 2,
-            height: viewSize.height - padding * 2
+            width: max(1, viewSize.width - padding * 2),
+            height: max(1, viewSize.height - padding * 2)
         )
 
-        // rotation 반영한 이미지 종횡비 (90°/270°이면 width/height 교환)
-        let displayedWidth = isRotated90or270 ? imageSize.height : imageSize.width
-        let displayedHeight = isRotated90or270 ? imageSize.width : imageSize.height
+        // rotation 반영한 실제 렌더 이미지 종횡비 (90°/270°이면 width/height 교환)
+        let displayedWidth = max(1, isRotated90or270 ? renderedImageSize.height : renderedImageSize.width)
+        let displayedHeight = max(1, isRotated90or270 ? renderedImageSize.width : renderedImageSize.height)
         let imageAspect = displayedWidth / displayedHeight
         let availableAspect = availableSize.width / availableSize.height
 
@@ -299,8 +333,8 @@ struct CoordinateConverter {
     ) -> CGPoint {
         let (scaledSize, origin) = scaledLayout(in: viewSize, scale: scale, offset: offset, padding: padding)
 
-        let nx = point.x / imageSize.width
-        let ny = point.y / imageSize.height
+        let nx = imageSize.width > 0 ? point.x / imageSize.width : 0.5
+        let ny = imageSize.height > 0 ? point.y / imageSize.height : 0.5
 
         let dx: CGFloat
         let dy: CGFloat
@@ -364,8 +398,8 @@ struct CoordinateConverter {
         }
 
         return CGPoint(
-            x: nx * imageSize.width,
-            y: ny * imageSize.height
+            x: nx * max(1, imageSize.width),
+            y: ny * max(1, imageSize.height)
         )
     }
 }
@@ -376,6 +410,7 @@ struct MeasurementAnchorsOverlay: View {
     @Binding var anchors: [MeasurementAnchor]
     @Binding var isEditingAnchors: Bool
     let imageSize: CGSize
+    let renderedImageSize: CGSize
     let rotation: Double  // 회전 각도 (좌표 변환에 필요)
     let scale: CGFloat
     let offset: CGSize
@@ -504,12 +539,20 @@ struct MeasurementAnchorsOverlay: View {
     }
 
     private func convertImageToViewCoordinates(_ point: CGPoint, in viewSize: CGSize) -> CGPoint {
-        let converter = CoordinateConverter(imageSize: imageSize, rotation: rotation)
+        let converter = CoordinateConverter(
+            imageSize: imageSize,
+            renderedImageSize: renderedImageSize,
+            rotation: rotation
+        )
         return converter.imageToView(point, in: viewSize, scale: scale, offset: offset, padding: padding)
     }
 
     private func convertViewToImageCoordinates(_ location: CGPoint, in viewSize: CGSize) -> CGPoint {
-        let converter = CoordinateConverter(imageSize: imageSize, rotation: rotation)
+        let converter = CoordinateConverter(
+            imageSize: imageSize,
+            renderedImageSize: renderedImageSize,
+            rotation: rotation
+        )
         return converter.viewToImage(location, in: viewSize, scale: scale, offset: offset, padding: padding)
     }
 }

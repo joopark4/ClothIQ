@@ -16,7 +16,7 @@
 //
 
 import Foundation
-import UIKit
+import CoreGraphics
 import CoreVideo
 import Darwin  // for utsname
 import simd
@@ -243,21 +243,17 @@ struct PhotoMeasurementCalculator {
     ) -> Float? {
         let depthWidth = CVPixelBufferGetWidth(depthMap)
         let depthHeight = CVPixelBufferGetHeight(depthMap)
-
-        // 이미지 좌표 → depth map 좌표 변환
-        let normalizedX = point.x / imageSize.width
-        let normalizedY = point.y / imageSize.height
-
-        let depthX = Int(normalizedX * CGFloat(depthWidth))
-        let depthY = Int(normalizedY * CGFloat(depthHeight))
-
-        // 범위 확인
-        guard depthX >= 0 && depthX < depthWidth &&
-              depthY >= 0 && depthY < depthHeight else {
+        guard depthWidth > 0, depthHeight > 0, imageSize.width > 0, imageSize.height > 0 else {
             return nil
         }
 
-        // Depth 값 읽기
+        // 이미지 좌표 → depth map 좌표 변환
+        let normalizedX = max(0, min(point.x / imageSize.width, 1))
+        let normalizedY = max(0, min(point.y / imageSize.height, 1))
+
+        let depthX = max(0, min(depthWidth - 1, Int((normalizedX * CGFloat(depthWidth - 1)).rounded())))
+        let depthY = max(0, min(depthHeight - 1, Int((normalizedY * CGFloat(depthHeight - 1)).rounded())))
+
         CVPixelBufferLockBaseAddress(depthMap, .readOnly)
         defer { CVPixelBufferUnlockBaseAddress(depthMap, .readOnly) }
 
@@ -266,15 +262,39 @@ struct PhotoMeasurementCalculator {
         }
 
         let bytesPerRow = CVPixelBufferGetBytesPerRow(depthMap)
-        let rowData = baseAddress + depthY * bytesPerRow
-        let depth = rowData.assumingMemoryBound(to: Float32.self)[depthX]
 
-        // 유효성 검증
-        guard depth > 0 && depth.isFinite && depth < 10.0 else {
+        func validDepth(atX x: Int, y: Int) -> Float? {
+            let rowData = baseAddress + y * bytesPerRow
+            let depth = rowData.assumingMemoryBound(to: Float32.self)[x]
+            guard depth.isFinite, depth > 0.05, depth < 10.0 else {
+                return nil
+            }
+            return depth
+        }
+
+        if let directDepth = validDepth(atX: depthX, y: depthY) {
+            return directDepth
+        }
+
+        var nearbyDepths: [Float] = []
+        let kernelRadius = 3
+        for offsetY in -kernelRadius...kernelRadius {
+            for offsetX in -kernelRadius...kernelRadius {
+                let x = depthX + offsetX
+                let y = depthY + offsetY
+                guard x >= 0, x < depthWidth, y >= 0, y < depthHeight else { continue }
+                if let depth = validDepth(atX: x, y: y) {
+                    nearbyDepths.append(depth)
+                }
+            }
+        }
+
+        guard !nearbyDepths.isEmpty else {
             return nil
         }
 
-        return depth
+        nearbyDepths.sort()
+        return nearbyDepths[nearbyDepths.count / 2]
     }
 
     /// 측정 신뢰도를 계산합니다.

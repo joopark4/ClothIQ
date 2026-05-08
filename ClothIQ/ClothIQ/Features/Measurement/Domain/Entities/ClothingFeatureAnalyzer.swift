@@ -233,7 +233,15 @@ final class ClothingFeatureAnalyzer {
             }
         }
 
-        // 4. 소매 감지로 상의 세부 분류
+        // 4. 낮은 종횡비의 민소매 실루엣은 반팔보다 반바지일 가능성이 높다.
+        // 반바지는 허리/다리 개구부 때문에 상단이 좁게 보이며 상의로 오판되기 쉽다.
+        if !features.sleeveDetection.hasSleeves && features.aspectRatio < 1.0 {
+            if features.aspectRatio >= 0.35 || features.hemlineShape.isVShaped {
+                return .shorts
+            }
+        }
+
+        // 5. 소매 감지로 상의 세부 분류
         if features.topRegionShape.isNarrow {
             // 좁은 상단 → 상의 (목선)
             switch features.sleeveDetection.sleeveType {
@@ -251,7 +259,7 @@ final class ClothingFeatureAnalyzer {
             }
         }
 
-        // 4. 종횡비 기반 폴백 (기존 방식)
+        // 6. 종횡비 기반 폴백 (기존 방식)
         if features.aspectRatio < 0.8 {
             return features.sleeveDetection.hasSleeves ? .shortSleeve : .skirt
         } else if features.aspectRatio < 1.3 {

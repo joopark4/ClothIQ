@@ -66,7 +66,18 @@ load_config() {
 # 디바이스 목록 조회
 list_devices() {
     log_info "연결된 iOS 디바이스 목록:"
-    xcrun xctrace list devices 2>&1 | grep -E "iPhone|iPad" | grep -v "Simulator" || {
+    local device_output
+    device_output="$(xcrun devicectl list devices 2>&1 || true)"
+    if echo "$device_output" | grep -E "iPhone|iPad" | grep -v "Simulator"; then
+        return 0
+    fi
+
+    device_output="$(xcrun xctrace list devices 2>&1 || true)"
+    if echo "$device_output" | grep -E "iPhone|iPad" | grep -v "Simulator"; then
+        return 0
+    fi
+
+    {
         log_warning "연결된 디바이스가 없습니다."
         return 1
     }
@@ -74,12 +85,26 @@ list_devices() {
 
 # 첫 번째 연결된 디바이스 ID 자동 감지
 auto_detect_device() {
-    local device_id=$(xcrun xctrace list devices 2>&1 | \
+    local uuid_pattern='[A-F0-9]\{8\}-[A-F0-9]\{4\}-[A-F0-9]\{4\}-[A-F0-9]\{4\}-[A-F0-9]\{12\}'
+    local device_output
+    local device_id
+
+    device_output="$(xcrun devicectl list devices 2>/dev/null || true)"
+    device_id=$(echo "$device_output" | \
         grep -E "iPhone|iPad" | \
-        grep -v "Simulator" | \
-        grep -o '([A-F0-9-]\{36\})' | \
-        head -1 | \
-        tr -d '()')
+        grep -E "available|connected" | \
+        grep -o "$uuid_pattern" | \
+        head -1)
+
+    if [ -z "$device_id" ]; then
+        device_output="$(xcrun xctrace list devices 2>&1 || true)"
+        device_id=$(echo "$device_output" | \
+            grep -E "iPhone|iPad" | \
+            grep -v "Simulator" | \
+            grep -o "($uuid_pattern)" | \
+            head -1 | \
+            tr -d '()')
+    fi
 
     if [ -z "$device_id" ]; then
         log_error "연결된 디바이스를 찾을 수 없습니다."

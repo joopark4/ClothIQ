@@ -98,6 +98,12 @@ final class MeasurementViewModelRefactored: ObservableObject {
     /// 저장 전 검토용 측정 항목 목록
     @Published var draftMeasurements: [CompletedMeasurement] = []
 
+    /// 저장 전 검토용 자동 감지 키포인트
+    @Published var draftKeypoints: [MeasurementKeypoint] = []
+
+    /// 저장 전 검토용 자동 의류 분류 신뢰도
+    @Published var draftClassificationConfidence: Double?
+
     /// 의류 타입 선택 Sheet 표시 여부
     /// - Note: 구형 플로우와의 호환성을 위해 유지됩니다.
     @Published var showingTypeSelection: Bool = false
@@ -128,6 +134,7 @@ final class MeasurementViewModelRefactored: ObservableObject {
     let imageFileManager: ImageFileManager
     let objectCaptureService: ObjectCaptureService
     let photoLibraryService: PhotoLibraryService
+    let lockedClothingType: ClothingType?
     let measurementFilter = MeasurementFilter()
     var modelContext: ModelContext?
     var cancellables = Set<AnyCancellable>()
@@ -161,6 +168,7 @@ final class MeasurementViewModelRefactored: ObservableObject {
         clothingType: ClothingType? = nil,
         modelContext: ModelContext? = nil
     ) {
+        self.lockedClothingType = clothingType
         self.session = MeasurementSession(clothingType: clothingType)
         self.modelContext = modelContext
         self.measurementService = ARMeasurementService()

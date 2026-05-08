@@ -306,7 +306,9 @@ extension MeasurementViewModelRefactored {
                 type: measurementType,
                 startPoint: startPoint,
                 endPoint: endPoint,
-                distanceInCm: calibratedDistance
+                distanceInCm: calibratedDistance,
+                confidence: Double(totalConfidence),
+                measurementMethod: .ar
             )
 
             // 진행 중 오버레이 리스트에 임시 추가 (아직 확정은 아니지만, 시각적인 정보와 함께)
@@ -334,7 +336,8 @@ extension MeasurementViewModelRefactored {
                 type: measurementType,
                 startPoint: startPoint,
                 endPoint: endPoint,
-                distanceInCm: measuredValue
+                distanceInCm: measuredValue,
+                measurementMethod: .ar
             )
         } else if let pending = pendingMeasurement, pending.type == measurementType {
             candidate = pending
@@ -353,7 +356,10 @@ extension MeasurementViewModelRefactored {
             type: measurementType,
             startPoint: candidate.startPoint,
             endPoint: candidate.endPoint,
-            distanceInCm: savedValue
+            distanceInCm: savedValue,
+            confidence: candidate.confidence,
+            coordinateSpace: candidate.coordinateSpace,
+            measurementMethod: candidate.measurementMethod
         )
         completedMeasurements.removeAll { $0.type == measurementType }
         completedMeasurements.append(completed)

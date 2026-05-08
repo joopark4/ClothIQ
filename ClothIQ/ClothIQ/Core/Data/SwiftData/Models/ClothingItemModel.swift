@@ -191,7 +191,85 @@ extension ClothingItemModel {
     /// - Parameter measurementType: 조회할 측정 타입
     /// - Returns: 해당 타입의 측정값, 없으면 nil
     func measurement(for measurementType: MeasurementType) -> MeasurementModel? {
-        measurements.first { $0.type == measurementType.rawValue }
+        MeasurementSelectionService.preferredMeasurement(for: measurementType, in: measurements)
+    }
+
+    /// 화면과 저장 로직에서 사용할 타입별 최신 측정값 목록
+    ///
+    /// 과거 버전에서 같은 측정 타입이 중복 저장된 데이터가 있어도
+    /// 사용자에게는 타입별 최신/최상 측정값 하나만 노출합니다.
+    var displayMeasurements: [MeasurementModel] {
+        MeasurementSelectionService.displayMeasurements(from: measurements, clothingType: clothingType)
+    }
+
+    /// 기존 중복 측정값을 실제 데이터에서도 정리합니다.
+    ///
+    /// - Returns: 삭제한 중복 측정값 개수
+    @discardableResult
+    func deduplicateMeasurements(modelContext: ModelContext? = nil) -> Int {
+        let duplicates = MeasurementSelectionService.duplicateMeasurements(in: measurements)
+
+        for duplicate in duplicates {
+            measurements.removeAll { $0.id == duplicate.id }
+            modelContext?.delete(duplicate)
+        }
+
+        return duplicates.count
+    }
+
+    /// 측정값을 타입 기준으로 저장합니다.
+    ///
+    /// 같은 측정 타입은 하나만 유지하고 기존 값을 갱신합니다.
+    @discardableResult
+    func upsertMeasurement(
+        type measurementType: MeasurementType,
+        value: Double,
+        unit: String = "cm",
+        confidence: Double,
+        measuredAt: Date = Date(),
+        startPoint: CGPoint? = nil,
+        endPoint: CGPoint? = nil,
+        method: MeasurementMethod,
+        modelContext: ModelContext? = nil
+    ) -> MeasurementModel {
+        let rawType = measurementType.rawValue
+        let matchingMeasurements = measurements.filter { $0.type == rawType }
+
+        let measurement: MeasurementModel
+        if let existing = matchingMeasurements.first {
+            measurement = existing
+        } else {
+            measurement = MeasurementModel(
+                type: rawType,
+                value: value,
+                unit: unit,
+                confidence: confidence,
+                measuredAt: measuredAt,
+                measurementMethodRaw: method.rawValue
+            )
+            measurements.append(measurement)
+            measurement.clothingItem = self
+        }
+
+        measurement.type = rawType
+        measurement.value = value
+        measurement.unit = unit
+        measurement.confidence = confidence
+        measurement.measuredAt = measuredAt
+        measurement.startPointX = startPoint.map { Double($0.x) }
+        measurement.startPointY = startPoint.map { Double($0.y) }
+        measurement.endPointX = endPoint.map { Double($0.x) }
+        measurement.endPointY = endPoint.map { Double($0.y) }
+        measurement.pathPoints = nil
+        measurement.measurementMethodRaw = method.rawValue
+        measurement.clothingItem = self
+
+        for duplicate in matchingMeasurements.dropFirst() {
+            measurements.removeAll { $0.id == duplicate.id }
+            modelContext?.delete(duplicate)
+        }
+
+        return measurement
     }
 
     /// 필수 측정 항목이 모두 완료되었는지 확인

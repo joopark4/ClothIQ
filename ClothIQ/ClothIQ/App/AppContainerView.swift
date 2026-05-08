@@ -56,6 +56,7 @@ struct AppContainerView: View {
             checkDeviceSupport()
             initializeCalibrationProfile()
         }
+        .accessibilityIdentifier("app-container")
     }
 
     // MARK: - Device Support Check
@@ -63,6 +64,16 @@ struct AppContainerView: View {
     /// 기기 지원 여부 확인
     private func checkDeviceSupport() {
         isCheckingDevice = true
+
+        #if DEBUG
+        if ProcessInfo.processInfo.arguments.contains("--ui-testing-bypass-device-check") {
+            deviceSupported = true
+            supportCheckMessage = nil
+            cameraPermissionGranted = true
+            isCheckingDevice = false
+            return
+        }
+        #endif
 
         // 비동기로 확인 (시뮬레이션을 위해 약간의 지연 추가)
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {

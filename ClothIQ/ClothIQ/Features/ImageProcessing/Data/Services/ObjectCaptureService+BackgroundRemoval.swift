@@ -14,6 +14,9 @@ import CoreImage
 import CoreVideo
 import CoreGraphics
 
+private let colorThresholdFilterName = "CIColorThreshold"
+private let colorThresholdInputKey = "inputThreshold"
+
 extension ObjectCaptureService {
 
     // MARK: - Background Removal
@@ -388,8 +391,12 @@ extension ObjectCaptureService {
             finalMask = maskCGImage
         }
 
+        guard let compositingMask = hardenMaskForCompositing(finalMask) else {
+            return nil
+        }
+
         // GPU 가속 마스크 적용 (CIBlendWithMask)
-        let result = applyMaskWithCoreImage(image: cgImage, mask: finalMask)
+        let result = applyMaskWithCoreImage(image: cgImage, mask: compositingMask)
 
         return result.map { UIImage(cgImage: $0, scale: 1.0, orientation: .up) }
     }
@@ -597,13 +604,92 @@ extension ObjectCaptureService {
             return nil
         }
 
-        // Vision 마스크는 흰색=전경, 검은색=배경이므로 반전 불필요
-        // (Vision Framework가 제공하는 마스크를 그대로 신뢰)
+        // Vision 마스크는 회색 경계값을 포함할 수 있으므로 합성 전 이진화한다.
+        // CIBlendWithMask에 부드러운 마스크를 그대로 넘기면 배경색이 일부 섞여 남는다.
+        guard let compositingMask = hardenMaskForCompositing(finalMask) else {
+            return nil
+        }
 
         // GPU 가속 마스크 적용 (CIBlendWithMask)
-        let result = applyMaskWithCoreImage(image: cgImage, mask: finalMask)
+        let result = applyMaskWithCoreImage(image: cgImage, mask: compositingMask)
 
         return result.map { UIImage(cgImage: $0, scale: 1.0, orientation: .up) }
+    }
+
+    /// 합성 직전 마스크를 0/255 값으로 고정해 낮은 신뢰도 배경 픽셀이 남지 않게 합니다.
+    func hardenMaskForCompositing(
+        _ mask: CGImage,
+        threshold: UInt8 = Constants.compositingMaskThreshold
+    ) -> CGImage? {
+        if let hardenedMask = hardenMaskForCompositingWithCoreImage(mask, threshold: threshold) {
+            return hardenedMask
+        }
+
+        print("⚠️ [BackgroundRemoval] Core Image 마스크 이진화 실패, CPU fallback 사용")
+        return hardenMaskForCompositingCPUFallback(mask, threshold: threshold)
+    }
+
+    private func hardenMaskForCompositingWithCoreImage(
+        _ mask: CGImage,
+        threshold: UInt8
+    ) -> CGImage? {
+        guard let thresholdFilter = CIFilter(name: colorThresholdFilterName) else {
+            return nil
+        }
+
+        let inputImage = CIImage(cgImage: mask)
+        let normalizedThreshold = CGFloat(threshold) / 255.0
+        thresholdFilter.setValue(inputImage, forKey: kCIInputImageKey)
+        thresholdFilter.setValue(normalizedThreshold, forKey: colorThresholdInputKey)
+
+        guard let outputImage = thresholdFilter.outputImage?.cropped(to: inputImage.extent) else {
+            return nil
+        }
+
+        let context = CIContext(options: [.useSoftwareRenderer: false])
+        return context.createCGImage(outputImage, from: outputImage.extent)
+    }
+
+    private func hardenMaskForCompositingCPUFallback(
+        _ mask: CGImage,
+        threshold: UInt8
+    ) -> CGImage? {
+        let width = mask.width
+        let height = mask.height
+
+        guard width > 0,
+              height > 0,
+              let colorSpace = CGColorSpace(name: CGColorSpace.linearGray),
+              let context = CGContext(
+                data: nil,
+                width: width,
+                height: height,
+                bitsPerComponent: 8,
+                bytesPerRow: 0,
+                space: colorSpace,
+                bitmapInfo: CGImageAlphaInfo.none.rawValue
+              ) else {
+            return nil
+        }
+
+        context.interpolationQuality = .none
+        context.draw(mask, in: CGRect(x: 0, y: 0, width: width, height: height))
+
+        guard let data = context.data else {
+            return nil
+        }
+
+        let buffer = data.assumingMemoryBound(to: UInt8.self)
+        let bytesPerRow = context.bytesPerRow
+
+        for y in 0..<height {
+            let row = buffer + y * bytesPerRow
+            for x in 0..<width {
+                row[x] = row[x] >= threshold ? 255 : 0
+            }
+        }
+
+        return context.makeImage()
     }
 
     /// 마스크를 반전 (흰색↔검은색)
