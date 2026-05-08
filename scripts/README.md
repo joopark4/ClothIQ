@@ -35,7 +35,7 @@ nano ios_device_config.sh
 
 ## 상세 가이드
 
-전체 사용 가이드는 프로젝트 루트의 **[IOS_DEVICE_GUIDE.md](../IOS_DEVICE_GUIDE.md)** 를 참조하세요.
+전체 사용 가이드는 **[DOC/IOS_DEVICE_GUIDE.md](../DOC/IOS_DEVICE_GUIDE.md)** 를 참조하세요.
 
 ## 다른 프로젝트에 적용하기
 
@@ -44,7 +44,7 @@ nano ios_device_config.sh
 3. 프로젝트 정보 입력 (프로젝트 경로, 스킴, 번들 ID)
 4. `./ios_device_tools.sh full-deploy` 실행
 
-자세한 내용은 [IOS_DEVICE_GUIDE.md](../IOS_DEVICE_GUIDE.md)의 "다른 프로젝트에 적용하기" 섹션을 참조하세요.
+자세한 내용은 [DOC/IOS_DEVICE_GUIDE.md](../DOC/IOS_DEVICE_GUIDE.md)의 "다른 프로젝트에 적용하기" 섹션을 참조하세요.
 
 ## 파일 설명
 
@@ -72,7 +72,7 @@ ClothIQ 개발 워크플로우를 더욱 간소화하는 추가 자동화 스크
 
 ### 0. ML 학습/수집 워크플로우
 
-실제 촬영 데이터로 의류 타입별 키포인트 모델을 학습하고 Core ML 모델을 앱에 배포하는 흐름입니다.
+실제 촬영 데이터로 의류 타입별 키포인트 모델을 학습하고 Core ML 모델을 앱에 배포하는 흐름입니다. 현재 타입별 학습/배포는 실제 촬영 원본과 사용자 보정 원본이 기준을 충족할 때까지 보류합니다.
 
 촬영 데이터 저장 위치와 수동 데이터 형식은 `DOC/ML_DATA_COLLECTION_GUIDE.md`를 먼저 확인하세요.
 
@@ -138,7 +138,7 @@ bash scripts/pull_training_snapshot.sh \
 ```bash
 cd ..
 bash scripts/ml_training_workflow.sh \
-  --data-path tmp/latest-device-training-data \
+  --data-path tmp/latest-training-snapshot/merged \
   --completion-audit \
   --collection-plan tmp/ml-training-collection-plan-current.md \
   --capture-checklist tmp/ml-training-required-capture-checklist.md \
@@ -158,12 +158,14 @@ python3 scripts/merge_training_data.py \
 ```bash
 cd ..
 bash scripts/ml_training_workflow.sh \
-  --data-path tmp/latest-device-training-data-merged \
+  --data-path tmp/latest-training-snapshot/merged \
   --per-type \
   --skip-export
 ```
 
-학습 완료 기준은 의류 타입별 고유 실제 원본 촬영 20개 이상, 고유 사용자 보정 원본 촬영 3개 이상, 컴파일된 `ClothingKeypointDetector_<type>.mlmodelc` 생성입니다. 증강 샘플과 같은 이미지의 중복 라벨 레코드는 완료 기준의 실제 원본 촬영 수로 계산하지 않습니다.
+학습 완료 기준은 16개 의류 타입 전체에 대해 타입별 고유 실제 원본 촬영 20개 이상, 고유 사용자 보정 원본 촬영 3개 이상, 필수 키포인트 coverage 충족, 컴파일된 `ClothingKeypointDetector_<type>.mlmodelc` 생성입니다. 증강 샘플과 같은 이미지의 중복 라벨 레코드는 완료 기준의 실제 원본 촬영 수로 계산하지 않습니다.
+
+현재 감사 기준으로는 총 라벨 17개, 고유 실제 촬영 원본 16장, 고유 사용자 보정 원본 1장만 있어 타입별 학습 기준을 충족하지 못합니다. 새 촬영/보정 데이터가 들어오기 전에는 `--per-type` 학습이 모델 생성을 중단하는 것이 정상입니다.
 
 ### 1. `quick_deploy.sh` - 빠른 빌드 및 배포
 
@@ -289,6 +291,6 @@ ciq-deploy  # 원클릭 배포!
 
 ## 상세 개발 워크플로우
 
-전체 개발 워크플로우 및 트러블슈팅 가이드는 [DEVELOP_WF.md](../DEVELOP_WF.md)를 참조하세요.
+전체 개발 워크플로우는 루트 [README.md](../README.md), 진행 상황은 [ClothIQ/PROGRESS.md](../ClothIQ/PROGRESS.md), iOS 디바이스 가이드는 [DOC/IOS_DEVICE_GUIDE.md](../DOC/IOS_DEVICE_GUIDE.md)를 참조하세요.
 
-**마지막 업데이트**: 2025년 11월 6일
+**마지막 업데이트**: 2026년 5월 8일
