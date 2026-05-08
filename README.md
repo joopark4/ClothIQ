@@ -93,16 +93,6 @@ ClothIQ는 LiDAR 기반 AR 측정과 사진 기반 후처리 측정을 결합한
 - 개발/검증 대상: iPad Pro 계열 LiDAR 지원 기기
 - LiDAR 미지원 기기에서는 핵심 AR 측정 기능 제한
 
-## 프로젝트 규모
-
-- Swift 파일 수: `127` (`ClothIQ/ClothIQ` 기준)
-- 앱 소스 라인 수: `39,343` (`ClothIQ/ClothIQ` 기준)
-- 주요 모듈
-  - `ClothIQ/ClothIQ/Features/Measurement`
-  - `ClothIQ/ClothIQ/Features/ClothingLibrary`
-  - `ClothIQ/ClothIQ/Features/ImageProcessing`
-  - `ClothIQ/ClothIQ/Features/Settings`
-
 ## 빠른 실행
 
 ### Xcode
@@ -151,17 +141,3 @@ bash scripts/ml_training_workflow.sh \
   --per-type \
   --skip-export
 ```
-
-## 문서
-
-- 진행 상황: `ClothIQ/PROGRESS.md`
-- 권한 설정: `ClothIQ/ClothIQ/App/README_PERMISSIONS.md`
-- 스크립트 사용법: `scripts/README.md`
-- 이슈 기록: `ISSUE/`
-- 상세 운영 가이드: `DOC/` (로컬 문서 디렉터리)
-
-## 개인정보/보안 원칙
-
-- 문서에 개인 이름, 이메일, 전화번호, 기기 UDID, 개발팀 ID, 프로비저닝 식별자를 기록하지 않습니다.
-- 문서에는 사용자 홈을 포함한 절대 경로 대신 상대 경로 또는 `<repo>`, `<device-id>`, `<bundle-id>` placeholder를 사용합니다.
-- `tmp/`, `logs/`, `.codex/`, `scripts/__pycache__/`, 기기 스냅샷, 학습 라벨 원본, 모델 산출물은 커밋하지 않습니다.
